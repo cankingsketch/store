@@ -58,6 +58,18 @@ window.CANKING_EVENTS = [
 
 /* ---------------- 以下是顯示邏輯，一般不用改 ---------------- */
 (function () {
+  // 注入共用樣式：每個欄位內部不換行、欄位間留間距（首頁與 events.html 都適用）
+  (function injectStyle() {
+    if (document.getElementById("ck-events-style")) return;
+    var css =
+      ".ck-ev-date,.ck-ev-name,.ck-ev-booth{white-space:nowrap}" +
+      ".ck-ev-date{margin-right:.7em}.ck-ev-name{margin-right:.7em}";
+    var s = document.createElement("style");
+    s.id = "ck-events-style";
+    s.textContent = css;
+    (document.head || document.documentElement).appendChild(s);
+  })();
+
   function parseDate(s) {
     var p = String(s).split("-");
     return new Date(+p[0], (+p[1]) - 1, +p[2]);
@@ -66,9 +78,14 @@ window.CANKING_EVENTS = [
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
   function lineHtml(e) {
-    var t = escapeHtml(e.date) + "　" + escapeHtml(e.name);
-    if (e.booth) t += "　攤位：" + escapeHtml(e.booth);
-    return '<div class="ck-event-line">' + t + "</div>";
+    // 用 <wbr> 標記「可換行點」：太長時整段欄位換行，不會把「攤位」拆成兩半
+    var h =
+      '<span class="ck-ev-date">' + escapeHtml(e.date) + "</span><wbr>" +
+      '<span class="ck-ev-name">' + escapeHtml(e.name) + "</span>";
+    if (e.booth) {
+      h += '<wbr><span class="ck-ev-booth">攤位：' + escapeHtml(e.booth) + "</span>";
+    }
+    return '<div class="ck-event-line">' + h + "</div>";
   }
 
   // opts: { upcomingEl, pastEl, upcomingLimit, upcomingEmpty }
