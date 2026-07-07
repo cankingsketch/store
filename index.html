@@ -14,7 +14,8 @@
 <meta property="og:image" content="images/new_index_twinkle.png" />
 <meta property="og:image" content="images/new_index_title.png" />
 <meta property="og:image" content="images/new_index_rank.png" />
-<meta property="og:url" content="https://cankingstore.weebly.com/" />
+<meta property="og:url" content="https://cankingstore.com/" />
+<link rel="canonical" href="https://cankingstore.com/" />
 
 <meta name="description" content="空罐王的&quot;空罐商店&quot;" />
 <meta name="keywords" content="空罐王,繪圖接龍,空罐王課程,空罐商店,空罐課程,空罐王CankingSketch," />
@@ -843,7 +844,7 @@ margin-top: -2px;
           </div>
 
           <div class="img-box img-dialog img-dialog-4">
-            <a href="https://cankingstore.weebly.com/events.html" target="_blank">
+            <a href="events.html">
               <img src="images/new_index_dialog_4.png">
             </a>
           </div>
@@ -1153,38 +1154,31 @@ margin-top: -2px;
         </div>
         <div id="ns-content-box"></div>
         <div class="img-box img-more m-auto d-inline-flex">
-          <a href="https://cankingstore.weebly.com/events.html" target="_blank" class="d-inline-flex">
+          <a href="events.html" class="d-inline-flex">
             <img src="images/event_more.png"/>
           </a>
         </div>
       </div>
     </div>
 
+    <script src="events-data.js"></script>
     <script>
-      setTimeout(() => {
-        function fetchEvents() {
-          try {
-            return fetch('/events.html').then(r => r.text());
-          } catch (e) {
-            return '';
+      (function () {
+        function start() {
+          var containerEl = document.getElementById('ns-events-container');
+          if (containerEl) containerEl.style = '';
+          var boxEl = document.querySelector('#ns-events-container #ns-content-box');
+          if (window.cankingRenderEvents && boxEl) {
+            // 首頁紅框只顯示「預定參加活動」（即將到來的），日期一過會自動消失
+            window.cankingRenderEvents({ upcomingEl: boxEl });
           }
         }
-
-        async function init() {
-
-          const containerEl = document.getElementById('ns-events-container');
-          containerEl.style = '';
-
-          const htmlText = await fetchEvents();
-          const sandboxEl = document.createElement('div');
-          sandboxEl.innerHTML = htmlText;
-          const targeEl = sandboxEl.querySelector('.paragraph');
-          const contentBoxEl = document.querySelector('#ns-events-container #ns-content-box');
-          contentBoxEl.append(targeEl);
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', start);
+        } else {
+          start();
         }
-
-        init();
-      });
+      })();
     </script></div>
 
 
