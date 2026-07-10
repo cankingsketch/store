@@ -401,12 +401,32 @@ _W.setup_model_rpc({"rpc_namespace":"_W.Commerce.RPC","model_namespace":"_W.Comm
 <div class="paragraph"><font size="3">&#30001;&#26044;&#27599;&#20221;&#37117;&#26159;&#25163;&#24037;&#35069;&#20316;&#30340;&#65292;&#27599;&#22825;&#33021;&#35069;&#20316;&#30340;&#26178;&#38291;&#26377;&#38480;&#12290;<br />&#22240;&#27492;&#20677;&#26371;&#22312;&#36067;&#36008;&#20415;&#19978;&#27599;&#26376;&#38283;&#25918;&#23569;&#37327;&#38928;&#36092;&#65292;<br />&#36996;&#35531;&#24515;&#21205;&#30340;&#26379;&#21451;&#20497;&#27880;&#24847;&#19968;&#19979;&#36865;&#31150;&#30340;&#26085;&#26399;&#21908;&#65281;<br />-<br />&#20197;&#19979;&#26159;&#25490;&#21934;&#30340;&#27969;&#31243;<br />1. &#36067;&#36008;&#20415;&#19979;&#21934;20&#20803;+&#36939;&#36027;38&#20803;<br />2. &#22635;&#23458;&#35069;&#21270;&#20839;&#23481;&#34920;&#21934;(email&#36890;&#30693;)<br />3. &#21295;&#20840;&#27454;1980&#20803;<span style="color:rgb(123, 140, 137)">(email&#36890;&#30693;)</span><br />4. &#30906;&#35469;&#38651;&#23376;&#27171;&#21697;&#22294;(&#21487;&#20462;&#25913;1&#27425;)<br />5. &#35069;&#20316;&#26178;&#38291;&#32004;7-10&#20491;&#24037;&#20316;&#26085;<br />6. &#20986;&#36008;Email&#36890;&#30693;<br />7. &#38283;&#24515;&#21462;&#36008;</font></div>
 
 <div><div style="height:20px;overflow:hidden"></div>
-<div id='672731300581181837-slideshow'></div>
-<script type='text/javascript'>
-(function(jQuery) {
-function init() { window.wSlideshow && window.wSlideshow.render({elementID:"672731300581181837",nav:"thumbnails",navLocation:"bottom",captionLocation:"bottom",transition:"fade",autoplay:"0",speed:"5",aspectRatio:"auto",showControls:"true",randomStart:"false",images:[{"url":"1\/3\/0\/6\/130665711\/cashcard-1.png","width":800,"height":800,"fullHeight":800,"fullWidth":800},{"url":"1\/3\/0\/6\/130665711\/cashcard-2.png","width":800,"height":800,"fullHeight":800,"fullWidth":800},{"url":"1\/3\/0\/6\/130665711\/cashcard-3.png","width":800,"height":800,"fullHeight":800,"fullWidth":800},{"url":"1\/3\/0\/6\/130665711\/cashcard-4.png","width":800,"height":800,"fullHeight":800,"fullWidth":800},{"url":"1\/3\/0\/6\/130665711\/cashcard-5.png","width":800,"height":800,"fullHeight":800,"fullWidth":800},{"url":"1\/3\/0\/6\/130665711\/cashcard-6.png","width":800,"height":800,"fullHeight":800,"fullWidth":800},{"url":"1\/3\/0\/6\/130665711\/cashcard-7.png","width":800,"height":800,"fullHeight":800,"fullWidth":800},{"url":"1\/3\/0\/6\/130665711\/cashcard-8.png","width":800,"height":800,"fullHeight":800,"fullWidth":800},{"url":"1\/3\/0\/6\/130665711\/cashcard-9.png","width":800,"height":800,"fullHeight":800,"fullWidth":800},{"url":"1\/3\/0\/6\/130665711\/cashcard-10.png","width":800,"height":800,"fullHeight":800,"fullWidth":800},{"url":"1\/3\/0\/6\/130665711\/cashcard-11.png","width":800,"height":800,"fullHeight":800,"fullWidth":800}]}) }
-jQuery(document).ready(init);
-})(window.jQuery)
+<div id="ck-cashcard-gallery" style="max-width:600px;margin:0 auto;">
+  <div style="width:100%;text-align:center;">
+    <img id="ck-cc-main" src="images/cashcard-1.png" alt="客製信用卡造型卡片" style="width:100%;max-width:600px;border-radius:8px;" />
+  </div>
+  <div id="ck-cc-thumbs" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px;"></div>
+</div>
+<script>
+(function(){
+  var main = document.getElementById('ck-cc-main');
+  var thumbs = document.getElementById('ck-cc-thumbs');
+  for (var i=1;i<=11;i++){
+    (function(src){
+      var t = document.createElement('img');
+      t.src = src;
+      t.alt = '卡片圖';
+      t.style.cssText = 'width:64px;height:64px;object-fit:cover;border-radius:6px;cursor:pointer;border:2px solid transparent;';
+      t.addEventListener('click', function(){
+        main.src = src;
+        for (var j=0;j<thumbs.children.length;j++){ thumbs.children[j].style.borderColor='transparent'; }
+        t.style.borderColor='#ff1f1f';
+      });
+      if (i===1) t.style.borderColor='#ff1f1f';
+      thumbs.appendChild(t);
+    })('images/cashcard-'+i+'.png');
+  }
+})();
 </script>
 
 <div style="height:20px;overflow:hidden"></div></div>
