@@ -374,6 +374,90 @@ _W.setup_model_rpc({"rpc_namespace":"_W.Commerce.RPC","model_namespace":"_W.Comm
 	</table>
 </div></div></div>
 
+<style>
+  #ck-quick-menu { max-width: 900px; margin: 6px auto 34px; padding: 16px 18px; background: #fff5f5; border: 2px solid #ff2d2d; border-radius: 16px; box-sizing: border-box; }
+  #ck-quick-menu .ck-qm-title { font-weight: 800; color: #ff2d2d; font-size: 18px; margin-bottom: 12px; text-align: center; }
+  #ck-quick-menu .ck-qm-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  #ck-quick-menu .ck-qm-item { display: inline-block; padding: 7px 14px; background: #fff; color: #ff2d2d !important; border: 1.5px solid #ff2d2d; border-radius: 999px; font-size: 14px; line-height: 1.2; text-decoration: none; white-space: nowrap; transition: background .15s, color .15s; }
+  #ck-quick-menu .ck-qm-item:hover { background: #ff2d2d; color: #fff !important; }
+  #ck-backtop { position: fixed; left: 18px; bottom: 24px; z-index: 9999; display: none; padding: 10px 16px; background: #ff2d2d; color: #fff; border: none; border-radius: 999px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+  @media screen and (max-width: 600px) {
+    #ck-quick-menu .ck-qm-item { font-size: 13px; padding: 6px 11px; }
+  }
+</style>
+<script>
+  (function () {
+    function init() {
+      var content = document.getElementById('wsite-content') || document.body;
+      var heads = [].slice.call(content.querySelectorAll('h2.wsite-content-title'));
+      if (heads.length < 2) return;
+
+      // 計算頁首偏移（若頁首是固定/黏性的，跳轉時要留出高度）
+      function headerOffset() {
+        var h = document.getElementById('header');
+        if (h) { var p = getComputedStyle(h).position; if (p === 'fixed' || p === 'sticky') return h.offsetHeight + 12; }
+        return 16;
+      }
+
+      // 自製平滑捲動（本頁原生 behavior:smooth 失效，改用 rAF 逐格移動，相容所有瀏覽器）
+      function scrollToY(targetY) {
+        targetY = Math.max(0, targetY);
+        var startY = window.pageYOffset;
+        var diff = targetY - startY;
+        if (Math.abs(diff) < 4) { window.scrollTo(0, targetY); return; }
+        var duration = 500, startTime = null;
+        function step(ts) {
+          if (startTime === null) startTime = ts;
+          var t = Math.min((ts - startTime) / duration, 1);
+          var ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; // easeInOutQuad
+          window.scrollTo(0, Math.round(startY + diff * ease));
+          if (t < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      }
+
+      var menu = document.createElement('div');
+      menu.id = 'ck-quick-menu';
+      var html = '<div class="ck-qm-title">商品快速選單</div><div class="ck-qm-grid">';
+      heads.forEach(function (h, i) {
+        if (!h.id) h.id = 'prod-' + i;
+        var strong = h.querySelector('strong');
+        var name = (strong ? strong.textContent : h.textContent).replace(/\s+/g, ' ').trim();
+        if (name.length > 20) name = name.slice(0, 20) + '…';
+        html += '<a href="#' + h.id + '" class="ck-qm-item" data-t="' + h.id + '">' + name + '</a>';
+      });
+      html += '</div>';
+      menu.innerHTML = html;
+      heads[0].parentNode.insertBefore(menu, heads[0]);
+
+      menu.addEventListener('click', function (e) {
+        var a = e.target.closest ? e.target.closest('.ck-qm-item') : null;
+        if (!a) return;
+        e.preventDefault();
+        var el = document.getElementById(a.getAttribute('data-t'));
+        if (el) {
+          var y = el.getBoundingClientRect().top + window.pageYOffset - headerOffset();
+          scrollToY(y);
+        }
+      });
+
+      var btn = document.createElement('button');
+      btn.id = 'ck-backtop';
+      btn.type = 'button';
+      btn.textContent = '↑ 商品選單';
+      btn.addEventListener('click', function () {
+        var y = menu.getBoundingClientRect().top + window.pageYOffset - headerOffset();
+        scrollToY(y);
+      });
+      document.body.appendChild(btn);
+      window.addEventListener('scroll', function () {
+        btn.style.display = window.pageYOffset > 700 ? 'block' : 'none';
+      });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+  })();
+</script>
 <h2 class="wsite-content-title"><strong><font size="7">下雨天杯墊</font></strong></h2>
 
 <div><div class="wsite-image wsite-image-border-none " style="padding-top:10px;padding-bottom:10px;margin-left:0;margin-right:0;text-align:center">
