@@ -341,12 +341,29 @@ _W.setup_model_rpc({"rpc_namespace":"_W.Commerce.RPC","model_namespace":"_W.Comm
 						<div class="container">
 			<div class="wsite-section-elements">
 				<div><div style="height:20px;overflow:hidden"></div>
-<div id='433384852229963030-slideshow'></div>
-<script type='text/javascript'>
-(function(jQuery) {
-function init() { window.wSlideshow && window.wSlideshow.render({elementID:"433384852229963030",nav:"thumbnails",navLocation:"bottom",captionLocation:"bottom",transition:"fade",autoplay:"0",speed:"9",aspectRatio:"auto",showControls:"true",randomStart:"false",images:[{"url":"1/3/0/6/130665711/2025banner-1200x700.png","width":"1200","height":"700"},{"url":"1/3/0/6/130665711/2024banner-1200x700-new_1.png","width":"640","height":"800"}]}) }
-jQuery(document).ready(init);
-})(window.jQuery)
+<div id="ck-phone-gallery" style="max-width:700px;margin:0 auto;">
+  <div style="width:100%;text-align:center;">
+    <img id="ck-pg-main" src="images/2025banner-1200x700.png" alt="聯名手機殼" style="width:100%;max-width:700px;border-radius:8px;" />
+  </div>
+  <div id="ck-pg-thumbs" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:10px;"></div>
+</div>
+<script>
+(function(){
+  var srcs = ['images/2025banner-1200x700.png','images/2024banner-1200x700-new_1.png'];
+  var main = document.getElementById('ck-pg-main');
+  var thumbs = document.getElementById('ck-pg-thumbs');
+  srcs.forEach(function(src, idx){
+    var t = document.createElement('img');
+    t.src = src; t.alt = '聯名手機殼';
+    t.style.cssText = 'width:96px;height:64px;object-fit:cover;border-radius:6px;cursor:pointer;border:2px solid '+(idx===0?'#ff1f1f':'transparent')+';';
+    t.addEventListener('click', function(){
+      main.src = src;
+      for (var j=0;j<thumbs.children.length;j++){ thumbs.children[j].style.borderColor='transparent'; }
+      t.style.borderColor='#ff1f1f';
+    });
+    thumbs.appendChild(t);
+  });
+})();
 </script>
 
 <div style="height:20px;overflow:hidden"></div></div>
