@@ -95,6 +95,25 @@ window.CANKING_EVENTS = [
     today.setHours(0, 0, 0, 0);
     var list = (window.CANKING_EVENTS || []).slice();
 
+    // ---- 合併「展覽規劃器」自動同步的清單 (events-live.js) ----
+    // 規則：同一年、名稱相同或互相包含 → 視為同一活動。
+    //       靜態清單有攤位而規劃器沒有 → 保留靜態；否則以規劃器為準。
+    var live = (window.CANKING_EVENTS_LIVE || []).slice();
+    function norm(s) { return String(s || "").replace(/\s+/g, ""); }
+    function yearOf(e) { return String(e.end || "").slice(0, 4); }
+    live.forEach(function (le) {
+      list = list.filter(function (se) {
+        if (yearOf(se) !== yearOf(le)) return true;
+        var a = norm(se.name), b = norm(le.name);
+        if (!a || !b || a.length < 3 || b.length < 3) return true;
+        var same = (a === b || a.indexOf(b) >= 0 || b.indexOf(a) >= 0);
+        if (!same) return true;
+        if (se.booth && !le.booth) { le.__drop = true; return true; }
+        return false;
+      });
+    });
+    list = list.concat(live.filter(function (e) { return !e.__drop; }));
+
     var upcoming = list
       .filter(function (e) { return parseDate(e.end) >= today; })
       .sort(function (a, b) { return parseDate(a.end) - parseDate(b.end); }); // 越近的越前面
