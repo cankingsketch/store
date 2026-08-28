@@ -1,0 +1,96 @@
+# 空罐王的商店 — 專案說明
+
+給日後維護這個網站的人（或 AI）看的說明書。
+
+## 部署鏈
+
+```
+本機 C:\Users\a1271\cankingstore-site
+  → git push → GitHub: cankingsketch/store (main)
+  → Cloudflare Pages 自動部署（約 1～2 分鐘）
+  → https://cankingstore.com
+```
+
+改網頁 = 改本機檔案後 push。Cloudflare 後台**不能**直接改內容。
+
+網站原本是 Weebly（cankingstore.weebly.com）匯出的靜態 HTML，該站已於 2026-07 下架。
+`raw-source/` 是匯出時的原始備份，不會部署。
+
+## 頁面對照
+
+檔名多半是 Weebly 匯出時的數字流水號：
+
+| 檔案 | 頁面 |
+|---|---|
+| `index.html` | 首頁 |
+| `goods.html` | 周邊一覽 |
+| `lessons.html` | 課程 |
+| `illusts.html` | 數位賣場 |
+| `3005920874.html` | 畫冊 |
+| `t24676.html` | T恤 |
+| `2550940845t24676.html` | 接龍T恤 |
+| `3287921517251632723127580.html` | 聯名手機殼 |
+| `penker-3287921517.html` | PENKER 聯名 |
+| `2345835069212702183021697.html` | 客製化商品 |
+| `events.html` | 活動（自建）|
+| `events-883299.html` | 實體店寄售 |
+
+## 活動系統
+
+- `events-data.js` — 手動維護的活動清單（含全部歷史活動）
+- `events-live.js` — **自動產生，勿手改**。由展覽規劃器每天凌晨 3 點寫入
+- 顯示邏輯在 `events-data.js` 末端：合併兩份清單、依日期自動分「預定／過往」、自動排序
+- 合併規則：同年且名稱互相包含視為同一筆；靜態版有攤位而 live 版沒有時保留靜態版
+
+規劃器（Apps Script）只同步**填了攤位號**的展覽。規劃器裡刪掉的活動，網站仍保留（歷史）。
+
+## 商品結構（goods.html）
+
+商品 = 一個 `<h2 class="wsite-content-title">` 加上到下一個 h2 之前的所有內容。
+
+兩種結構：
+
+**新結構**（後台建立，`data-ck="1"` 標記）— 乾淨、可程式化編輯：
+```html
+<h2 class="wsite-content-title" data-ck="1"><strong><font size="7">商品名</font></strong></h2>
+
+<div class="ck-prod" data-ck="1">
+<div class="ck-prod-imgs">
+<figure class="ck-img ck-lg"><img src="images/xxx.jpg" alt="商品名" /></figure>
+<figure class="ck-img ck-md"><img src="images/yyy.jpg" alt="商品名" loading="lazy" /></figure>
+</div>
+<div class="ck-prod-desc">說明文字</div>
+</div>
+```
+版型 class：`ck-lg` 獨佔一行、`ck-md` 兩張並排、`ck-sm` 三張並排；手機（≤700px）一律單欄。
+第一張圖不加 `loading="lazy"`（主圖要立即顯示），其餘才加。
+
+**舊結構**（Weebly 匯出）— 巢狀 table，內部**不要**用程式修改。
+安全操作只有三種：改 h2 文字、整塊搬移、整塊刪除。
+若要改圖或改版，把整塊換成新結構（整塊替換比局部修補安全）。
+
+其他注意事項：
+- 舊商品標題在 HTML 裡是數字實體（`&#30332;…`），解析時要解碼
+- 快速選單和回頂按鈕會**自動**掃描 h2 產生，新增商品不用另外維護
+- 頁面上方那排購買按鈕（711／蝦皮／海外／實體店）是全站共用，不屬於個別商品
+
+## 商品後台
+
+`/admin` → `admin.html` + `functions/api/products.js`（Cloudflare Pages Function）
+
+- 功能：新增商品（多圖、版型、即時預覽）、改標題、排序、下架、編輯新結構商品
+- 所有編輯只在瀏覽器暫存，按「儲存變更」才寫入 GitHub
+- 圖片在瀏覽器端壓縮（最大寬 1400、JPEG 85%）後上傳
+- 安全：必須通過 Cloudflare Access（API 會檢查 `Cf-Access-Authenticated-User-Email`）
+- 金鑰：Cloudflare 環境變數 `GITHUB_TOKEN`（fine-grained PAT，只給 cankingsketch/store 的 Contents 讀寫）
+- 併發保護：GET 時取得檔案 sha，POST 時比對，不符會擋下並要求重新整理
+
+修改後端解析邏輯時，務必先跑無損測試（切開再合併必須與原檔一字不差）。
+
+## SEO / 其他
+
+- 全站 `og:image` 指向 `images/og_share.png`（1200×630 分享卡）
+- `robots.txt`、`sitemap.xml`、`404.html` 都在根目錄
+- `_headers` 讓 `events-data.js` / `events-live.js` 不被瀏覽器快取，活動更新才會即時反映
+- 主題 CSS（`css/main_style.css`）把 `body`／`#wrapper` 底色設為灰色 `#b9b9b9`；
+  內容較短的頁面會在頁尾下方露出灰底，需針對該頁覆蓋為紅色（聯名手機殼頁已處理）

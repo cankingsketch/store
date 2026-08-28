@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>商品後台 - 空罐王的商店</title>
+<style>
+  :root { --red:#ff2d2d; --line:#e6e6e6; --muted:#7b8c89; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:"Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif; color:#333; background:#fafafa; }
+  header { position:sticky; top:0; z-index:50; display:flex; align-items:center; gap:12px;
+           padding:12px 18px; background:#fff; border-bottom:2px solid var(--red); }
+  header h1 { font-size:18px; margin:0; color:var(--red); }
+  header .who { font-size:12px; color:var(--muted); margin-left:auto; }
+  button { font-family:inherit; font-size:14px; cursor:pointer; border-radius:8px; border:1.5px solid var(--red);
+           background:#fff; color:var(--red); padding:8px 14px; }
+  button.primary { background:var(--red); color:#fff; }
+  button:disabled { opacity:.4; cursor:not-allowed; }
+  button.mini { padding:4px 9px; font-size:13px; border-radius:6px; }
+  button.ghost { border-color:var(--line); color:#666; }
+  .wrap { max-width:1180px; margin:0 auto; padding:18px; }
+  .cols { display:grid; grid-template-columns: 1fr 1fr; gap:18px; align-items:start; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .card h2 { font-size:16px; margin:0 0 12px; }
+  label { display:block; font-size:13px; font-weight:700; margin:14px 0 5px; }
+  input[type=text] { width:100%; padding:9px 11px; font-size:15px; font-family:inherit;
+                     border:1.5px solid var(--line); border-radius:8px; }
+  input[type=text]:focus { outline:none; border-color:var(--red); }
+  .hint { font-size:12px; color:var(--muted); margin-top:4px; }
+  /* 商品清單 */
+  .row { display:flex; align-items:center; gap:8px; padding:9px 10px; border:1px solid var(--line);
+         border-radius:9px; margin-bottom:7px; background:#fff; }
+  .row .name { flex:1; min-width:0; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .row.removed { opacity:.4; }
+  .row.removed .name { text-decoration:line-through; }
+  .tag { font-size:11px; padding:2px 7px; border-radius:999px; background:#eee; color:#666; white-space:nowrap; }
+  .tag.new { background:#ffe9e9; color:var(--red); }
+  /* 圖片管理 */
+  .imgs { display:flex; flex-wrap:wrap; gap:10px; margin-top:8px; }
+  .thumb { width:132px; border:1px solid var(--line); border-radius:9px; padding:6px; background:#fff; }
+  .thumb img { width:100%; height:88px; object-fit:contain; display:block; background:#f6f6f6; border-radius:5px; }
+  .thumb .ops { display:flex; gap:3px; margin-top:5px; }
+  .thumb select { flex:1; font-size:12px; padding:2px; border:1px solid var(--line); border-radius:5px; font-family:inherit; }
+  .drop { margin-top:10px; border:2px dashed #ddd; border-radius:10px; padding:20px; text-align:center;
+          color:var(--muted); font-size:14px; cursor:pointer; }
+  .drop.over { border-color:var(--red); background:#fff5f5; color:var(--red); }
+  /* 預覽 */
+  .preview { background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .preview .stage { border:1px dashed #ddd; border-radius:9px; padding:14px; }
+  .pv-title { font-size:30px; font-weight:800; margin:0 0 12px; color:#2a2a2a; line-height:1.3; }
+  .ck-prod-imgs { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; align-items:flex-start; }
+  .ck-prod-imgs figure { margin:0; }
+  .ck-prod-imgs img { width:100%; height:auto; display:block; border-radius:8px; }
+  .ck-prod-imgs .ck-lg { flex:0 0 100%; max-width:620px; }
+  .ck-prod-imgs .ck-md { flex:0 0 calc(50% - 6px); max-width:460px; }
+  .ck-prod-imgs .ck-sm { flex:0 0 calc(33.333% - 8px); max-width:320px; }
+  .ck-prod-desc { text-align:center; font-size:90%; margin-top:10px; color:var(--muted); }
+  .msg { padding:11px 14px; border-radius:9px; margin-bottom:14px; font-size:14px; display:none; }
+  .msg.err { background:#ffecec; color:#c00; border:1px solid #ffc9c9; display:block; }
+  .msg.ok { background:#e8f8ee; color:#127a3d; border:1px solid #b7e6c8; display:block; }
+  .msg.info { background:#eef4ff; color:#1a4fa0; border:1px solid #c7d9f7; display:block; }
+  @media (max-width:900px) { .cols { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>商品後台</h1>
+  <button id="btn-new">＋ 新增商品</button>
+  <button id="btn-save" class="primary" disabled>儲存變更</button>
+  <span class="who" id="who"></span>
+</header>
+
+<div class="wrap">
+  <div id="msg" class="msg"></div>
+
+  <!-- 清單模式 -->
+  <div id="view-list">
+    <div class="card">
+      <h2>目前商品（由上到下就是網站顯示順序）</h2>
+      <div id="list"></div>
+      <p class="hint">新商品會加在最上面。「下架」不會馬上生效，按右上角「儲存變更」才會真的更新網站。</p>
+    </div>
+  </div>
+
+  <!-- 編輯模式 -->
+  <div id="view-edit" style="display:none">
+    <div class="cols">
+      <div class="card">
+        <h2 id="edit-heading">新增商品</h2>
+        <label>商品名稱</label>
+        <input type="text" id="f-title" placeholder="例如：下雨天杯墊" />
+        <label>說明文字（選填）</label>
+        <input type="text" id="f-desc" placeholder="例如：陶瓷 吸水 杯墊｜UV浮雕印刷｜NT$200" />
+        <label>商品圖片</label>
+        <div class="imgs" id="f-imgs"></div>
+        <div class="drop" id="drop">點這裡選圖片，或把圖片拖進來（可一次多張）</div>
+        <input type="file" id="file" accept="image/*" multiple hidden />
+        <p class="hint">圖片會自動壓縮。版型：大＝獨佔一行、中＝兩張並排、小＝三張並排；手機一律單欄。</p>
+        <div style="margin-top:18px; display:flex; gap:8px;">
+          <button id="btn-apply" class="primary">完成，回到清單</button>
+          <button id="btn-cancel" class="ghost">取消</button>
+        </div>
+      </div>
+      <div class="preview">
+        <h2 style="font-size:16px;margin:0 0 12px;">即時預覽</h2>
+        <div class="stage" id="stage"></div>
+        <p class="hint">這就是它在網站上的樣子（手機上多圖會自動變成上下排列）。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var state = { sha: null, products: [], dirty: false, uploads: {}, editing: null, isNewItem: false };
+
+  function setMsg(text, kind) {
+    var el = $('msg');
+    el.className = 'msg' + (kind ? ' ' + kind : '');
+    el.textContent = text || '';
+    if (!text) el.style.display = 'none';
+  }
+  function markDirty() { state.dirty = true; $('btn-save').disabled = false; }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  /* ---------- 載入 ---------- */
+  function load(okMsg) {
+    if (!okMsg) setMsg('載入中…', 'info');
+    fetch('/api/products').then(function (r) {
+      return r.json().then(function (d) { return { ok: r.ok, d: d }; });
+    }).then(function (res) {
+      if (!res.ok) { setMsg(res.d.error || '載入失敗', 'err'); return; }
+      state.sha = res.d.sha;
+      state.products = res.d.products.map(function (p) { p.removed = false; return p; });
+      $('who').textContent = res.d.user || '';
+      setMsg(okMsg || '', okMsg ? 'ok' : '');
+      renderList();
+    }).catch(function (e) { setMsg('連線失敗：' + e.message, 'err'); });
+  }
+
+  /* ---------- 清單 ---------- */
+  function renderList() {
+    var box = $('list');
+    box.innerHTML = '';
+    state.products.forEach(function (p, i) {
+      var row = document.createElement('div');
+      row.className = 'row' + (p.removed ? ' removed' : '');
+      var badge = p.editable
+        ? '<span class="tag new">可完整編輯</span>'
+        : '<span class="tag">舊版結構' + (p.hasVideo ? '·含影片' : '') + '</span>';
+      row.innerHTML =
+        '<button class="mini ghost" data-a="up" title="上移">▲</button>' +
+        '<button class="mini ghost" data-a="down" title="下移">▼</button>' +
+        '<span class="name">' + esc(p.title) + '</span>' + badge +
+        '<button class="mini" data-a="edit">' + (p.editable ? '編輯' : '改名') + '</button>' +
+        '<button class="mini ghost" data-a="del">' + (p.removed ? '復原' : '下架') + '</button>';
+      row.addEventListener('click', function (e) {
+        var b = e.target.closest('button'); if (!b) return;
+        var a = b.getAttribute('data-a');
+        if (a === 'up' && i > 0) { swap(i, i - 1); }
+        else if (a === 'down' && i < state.products.length - 1) { swap(i, i + 1); }
+        else if (a === 'del') { p.removed = !p.removed; markDirty(); renderList(); }
+        else if (a === 'edit') { p.editable ? openEditor(i) : rename(i); }
+      });
+      box.appendChild(row);
+    });
+  }
+  function swap(a, b) {
+    var t = state.products[a]; state.products[a] = state.products[b]; state.products[b] = t;
+    markDirty(); renderList();
+  }
+  function rename(i) {
+    var p = state.products[i];
+    var v = window.prompt('修改商品名稱：', p.title);
+    if (v == null) return;
+    v = v.trim(); if (!v) return;
+    if (v !== p.title) { p.title = v; markDirty(); renderList(); }
+  }
+
+  /* ---------- 編輯器 ---------- */
+  function openEditor(i) {
+    state.isNewItem = (i == null);
+    if (state.isNewItem) {
+      state.editing = { new: true, title: '', desc: '', images: [], editable: true, removed: false };
+      $('edit-heading').textContent = '新增商品';
+    } else {
+      var p = state.products[i];
+      state.editing = {
+        idx: i, new: !!p.new, title: p.title, desc: p.desc || '',
+        images: (p.images || []).map(function (im) { return { file: im.file, size: im.size, dataUrl: im.dataUrl }; }),
+        editable: true, removed: false, origIdx: p.idx
+      };
+      $('edit-heading').textContent = '編輯商品';
+    }
+    $('f-title').value = state.editing.title;
+    $('f-desc').value = state.editing.desc;
+    renderImgs(); renderPreview();
+    $('view-list').style.display = 'none';
+    $('view-edit').style.display = '';
+  }
+  function closeEditor() {
+    state.editing = null;
+    $('view-edit').style.display = 'none';
+    $('view-list').style.display = '';
+    renderList();
+  }
+  function imgSrc(im) { return im.dataUrl || ('images/' + im.file); }
+
+  function renderImgs() {
+    var box = $('f-imgs'); box.innerHTML = '';
+    state.editing.images.forEach(function (im, i) {
+      var d = document.createElement('div');
+      d.className = 'thumb';
+      d.innerHTML =
+        '<img src="' + imgSrc(im) + '" alt="" />' +
+        '<div class="ops">' +
+          '<button class="mini ghost" data-a="l" title="左移">◀</button>' +
+          '<select data-a="size">' +
+            '<option value="lg">大</option><option value="md">中</option><option value="sm">小</option>' +
+          '</select>' +
+          '<button class="mini ghost" data-a="r" title="右移">▶</button>' +
+          '<button class="mini ghost" data-a="x" title="移除">✕</button>' +
+        '</div>';
+      d.querySelector('select').value = im.size || 'lg';
+      d.addEventListener('change', function (e) {
+        if (e.target.getAttribute('data-a') === 'size') { im.size = e.target.value; renderPreview(); }
+      });
+      d.addEventListener('click', function (e) {
+        var b = e.target.closest('button'); if (!b) return;
+        var a = b.getAttribute('data-a'), arr = state.editing.images;
+        if (a === 'l' && i > 0) { arr.splice(i - 1, 0, arr.splice(i, 1)[0]); }
+        else if (a === 'r' && i < arr.length - 1) { arr.splice(i + 1, 0, arr.splice(i, 1)[0]); }
+        else if (a === 'x') { arr.splice(i, 1); }
+        renderImgs(); renderPreview();
+      });
+      box.appendChild(d);
+    });
+  }
+
+  function renderPreview() {
+    var e = state.editing; if (!e) return;
+    var imgs = e.images.map(function (im) {
+      return '<figure class="ck-img ck-' + (im.size || 'lg') + '"><img src="' + imgSrc(im) + '" alt="" /></figure>';
+    }).join('');
+    $('stage').innerHTML =
+      '<h3 class="pv-title">' + (esc(e.title) || '<span style="color:#bbb">（商品名稱）</span>') + '</h3>' +
+      '<div class="ck-prod"><div class="ck-prod-imgs">' + imgs + '</div>' +
+      (e.desc.trim() ? '<div class="ck-prod-desc">' + esc(e.desc) + '</div>' : '') + '</div>';
+  }
+
+  /* ---------- 圖片壓縮 ---------- */
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function stamp() {
+    var d = new Date();
+    return '' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) +
+      '-' + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+  }
+  function compress(file, seq) {
+    return new Promise(function (resolve, reject) {
+      var fr = new FileReader();
+      fr.onload = function () {
+        var img = new Image();
+        img.onload = function () {
+          var maxW = 1400;
+          var scale = Math.min(1, maxW / img.width);
+          var w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+          var c = document.createElement('canvas'); c.width = w; c.height = h;
+          var ctx = c.getContext('2d');
+          ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve({ dataUrl: c.toDataURL('image/jpeg', 0.85), file: 'prod-' + stamp() + '-' + seq + '.jpg' });
+        };
+        img.onerror = function () { reject(new Error('圖片讀取失敗')); };
+        img.src = fr.result;
+      };
+      fr.onerror = function () { reject(new Error('檔案讀取失敗')); };
+      fr.readAsDataURL(file);
+    });
+  }
+  function addFiles(files) {
+    var list = [].slice.call(files).filter(function (f) { return /^image\//.test(f.type); });
+    if (!list.length) return;
+    setMsg('處理圖片中…', 'info');
+    Promise.all(list.map(function (f, i) { return compress(f, i + 1); })).then(function (res) {
+      res.forEach(function (r) {
+        state.editing.images.push({ file: r.file, size: 'lg', dataUrl: r.dataUrl });
+        state.uploads[r.file] = r.dataUrl.split(',')[1];
+      });
+      setMsg(''); renderImgs(); renderPreview();
+    }).catch(function (e) { setMsg(e.message, 'err'); });
+  }
+
+  /* ---------- 儲存 ---------- */
+  function save() {
+    var keep = state.products.filter(function (p) { return !p.removed; });
+    if (!keep.length) { setMsg('至少要保留一個商品。', 'err'); return; }
+    var bad = keep.filter(function (p) { return p.new && !p.images.length; });
+    if (bad.length) { setMsg('「' + bad[0].title + '」還沒有圖片。', 'err'); return; }
+
+    var used = {};
+    var items = keep.map(function (p) {
+      if (p.new) {
+        (p.images || []).forEach(function (im) { used[im.file] = 1; });
+        return { new: true, title: p.title, desc: p.desc || '', images: p.images.map(function (im) { return { file: im.file, size: im.size }; }) };
+      }
+      var o = { idx: p.idx, title: p.title };
+      if (p.editable) {
+        o.desc = p.desc || '';
+        o.images = (p.images || []).map(function (im) { used[im.file] = 1; return { file: im.file, size: im.size }; });
+      }
+      return o;
+    });
+    var uploads = {};
+    Object.keys(state.uploads).forEach(function (k) { if (used[k]) uploads[k] = state.uploads[k]; });
+
+    $('btn-save').disabled = true;
+    setMsg('儲存中，請稍候…', 'info');
+    fetch('/api/products', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sha: state.sha, items: items, uploads: uploads })
+    }).then(function (r) {
+      return r.json().then(function (d) { return { ok: r.ok, d: d }; });
+    }).then(function (res) {
+      if (!res.ok) { setMsg(res.d.error || '儲存失敗', 'err'); $('btn-save').disabled = false; return; }
+      state.dirty = false; state.uploads = {};
+      load('已儲存！網站約 1～2 分鐘後更新完成。');
+    }).catch(function (e) { setMsg('儲存失敗：' + e.message, 'err'); $('btn-save').disabled = false; });
+  }
+
+  /* ---------- 綁定 ---------- */
+  $('btn-new').addEventListener('click', function () { openEditor(null); });
+  $('btn-save').addEventListener('click', save);
+  $('btn-cancel').addEventListener('click', closeEditor);
+  $('f-title').addEventListener('input', function () { state.editing.title = this.value; renderPreview(); });
+  $('f-desc').addEventListener('input', function () { state.editing.desc = this.value; renderPreview(); });
+  $('btn-apply').addEventListener('click', function () {
+    var e = state.editing;
+    if (!e.title.trim()) { setMsg('請填寫商品名稱。', 'err'); return; }
+    if (!e.images.length) { setMsg('請至少上傳一張圖片。', 'err'); return; }
+    setMsg('');
+    if (state.isNewItem) {
+      state.products.unshift({ new: true, title: e.title.trim(), desc: e.desc.trim(), images: e.images, editable: true, removed: false });
+    } else {
+      var p = state.products[e.idx];
+      p.title = e.title.trim(); p.desc = e.desc.trim(); p.images = e.images;
+    }
+    markDirty(); closeEditor();
+  });
+  $('drop').addEventListener('click', function () { $('file').click(); });
+  $('file').addEventListener('change', function () { addFiles(this.files); this.value = ''; });
+  ['dragenter', 'dragover'].forEach(function (t) {
+    $('drop').addEventListener(t, function (e) { e.preventDefault(); this.classList.add('over'); });
+  });
+  ['dragleave', 'drop'].forEach(function (t) {
+    $('drop').addEventListener(t, function (e) { e.preventDefault(); this.classList.remove('over'); });
+  });
+  $('drop').addEventListener('drop', function (e) { addFiles(e.dataTransfer.files); });
+  window.addEventListener('beforeunload', function (e) {
+    if (state.dirty) { e.preventDefault(); e.returnValue = ''; }
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>

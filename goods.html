@@ -378,6 +378,18 @@ _W.setup_model_rpc({"rpc_namespace":"_W.Commerce.RPC","model_namespace":"_W.Comm
   #ck-quick-menu .ck-qm-item { display: inline-block; padding: 7px 14px; background: #fff; color: #ff2d2d !important; border: 1.5px solid #ff2d2d; border-radius: 999px; font-size: 14px; line-height: 1.2; text-decoration: none; white-space: nowrap; transition: background .15s, color .15s; }
   #ck-quick-menu .ck-qm-item:hover { background: #ff2d2d; color: #fff !important; }
   #ck-backtop { position: fixed; left: 18px; bottom: 24px; z-index: 9999; display: none; padding: 10px 16px; background: #ff2d2d; color: #fff; border: none; border-radius: 999px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+  /* 後台新增商品的版型（大=獨佔一行 / 中=兩張並排 / 小=三張並排；手機一律單欄） */
+  .ck-prod { margin: 10px 0 34px; }
+  .ck-prod-imgs { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; align-items: flex-start; }
+  .ck-prod-imgs figure { margin: 0; }
+  .ck-prod-imgs img { width: 100%; height: auto; display: block; border-radius: 8px; }
+  .ck-prod-imgs .ck-lg { flex: 0 0 100%; max-width: 620px; }
+  .ck-prod-imgs .ck-md { flex: 0 0 calc(50% - 6px); max-width: 460px; }
+  .ck-prod-imgs .ck-sm { flex: 0 0 calc(33.333% - 8px); max-width: 320px; }
+  .ck-prod-desc { text-align: center; font-size: 90%; margin-top: 10px; color: #7b8c89; }
+  @media screen and (max-width: 700px) {
+    .ck-prod-imgs .ck-md, .ck-prod-imgs .ck-sm { flex: 0 0 100%; max-width: 100%; }
+  }
   @media screen and (max-width: 600px) {
     #ck-quick-menu .ck-qm-item { font-size: 13px; padding: 6px 11px; }
   }
