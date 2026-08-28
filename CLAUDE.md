@@ -85,6 +85,16 @@
 - 金鑰：Cloudflare 環境變數 `GITHUB_TOKEN`（fine-grained PAT，只給 cankingsketch/store 的 Contents 讀寫）
 - 併發保護：GET 時取得檔案 sha，POST 時比對，不符會擋下並要求重新整理
 
+實作上踩過的坑（改動前先看）：
+- **Access 身分傳遞**：Cloudflare Access 保護 Pages Functions 時，不一定會帶
+  `Cf-Access-Authenticated-User-Email`，可能只有 `Cf-Access-Jwt-Assertion` 或
+  `CF_Authorization` cookie。三者接受其一即可（能到達 Function 就代表已通過 Access）。
+- **BOM**：`goods.html` 開頭有 UTF-8 BOM。TextDecoder 預設會吃掉它，導致存檔時
+  無關內容被改動，故指定 `ignoreBOM: true`。
+- **HTML 實體**：舊商品標題含 `&#nnnn;` 與 `&nbsp;`，解析時都要解碼。
+- **預覽部署網址**（`<hash>.cankingstore.pages.dev`）不在 Access 規則涵蓋範圍內，
+  後台頁面打得開，但 API 仍會擋下（403）——這是保留 Function 內身分檢查的理由。
+
 修改後端解析邏輯時，務必先跑無損測試（切開再合併必須與原檔一字不差）。
 
 ## SEO / 其他
