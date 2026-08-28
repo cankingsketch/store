@@ -14,7 +14,7 @@ const REGION_END = '\n\t\t\t</div>\n\t\t</div>';
 
 /* ---------- 工具 ---------- */
 const enc = new TextEncoder();
-const dec = new TextDecoder();
+const dec = new TextDecoder('utf-8', { ignoreBOM: true }); // 保留 BOM，存檔不動到無關內容
 
 function b64FromText(str) {
   const bytes = enc.encode(str);
@@ -38,6 +38,7 @@ function unesc(s) {
   return String(s == null ? '' : s)
     .replace(/&#(\d+);/g, function (_, d) { return String.fromCodePoint(parseInt(d, 10)); })
     .replace(/&#x([0-9a-fA-F]+);/g, function (_, h) { return String.fromCodePoint(parseInt(h, 16)); })
+    .replace(/&nbsp;/g, ' ')
     .replace(/&quot;/g, '"').replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
 }
 function json(data, status) {
