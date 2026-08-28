@@ -10,7 +10,8 @@ const REPO = 'cankingsketch/store';
 const BRANCH = 'main';
 const FILE = 'goods.html';
 const H2 = '<h2 class="wsite-content-title"';
-const REGION_END = '\n\t\t\t</div>\n\t\t</div>';
+// 商品區結尾：容許 LF 或 CRLF，避免換行格式改變就整個解析失敗
+const REGION_END_RE = /\r?\n\t\t\t<\/div>\r?\n\t\t<\/div>/;
 
 /* ---------- 工具 ---------- */
 const enc = new TextEncoder();
@@ -101,8 +102,10 @@ async function ghPut(env, path, contentB64, message, sha) {
 /* ---------- goods.html 解析 ---------- */
 function splitDoc(src) {
   const first = src.indexOf(H2);
-  const end = src.indexOf(REGION_END, first);
-  if (first < 0 || end < 0) throw new Error('goods.html 結構無法辨識，請聯絡開發者。');
+  if (first < 0) throw new Error('goods.html 結構無法辨識：找不到商品標題。');
+  const m = REGION_END_RE.exec(src.slice(first));
+  if (!m) throw new Error('goods.html 結構無法辨識：找不到商品區結尾。');
+  const end = first + m.index;
   const region = src.slice(first, end);
   const idxs = [];
   let p = region.indexOf(H2);
@@ -128,6 +131,9 @@ function parseBlock(block, idx) {
     const imgs = block.match(/<img[^>]+src="images\/[^"]+"/g) || [];
     out.imageCount = imgs.length;
     out.hasVideo = /youtube|iframe|wSlideshow|imageGallery/i.test(block);
+    // 清單縮圖用：舊商品取第一張圖（含可能的 ?timestamp）
+    const firstImg = block.match(/<img[^>]+src=["'](images\/[^"']+)["']/);
+    if (firstImg) out.thumb = firstImg[1];
   }
   return out;
 }
