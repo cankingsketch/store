@@ -47,14 +47,24 @@ function json(data, status) {
   });
 }
 function requireAuth(request, env) {
+  // Cloudflare Access 通過驗證後，可能以下列任一形式帶入身分資訊
   const email = request.headers.get('Cf-Access-Authenticated-User-Email');
-  if (!email) {
-    return { error: json({ error: '未通過 Cloudflare Access 驗證，請先在 Cloudflare 設定 /admin 的存取保護。' }, 403) };
+  const jwt = request.headers.get('Cf-Access-Jwt-Assertion');
+  const cookie = request.headers.get('Cookie') || '';
+  const hasAccessCookie = cookie.indexOf('CF_Authorization=') >= 0;
+
+  if (!email && !jwt && !hasAccessCookie) {
+    const cfHeaders = [];
+    request.headers.forEach(function (_v, k) { if (/^cf-/i.test(k)) cfHeaders.push(k); });
+    return { error: json({
+      error: '未通過 Cloudflare Access 驗證，請先在 Cloudflare 設定 /admin 與 /api/products 的存取保護。',
+      debug: { cfHeaders: cfHeaders, hasCookie: cookie.length > 0 }
+    }, 403) };
   }
   if (!env.GITHUB_TOKEN) {
     return { error: json({ error: '伺服器尚未設定 GITHUB_TOKEN 環境變數。' }, 500) };
   }
-  return { email };
+  return { email: email || 'Access 使用者' };
 }
 
 /* ---------- GitHub ---------- */
