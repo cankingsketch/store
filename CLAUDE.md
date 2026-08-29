@@ -106,11 +106,25 @@
 
 分兩塊，資料來源不同：
 
-**1. 造訪人數 → Cloudflare Web Analytics**（2026-06 起自動收集）
+**1. 造訪人數 → Cloudflare Web Analytics**（2026-06 起自動收集，已接進後台）
 免費、不放 cookie、Automatic setup（Cloudflare 自動注入腳本，網頁不必改）。
 提供造訪次數、頁面瀏覽、來源網站、國家、裝置、Core Web Vitals。
 **沒有「不重複訪客」**——它不追蹤個人，Visits 已是最接近的指標。
 後台「流量統計」分頁有直達連結（需 Cloudflare 帳號登入）。
+
+`functions/api/traffic.js` 用 Cloudflare GraphQL Analytics API 把數字接進後台。
+**查詢語法與欄位名稱是照儀表板自己送出的請求抄的，不是猜的**——要改的話，
+最可靠的做法是到 Web Analytics 頁面攔截 `fetch` 看 `/api/v4/graphql` 送什麼。
+重點：資料集 `rumPageloadEventsAdaptiveGroups`、篩選 `{bot:0}` `{siteTag_in:[...]}`
+`{requestHost:...}`、排序 `sum_visits_DESC`、時間維度 `datetimeHour`（回傳帶 Z）。
+`refererHost` 的直接流量是**空字串**；`countryName` 回的是**代碼**（TW/US），
+中文對照在 admin.html 的 `COUNTRY`。金鑰：環境變數 `CF_ANALYTICS_TOKEN`
+（權限只需 Account > Account Analytics > Read）。帳號／網站 ID 寫在程式裡——
+它們是識別碼不是憑證，沒有 token 什麼也做不了（repo 是公開的，**真正的金鑰絕不能進 repo**）。
+後端有 5 分鐘快取。
+
+「只看商店 / 含所有子網域」很重要：planner、pos、ar 掛在同一個網站標籤下，
+7 天 238 次造訪裡商店本站只有 184 次，算轉換率時要排除掉。
 
 **2. 購買連結點擊 → 自建（D1）**
 
@@ -138,8 +152,9 @@
 ## 測試
 
 ```
-node tests/products.test.mjs    # 28 項
+node tests/products.test.mjs    # 36 項
 node tests/track.test.mjs       # 41 項
+node tests/traffic.test.mjs     # 35 項
 ```
 不必安裝套件（用 Node 內建 `node:sqlite` 模擬 D1）。改 `functions/api/*` 前後都要跑。
 

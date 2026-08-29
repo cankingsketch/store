@@ -42,6 +42,15 @@
   .range button.on { border-color:var(--red); color:var(--red); }
   .cf-link { display:inline-block; font-size:14px; font-weight:700; color:var(--red); text-decoration:none;
              border:1.5px solid var(--red); border-radius:8px; padding:8px 14px; }
+  .cf-link.mini { font-size:13px; padding:5px 11px; border-color:var(--line); color:var(--muted); font-weight:400; }
+  .statsbar { display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+  .statsbar .range { margin-left:0; }
+  .statsbar .cf-link { margin-left:auto; }
+  .cardhead { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:2px; }
+  .cardhead h2 { margin:0; }
+  /* 轉換率那張卡片要跳出來，那是兩份資料合起來才算得出的數字 */
+  .num.hero { border-color:var(--red); background:#fff6f6; }
+  .num.hero b { color:var(--red); }
   /* 說明文字對齊切換 */
   .align { display:flex; align-items:center; gap:6px; margin-top:7px; font-size:13px; color:var(--muted); }
   .align button { padding:4px 12px; font-size:13px; border-color:var(--line); color:#666; }
@@ -103,6 +112,8 @@
   @media (max-width:900px) { .cols { grid-template-columns:1fr; } }
   /* 手機上把橫條縮短，留多一點空間給名稱 */
   @media (max-width:600px) { .bar { grid-template-columns:minmax(0,1fr) 78px 40px; gap:8px; } }
+  @media (max-width:600px) { .num { flex-basis:118px; padding:10px 12px; }
+                             .num b { font-size:24px; } .nums { gap:10px; } }
 </style>
 </head>
 <body>
@@ -166,29 +177,32 @@
 
   <!-- 流量統計 -->
   <div id="pane-stats" style="display:none">
+    <div class="statsbar">
+      <div class="range" id="range">
+        <button data-days="7" class="on">過去 7 天</button>
+        <button data-days="30">30 天</button>
+        <button data-days="90">90 天</button>
+      </div>
+      <a class="cf-link mini" target="_blank" rel="noopener"
+         href="https://dash.cloudflare.com/e07fc9ba319a1f88a7c2288f0aa28933/web-analytics/overview/visits?siteTag~in=d60a99edbafd4caeaf79f96ee9499898&amp;excludeBots=Yes&amp;time-window=10080">Cloudflare 完整報表 →</a>
+    </div>
+
     <div class="card">
-      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-        <h2 style="margin:0;">購買連結點擊</h2>
-        <div class="range" id="range">
-          <button data-days="7" class="on">7 天</button>
-          <button data-days="30">30 天</button>
-          <button data-days="90">90 天</button>
+      <div class="cardhead">
+        <h2>網站流量</h2>
+        <div class="range" id="scope">
+          <button data-host="cankingstore.com" class="on">只看商店</button>
+          <button data-host="">含所有子網域</button>
         </div>
       </div>
-      <p class="hint" id="st-period">載入中…</p>
-      <div id="st-body"></div>
+      <p class="hint" id="tf-period">載入中…</p>
+      <div id="tf-body"></div>
     </div>
 
     <div class="card" style="margin-top:18px;">
-      <h2>網站造訪人數</h2>
-      <p class="hint" style="margin-bottom:12px;">
-        造訪次數、來源網站、國家地區、歷史圖表都在 Cloudflare Web Analytics
-        （已開啟兩個月，資料持續累積中）。
-      </p>
-      <a class="cf-link" target="_blank" rel="noopener"
-         href="https://dash.cloudflare.com/e07fc9ba319a1f88a7c2288f0aa28933/web-analytics/overview/visits?siteTag~in=d60a99edbafd4caeaf79f96ee9499898&amp;excludeBots=Yes&amp;time-window=10080">
-        開啟 Cloudflare 流量報表 →</a>
-      <p class="hint" style="margin-top:10px;">需要用空罐王的 Cloudflare 帳號登入。</p>
+      <div class="cardhead"><h2>購買連結點擊</h2></div>
+      <p class="hint" id="st-period">載入中…</p>
+      <div id="st-body"></div>
     </div>
   </div>
 </div>
@@ -501,6 +515,8 @@
 (function () {
   var $ = function (id) { return document.getElementById(id); };
   var days = 7, loadedFor = null, busy = false;
+  var host = 'cankingstore.com', tfLoadedFor = null, tfBusy = false;
+  var lastTraffic = null, lastShopClicks = null;
 
   function esc(s) {
     return String(s == null ? '' : s)
@@ -583,12 +599,126 @@
     var dev = d.byDevice || [], ctry = d.byCountry || [];
     html += '<div class="cols" style="margin-top:4px;"><div>' +
       section('裝置', barList(dev.map(function (r) {
-        return { nm: r.device === 'mobile' ? '手機' : '桌機', n: r.n };
+        return { nm: deviceName(r.device), n: r.n };
       }))) + '</div><div>' +
-      section('國家地區', barList(ctry.map(function (r) { return { nm: r.country, n: r.n }; }))) +
+      section('國家地區', barList(ctry.map(function (r) { return { nm: countryName(r.country), n: r.n }; }))) +
       '</div></div>';
 
     $('st-body').innerHTML = html;
+    lastShopClicks = d.shop;
+    renderNums();
+  }
+
+  /* Cloudflare 兩邊回傳的都是國家代碼，換成看得懂的名字（沒收錄的就照原樣顯示） */
+  var COUNTRY = {
+    TW: '台灣', HK: '香港', MO: '澳門', CN: '中國', JP: '日本', KR: '韓國',
+    SG: '新加坡', MY: '馬來西亞', TH: '泰國', VN: '越南', PH: '菲律賓', ID: '印尼',
+    IN: '印度', US: '美國', CA: '加拿大', MX: '墨西哥', BR: '巴西',
+    GB: '英國', DE: '德國', FR: '法國', NL: '荷蘭', ES: '西班牙', IT: '義大利',
+    PL: '波蘭', SE: '瑞典', RU: '俄羅斯', AU: '澳洲', NZ: '紐西蘭'
+  };
+  function deviceName(d) {
+    return { mobile: '手機', desktop: '桌機', tablet: '平板' }[d] || d || '（未知）';
+  }
+  function countryName(code) {
+    var c = String(code || '').toUpperCase();
+    return COUNTRY[c] ? COUNTRY[c] + '（' + c + '）' : (code || '（未知）');
+  }
+
+  /* ---------- 網站流量（Cloudflare Web Analytics） ---------- */
+
+  function trafficBars(list, key) {
+    return barList((list || []).map(function (r) {
+      return { nm: r.name || '（未知）', n: r[key || 'visits'] };
+    }));
+  }
+
+  /* 造訪 → 按購買鍵 → 轉換率。兩份資料是分開載入的，
+     所以誰先到都要能正確重畫這一列。 */
+  function renderNums() {
+    var el = $('tf-nums');
+    if (!el || !lastTraffic) return;
+    var d = lastTraffic;
+    var cards =
+      '<div class="num"><b>' + d.visits + '</b><span>造訪次數</span></div>' +
+      '<div class="num"><b>' + d.views + '</b><span>頁面瀏覽</span></div>';
+    if (lastShopClicks != null) {
+      var rate = d.visits ? (lastShopClicks / d.visits * 100) : 0;
+      cards += '<div class="num"><b>' + lastShopClicks + '</b><span>按了購買連結</span></div>' +
+               '<div class="num hero"><b>' + rate.toFixed(1) + '%</b><span>轉換率</span></div>';
+    }
+    var perDay = d.days ? (d.visits / d.days) : 0;
+    el.innerHTML = '<div class="nums">' + cards + '</div>' +
+      '<p class="hint">平均每天 ' + perDay.toFixed(1) + ' 次造訪' +
+      (lastShopClicks != null && d.visits
+        ? '；每 100 次造訪約有 ' + (lastShopClicks / d.visits * 100).toFixed(1) + ' 次點了購買連結'
+        : '') +
+      (d.host ? '。' : '。（目前含所有子網域，轉換率會被稀釋）') + '</p>';
+  }
+
+  function renderTraffic(d) {
+    if (d.ready === false) {
+      $('tf-period').textContent = '';
+      $('tf-body').innerHTML =
+        '<p class="empty">' + esc(d.message || '尚未啟用。') +
+        '<br>設定好之後這裡就會顯示造訪數、來源網站、國家與每日走勢。</p>';
+      lastTraffic = null;
+      return;
+    }
+    $('tf-period').textContent = d.from + ' ～ ' + d.to + '（台灣時間）' +
+      (d.host ? '｜只計 ' + d.host : '｜含所有子網域') + (d.cached ? '｜快取' : '');
+    lastTraffic = d;
+
+    var html = '<div id="tf-nums"></div>';
+
+    // 每日走勢：後端已經把沒有流量的日子補成 0，直接畫
+    var max = (d.byDay || []).reduce(function (m, x) { return Math.max(m, x.visits); }, 0) || 1;
+    html += section('每日造訪',
+      '<div class="spark">' + (d.byDay || []).map(function (x) {
+        return '<div title="' + x.day + '：' + x.visits + ' 次造訪／' + x.views + ' 頁"><i style="height:' +
+          (x.visits ? Math.max(3, x.visits / max * 100) : 0) + '%"></i></div>';
+      }).join('') + '</div>' +
+      '<div class="spark-x"><span>' + (d.byDay[0] || {}).day + '</span>' +
+      '<span>最高一天 ' + max + ' 次</span>' +
+      '<span>' + (d.byDay[d.byDay.length - 1] || {}).day + '</span></div>');
+
+    html += section('從哪個網站來', trafficBars(d.referers));
+    html += section('熱門頁面', trafficBars(d.paths));
+
+    html += '<div class="cols" style="margin-top:4px;"><div>' +
+      section('國家地區', trafficBars((d.countries || []).map(function (r) {
+        return { name: countryName(r.name), visits: r.visits };
+      }))) + '</div><div>' +
+      section('裝置', trafficBars((d.devices || []).map(function (r) {
+        return { name: deviceName(r.name), visits: r.visits };
+      }))) + '</div></div>';
+
+    if (!d.host && (d.hosts || []).length > 1) {
+      html += section('各子網域', trafficBars(d.hosts));
+    }
+
+    $('tf-body').innerHTML = html;
+    renderNums();
+  }
+
+  function loadTraffic(force) {
+    var key = days + '|' + host;
+    if (tfBusy || (!force && tfLoadedFor === key)) return;
+    tfBusy = true;
+    $('tf-period').textContent = '載入中…';
+    fetch('/api/traffic?days=' + days + (host ? '&host=' + encodeURIComponent(host) : ''),
+      { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.error) throw new Error(d.error);
+        tfLoadedFor = key;
+        renderTraffic(d);
+      })
+      .catch(function (e) {
+        $('tf-period').textContent = '';
+        $('tf-body').innerHTML = '<p class="empty">讀取失敗：' + esc(e.message || e) + '</p>';
+      })
+      .then(function () { tfBusy = false; });
   }
 
   function load(force) {
@@ -619,7 +749,7 @@
     // 統計頁用不到這兩顆，藏起來免得誤按
     $('btn-new').style.display = stats ? 'none' : '';
     $('btn-save').style.display = stats ? 'none' : '';
-    if (stats) load();
+    if (stats) { loadTraffic(); load(); }
   }
   $('tab-goods').addEventListener('click', function () { show('goods'); });
   $('tab-stats').addEventListener('click', function () { show('stats'); });
@@ -630,6 +760,17 @@
     days = parseInt(b.getAttribute('data-days'), 10);
     Array.prototype.forEach.call(this.children, function (c) { c.classList.toggle('on', c === b); });
     load(true);
+    loadTraffic(true);
+  });
+
+  /* 「只看商店 / 含所有子網域」——planner、pos、ar 也掛在同一個網站標籤下，
+     算商店成效時要能把它們排除掉 */
+  $('scope').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-host]');
+    if (!b) return;
+    host = b.getAttribute('data-host');
+    Array.prototype.forEach.call(this.children, function (c) { c.classList.toggle('on', c === b); });
+    loadTraffic(true);
   });
 })();
 </script>
