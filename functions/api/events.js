@@ -120,7 +120,9 @@ export async function onRequestGet({ request, env, waitUntil }) {
   const text = textFromB64(meta.content);
   const m = text.match(/window\.CANKING_EVENTS_LIVE\s*=\s*(\[[\s\S]*?\]);/);
   let events = [];
-  if (m) { try { events = JSON.parse(m[1]); } catch (_) { events = []; } }
+  // 檔案裡每筆後面都有逗號（JS 容許尾逗號，JSON 不容許）→ 解析前先拿掉，
+  // 否則這裡會靜靜地回空陣列，前端拿去重畫就把活動清單洗掉了。
+  if (m) { try { events = JSON.parse(m[1].replace(/,\s*\]$/, ']')); } catch (_) { events = []; } }
   const res = new Response(JSON.stringify({ ok: true, events: events, sha: meta.sha }), {
     headers: Object.assign({
       'content-type': 'application/json; charset=utf-8',
