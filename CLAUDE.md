@@ -152,9 +152,25 @@ node tests/track.test.mjs       # 41 項
 `/ajax/api/JsonRPC/` 的 405。函式名稱與 `customerAccountsModelsInitialized`
 事件刻意保留為空殼，避免 Weebly 其他腳本找不到而報新的錯。
 
-**尚未處理**：每頁仍載入三個已經 404 的腳本（舊站取消發佈後就掛了）——
-`cankingstore.weebly.com/files/templateArtifacts.js`、`files/theme/plugins.js`、
-`files/theme/mobile.js`。其中 `mobile.js` 是佈景主題的手機版導覽。
+**指向舊 Weebly 站的腳本（2026-08-29 一併處理）**：舊站取消發佈後這些全部 404。
+逐一查過用途才決定去留，不是整批砍掉：
+
+| 檔案 | 是什麼 | 處置 |
+|---|---|---|
+| `files/theme/plugins.js` | 純 Hammer.JS 2.0.4（手勢函式庫） | **改自行存放 `css/hammer.js`** |
+| `files/templateArtifacts.js` | Weebly 站內搜尋結果的 Mustache 樣板 | 移除（本站沒有搜尋） |
+| `files/theme/mobile.js` | `Weebly.mobile_navigation` | 移除（本佈景的手機選單是自己做的） |
+| `gdpr/gdprscript.js` | Weebly 的 cookie 同意橫幅 | 移除（本站不放 cookie） |
+| `cdn-cgi/.../email-decode.min.js` | Cloudflare 的 email 反混淆 | 改指向自己網域的同一支 |
+
+**Hammer 是真的有人在用**：`css/custom.js` 的 `Theme.swipeGallery()` 會 `new Hammer(...)`，
+提供燈箱裡左右滑動換圖。它 404 時手機使用者一點圖就會噴
+`ReferenceError: Hammer is not defined`，滑動換圖失效（點箭頭還可以）。
+`css/hammer.js` 與官方 hammerjs@2.0.4 逐行比對過，只差 Weebly 移除了 AMD 分支
+（正好確保一定掛上 `window.Hammer`）。**驗證方法**：手機尺寸開燈箱後，
+`.fancybox-wrap` 的 `touch-action` 應為 `pan-y`（Hammer 掛上 pan 手勢的指紋）。
+
+**還沒處理**：`ec.editmysite.com`（Weebly 的 snowplow 分析）每頁仍會發請求並失敗。
 
 ## SEO / 其他
 
