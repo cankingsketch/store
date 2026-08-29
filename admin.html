@@ -61,6 +61,7 @@
   .ck-prod-imgs .ck-md { flex:0 0 calc(50% - 6px); max-width:460px; }
   .ck-prod-imgs .ck-sm { flex:0 0 calc(33.333% - 8px); max-width:320px; }
   .ck-prod-desc { text-align:center; font-size:90%; margin-top:10px; color:var(--muted); }
+  .ck-prod-desc.ck-desc-left { text-align:left; }
   .msg { padding:11px 14px; border-radius:9px; margin-bottom:14px; font-size:14px; display:none; }
   .msg.err { background:#ffecec; color:#c00; border:1px solid #ffc9c9; display:block; }
   .msg.ok { background:#e8f8ee; color:#127a3d; border:1px solid #b7e6c8; display:block; }
@@ -266,10 +267,12 @@
     var imgs = e.images.map(function (im) {
       return '<figure class="ck-img ck-' + (im.size || 'lg') + '"><img src="' + imgSrc(im) + '" alt="" /></figure>';
     }).join('');
+    var sideBySide = e.images.some(function (im) { return im.size === 'md' || im.size === 'sm'; });
+    var descCls = 'ck-prod-desc' + (sideBySide ? ' ck-desc-left' : '');
     $('stage').innerHTML =
       '<h3 class="pv-title">' + (esc(e.title) || '<span style="color:#bbb">（商品名稱）</span>') + '</h3>' +
       '<div class="ck-prod"><div class="ck-prod-imgs">' + imgs + '</div>' +
-      (e.desc.trim() ? '<div class="ck-prod-desc">' + esc(e.desc) + '</div>' : '') + '</div>';
+      (e.desc.trim() ? '<div class="' + descCls + '">' + esc(e.desc) + '</div>' : '') + '</div>';
   }
 
   /* ---------- 圖片壓縮 ---------- */

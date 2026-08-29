@@ -387,6 +387,12 @@ _W.setup_model_rpc({"rpc_namespace":"_W.Commerce.RPC","model_namespace":"_W.Comm
   .ck-prod-imgs .ck-md { flex: 0 0 calc(50% - 6px); max-width: 460px; }
   .ck-prod-imgs .ck-sm { flex: 0 0 calc(33.333% - 8px); max-width: 320px; }
   .ck-prod-desc { text-align: center; font-size: 90%; margin-top: 10px; color: #7b8c89; }
+  /* 並排多圖時，說明文字靠左（與舊商品多圖排版一致） */
+  .ck-prod-desc.ck-desc-left { text-align: left; }
+  /* 商品之間統一留白 45px，取代原本的紅線分隔 */
+  #wsite-content h2.wsite-content-title { margin-top: 45px; }
+  #wsite-content hr.styled-hr { display: none; }
+  #wsite-content div:has(> hr.styled-hr) { display: none; }
   @media screen and (max-width: 700px) {
     .ck-prod-imgs .ck-md, .ck-prod-imgs .ck-sm { flex: 0 0 100%; max-width: 100%; }
   }
