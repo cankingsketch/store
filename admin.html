@@ -13,6 +13,35 @@
            padding:12px 18px; background:#fff; border-bottom:2px solid var(--red); }
   header h1 { font-size:18px; margin:0; color:var(--red); }
   header .who { font-size:12px; color:var(--muted); margin-left:auto; }
+  /* 分頁切換 */
+  .tabs { display:flex; gap:2px; }
+  .tabs button { border:none; border-bottom:2.5px solid transparent; border-radius:0;
+                 padding:8px 12px; color:var(--muted); font-weight:700; }
+  .tabs button.on { color:var(--red); border-bottom-color:var(--red); }
+  /* 統計 */
+  .nums { display:flex; flex-wrap:wrap; gap:14px; }
+  .num { flex:1 1 150px; border:1px solid var(--line); border-radius:10px; padding:12px 14px; }
+  .num b { display:block; font-size:28px; line-height:1.2; color:#222; font-variant-numeric:tabular-nums; }
+  .num span { font-size:12px; color:var(--muted); }
+  .bar { display:grid; grid-template-columns:minmax(0,1fr) 130px 46px; gap:10px;
+         align-items:center; padding:5px 0; font-size:14px; }
+  .bar .nm { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .bar .tr { background:#f1f1f1; border-radius:4px; height:9px; }
+  .bar .tr i { display:block; height:100%; border-radius:4px; background:var(--red); }
+  .bar.dim .tr i { background:#c9c9c9; }
+  .bar .vl { text-align:right; font-variant-numeric:tabular-nums; color:#555; }
+  .spark { display:flex; align-items:flex-end; gap:2px; height:112px; margin:8px 0 4px; }
+  /* 底軌要撐滿高度，裡面紅色長條的百分比高度才算得準 */
+  .spark > div { flex:1; height:100%; background:#f4f4f4; border-radius:2px 2px 0 0; position:relative; }
+  .spark > div > i { position:absolute; left:0; right:0; bottom:0; background:var(--red); border-radius:2px 2px 0 0; }
+  .spark-x { display:flex; justify-content:space-between; font-size:11px; color:var(--muted); }
+  .swatch { display:inline-block; width:9px; height:9px; border-radius:2px; }
+  .empty { color:var(--muted); font-size:14px; padding:4px 0; }
+  .range { display:flex; gap:6px; margin-left:auto; }
+  .range button { padding:5px 11px; font-size:13px; border-color:var(--line); color:#666; }
+  .range button.on { border-color:var(--red); color:var(--red); }
+  .cf-link { display:inline-block; font-size:14px; font-weight:700; color:var(--red); text-decoration:none;
+             border:1.5px solid var(--red); border-radius:8px; padding:8px 14px; }
   button { font-family:inherit; font-size:14px; cursor:pointer; border-radius:8px; border:1.5px solid var(--red);
            background:#fff; color:var(--red); padding:8px 14px; }
   button.primary { background:var(--red); color:#fff; }
@@ -67,11 +96,17 @@
   .msg.ok { background:#e8f8ee; color:#127a3d; border:1px solid #b7e6c8; display:block; }
   .msg.info { background:#eef4ff; color:#1a4fa0; border:1px solid #c7d9f7; display:block; }
   @media (max-width:900px) { .cols { grid-template-columns:1fr; } }
+  /* 手機上把橫條縮短，留多一點空間給名稱 */
+  @media (max-width:600px) { .bar { grid-template-columns:minmax(0,1fr) 78px 40px; gap:8px; } }
 </style>
 </head>
 <body>
 <header>
-  <h1>商品後台</h1>
+  <h1>空罐王後台</h1>
+  <div class="tabs">
+    <button id="tab-goods" class="on">商品</button>
+    <button id="tab-stats">流量統計</button>
+  </div>
   <button id="btn-new">＋ 新增商品</button>
   <button id="btn-save" class="primary" disabled>儲存變更</button>
   <span class="who" id="who"></span>
@@ -80,6 +115,7 @@
 <div class="wrap">
   <div id="msg" class="msg"></div>
 
+  <div id="pane-goods">
   <!-- 清單模式 -->
   <div id="view-list">
     <div class="card">
@@ -113,6 +149,35 @@
         <div class="stage" id="stage"></div>
         <p class="hint">這就是它在網站上的樣子（手機上多圖會自動變成上下排列）。</p>
       </div>
+    </div>
+  </div>
+  </div><!-- /pane-goods -->
+
+  <!-- 流量統計 -->
+  <div id="pane-stats" style="display:none">
+    <div class="card">
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <h2 style="margin:0;">購買連結點擊</h2>
+        <div class="range" id="range">
+          <button data-days="7" class="on">7 天</button>
+          <button data-days="30">30 天</button>
+          <button data-days="90">90 天</button>
+        </div>
+      </div>
+      <p class="hint" id="st-period">載入中…</p>
+      <div id="st-body"></div>
+    </div>
+
+    <div class="card" style="margin-top:18px;">
+      <h2>網站造訪人數</h2>
+      <p class="hint" style="margin-bottom:12px;">
+        造訪次數、來源網站、國家地區、歷史圖表都在 Cloudflare Web Analytics
+        （已開啟兩個月，資料持續累積中）。
+      </p>
+      <a class="cf-link" target="_blank" rel="noopener"
+         href="https://dash.cloudflare.com/e07fc9ba319a1f88a7c2288f0aa28933/web-analytics/overview/visits?siteTag~in=d60a99edbafd4caeaf79f96ee9499898&amp;excludeBots=Yes&amp;time-window=10080">
+        開啟 Cloudflare 流量報表 →</a>
+      <p class="hint" style="margin-top:10px;">需要用空罐王的 Cloudflare 帳號登入。</p>
     </div>
   </div>
 </div>
@@ -387,6 +452,144 @@
   });
 
   load();
+})();
+</script>
+
+<script>
+/* 流量統計分頁：讀 /api/track 記下的外連點擊 */
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var days = 7, loadedFor = null, busy = false;
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  /* 一組橫條排行；rows = [{ nm, n, dim }] */
+  function barList(rows) {
+    if (!rows || !rows.length) return '<p class="empty">這段期間沒有資料。</p>';
+    var max = rows.reduce(function (m, r) { return Math.max(m, r.n); }, 0) || 1;
+    return rows.map(function (r) {
+      return '<div class="bar' + (r.dim ? ' dim' : '') + '">' +
+        '<div class="nm" title="' + esc(r.nm) + '">' + esc(r.nm) + '</div>' +
+        '<div class="tr"><i style="width:' + Math.max(2, (r.n / max) * 100) + '%"></i></div>' +
+        '<div class="vl">' + r.n + '</div></div>';
+    }).join('');
+  }
+
+  function section(title, inner) {
+    return '<h2 style="font-size:15px;margin:22px 0 6px;">' + title + '</h2>' + inner;
+  }
+
+  /* 每日長條圖；補上沒有點擊的日子，不然圖會誤導 */
+  function spark(byDay, from, to) {
+    var have = {};
+    (byDay || []).forEach(function (d) { have[d.day] = d.n; });
+    var out = [], cur = new Date(from + 'T00:00:00Z'), end = new Date(to + 'T00:00:00Z');
+    while (cur <= end && out.length < 400) {
+      var k = cur.toISOString().slice(0, 10);
+      out.push({ day: k, n: have[k] || 0 });
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+    var max = out.reduce(function (m, d) { return Math.max(m, d.n); }, 0) || 1;
+    return '<div class="spark">' + out.map(function (d) {
+      return '<div title="' + d.day + '：' + d.n + ' 次"><i style="height:' +
+        (d.n ? Math.max(3, (d.n / max) * 100) : 0) + '%"></i></div>';
+    }).join('') + '</div>' +
+      '<div class="spark-x"><span>' + out[0].day + '</span>' +
+      '<span>最高一天 ' + max + ' 次</span>' +
+      '<span>' + out[out.length - 1].day + '</span></div>';
+  }
+
+  function render(d) {
+    if (d.ready === false) {
+      $('st-period').textContent = '';
+      $('st-body').innerHTML = '<p class="empty">' + esc(d.message || '尚未啟用。') + '</p>';
+      return;
+    }
+    if (!d.total) {
+      $('st-period').textContent = d.from ? d.from + ' ～ ' + d.to : '';
+      $('st-body').innerHTML = '<p class="empty">這段期間還沒有人點過購買連結。' +
+        '（追蹤剛上線的話，要等有人實際點擊才會有數字）</p>';
+      return;
+    }
+    $('st-period').textContent = d.from + ' ～ ' + d.to + '（台灣時間）';
+
+    var perDay = (d.shop / d.days).toFixed(1);
+    var html =
+      '<div class="nums">' +
+        '<div class="num"><b>' + d.shop + '</b><span>購買連結點擊</span></div>' +
+        '<div class="num"><b>' + perDay + '</b><span>平均每天</span></div>' +
+        '<div class="num"><b>' + d.total + '</b><span>所有外連點擊（含社群）</span></div>' +
+      '</div>';
+
+    html += section('每日點擊', spark(d.byDay, d.from, d.to));
+
+    html += section('哪個通路被點最多',
+      barList((d.byChannel || []).map(function (r) {
+        return { nm: r.channel + (r.kind === 'shop' ? '' : '（社群/其他）'), n: r.n, dim: r.kind !== 'shop' };
+      })) +
+      '<p class="hint"><span class="swatch" style="background:#ff2d2d"></span> 購買通路　' +
+      '<span class="swatch" style="background:#c9c9c9"></span> 社群連結</p>');
+
+    html += section('哪個商品的購買鍵被按最多',
+      barList((d.byLabel || []).map(function (r) { return { nm: r.label, n: r.n }; })));
+
+    html += section('從哪一頁點出去',
+      barList((d.byPage || []).map(function (r) { return { nm: r.page || '（首頁）', n: r.n }; })));
+
+    var dev = d.byDevice || [], ctry = d.byCountry || [];
+    html += '<div class="cols" style="margin-top:4px;"><div>' +
+      section('裝置', barList(dev.map(function (r) {
+        return { nm: r.device === 'mobile' ? '手機' : '桌機', n: r.n };
+      }))) + '</div><div>' +
+      section('國家地區', barList(ctry.map(function (r) { return { nm: r.country, n: r.n }; }))) +
+      '</div></div>';
+
+    $('st-body').innerHTML = html;
+  }
+
+  function load(force) {
+    if (busy || (!force && loadedFor === days)) return;
+    busy = true;
+    $('st-period').textContent = '載入中…';
+    fetch('/api/stats?days=' + days, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.error) throw new Error(d.error);
+        loadedFor = days;
+        render(d);
+      })
+      .catch(function (e) {
+        $('st-period').textContent = '';
+        $('st-body').innerHTML = '<p class="empty">讀取失敗：' + esc(e.message || e) + '</p>';
+      })
+      .then(function () { busy = false; });
+  }
+
+  /* 分頁切換 */
+  function show(which) {
+    var stats = which === 'stats';
+    $('pane-goods').style.display = stats ? 'none' : '';
+    $('pane-stats').style.display = stats ? '' : 'none';
+    $('tab-goods').classList.toggle('on', !stats);
+    $('tab-stats').classList.toggle('on', stats);
+    // 統計頁用不到這兩顆，藏起來免得誤按
+    $('btn-new').style.display = stats ? 'none' : '';
+    $('btn-save').style.display = stats ? 'none' : '';
+    if (stats) load();
+  }
+  $('tab-goods').addEventListener('click', function () { show('goods'); });
+  $('tab-stats').addEventListener('click', function () { show('stats'); });
+
+  $('range').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-days]');
+    if (!b) return;
+    days = parseInt(b.getAttribute('data-days'), 10);
+    Array.prototype.forEach.call(this.children, function (c) { c.classList.toggle('on', c === b); });
+    load(true);
+  });
 })();
 </script>
 </body>

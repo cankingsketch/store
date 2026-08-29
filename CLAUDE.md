@@ -97,6 +97,47 @@
 
 修改後端解析邏輯時，務必先跑無損測試（切開再合併必須與原檔一字不差）。
 
+## 流量統計
+
+分兩塊，資料來源不同：
+
+**1. 造訪人數 → Cloudflare Web Analytics**（2026-06 起自動收集）
+免費、不放 cookie、Automatic setup（Cloudflare 自動注入腳本，網頁不必改）。
+提供造訪次數、頁面瀏覽、來源網站、國家、裝置、Core Web Vitals。
+**沒有「不重複訪客」**——它不追蹤個人，Visits 已是最接近的指標。
+後台「流量統計」分頁有直達連結（需 Cloudflare 帳號登入）。
+
+**2. 購買連結點擊 → 自建（D1）**
+
+| 檔案 | 作用 |
+|---|---|
+| `track.js` | 全站腳本，攔截所有「連到站外」的點擊 |
+| `functions/api/track.js` | 公開端點，寫入 D1 |
+| `functions/api/stats.js` | 後台查詢用，需 Access |
+| `admin.html` 的「流量統計」分頁 | 顯示 |
+
+- D1 綁定名稱 **`STATS`**，資料表 `clicks`（第一次點擊時自動建立，不必手動跑 SQL）
+- **不用逐一標記連結**：`track.js` 依網址主機名稱自動歸類通路，
+  所以之後在後台新增商品貼上新的購買連結會自動被追蹤，不需要改程式
+- 通路清單在 `track.js` 的 `CHANNELS`；`SHOP` 陣列決定哪些算「購買」、哪些算「社群」
+- 自家子網域（`*.cankingstore.com`）不列入，否則 pos/ar/planner 會被當成導流出去
+- 保留 400 天，超過的資料在寫入時隨機清理
+
+踩過的坑：
+- **絕不能擋住跳轉**：用 `sendBeacon`（頁面卸載後仍會送達），整段包在 try/catch，
+  端點一律回 204。D1 沒綁定時也安靜略過，不會讓網站壞掉。
+- **不要用模組層級變數快取「表已建立」**：Worker isolate 會重用，
+  資料庫若被重建，暖著的 isolate 會一直寫失敗。改成「插入失敗才建表再重試」。
+- **免費額度**：D1 每天 10 萬次寫入。單日流量破萬時點擊約數百到一千次，差很遠。
+
+## 測試
+
+```
+node tests/products.test.mjs    # 28 項
+node tests/track.test.mjs       # 41 項
+```
+不必安裝套件（用 Node 內建 `node:sqlite` 模擬 D1）。改 `functions/api/*` 前後都要跑。
+
 ## SEO / 其他
 
 - 全站 `og:image` 指向 `images/og_share.png`（1200×630 分享卡）
