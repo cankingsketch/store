@@ -170,7 +170,16 @@ node tests/track.test.mjs       # 41 項
 （正好確保一定掛上 `window.Hammer`）。**驗證方法**：手機尺寸開燈箱後，
 `.fancybox-wrap` 的 `touch-action` 應為 `pan-y`（Hammer 掛上 pan 手勢的指紋）。
 
-**還沒處理**：`ec.editmysite.com`（Weebly 的 snowplow 分析）每頁仍會發請求並失敗。
+**Weebly 的兩個追蹤器也已移除（2026-08-29）**：
+- Snowplow（`snowday262.js` → `ec.editmysite.com`），會種 `_snow_` cookie
+- Google Analytics `UA-7870337-1`（**Weebly 公司的**，不是我們的；UA 型 Google 已於
+  2024-07 停止收資料，且用的是 2019 就退役的 `ga.js`），會種 GA cookie
+
+兩者都只是把訪客資料送去我們看不到的地方，移除後全站不再種任何 cookie。
+`_W.Analytics` 只被這兩個區塊自己用（main.js 完全沒引用），移除安全。
+
+**仍會連的外部主機**：`cdn11/cdn2.editmysite.com`（jQuery、main.js、佈景 CSS、字型
+——這些是佈景真正的執行環境，不能拿掉）、`cdn-promote.weebly.com/js/dist/messenger.js`。
 
 ## SEO / 其他
 
