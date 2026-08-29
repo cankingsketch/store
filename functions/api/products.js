@@ -127,6 +127,7 @@ function parseBlock(block, idx) {
     while ((g = re.exec(block))) out.images.push({ size: g[1], file: g[2] });
     const d = block.match(/<div class="ck-prod-desc[^"]*">([\s\S]*?)<\/div>/);
     out.desc = d ? unesc(d[1]).trim() : '';
+    out.descAlign = /class="ck-prod-desc[^"]*\bck-desc-left\b/.test(block) ? 'left' : 'center';
   } else {
     const imgs = block.match(/<img[^>]+src="images\/[^"]+"/g) || [];
     out.imageCount = imgs.length;
@@ -146,9 +147,11 @@ function buildBlock(item) {
     const lazy = i === 0 ? '' : ' loading="lazy"';
     return `<figure class="ck-img ck-${size}"><img src="images/${esc(im.file)}" alt="${title}"${lazy} /></figure>`;
   }).join('\n');
-  // 有並排圖（中/小）時說明靠左，與舊商品多圖排版一致；單張大圖維持置中
+  // 說明文字對齊：後台有明講就照做；沒講就沿用自動規則
+  //（有並排圖時靠左，與舊商品多圖排版一致；單張大圖置中）
   const sideBySide = (item.images || []).some(function (im) { return im.size === 'md' || im.size === 'sm'; });
-  const descCls = 'ck-prod-desc' + (sideBySide ? ' ck-desc-left' : '');
+  const left = item.descAlign === 'left' || (item.descAlign !== 'center' && sideBySide);
+  const descCls = 'ck-prod-desc' + (left ? ' ck-desc-left' : '');
   const desc = item.desc && item.desc.trim()
     ? `\n<div class="${descCls}">${esc(item.desc.trim())}</div>` : '';
   return `<h2 class="wsite-content-title" data-ck="1"><strong><font size="7">${title}</font></strong></h2>\n\n` +

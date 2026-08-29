@@ -95,6 +95,11 @@
 - **預覽部署網址**（`<hash>.cankingstore.pages.dev`）不在 Access 規則涵蓋範圍內，
   後台頁面打得開，但 API 仍會擋下（403）——這是保留 Function 內身分檢查的理由。
 
+說明文字對齊：後台每個商品可以明講「置中／靠左」。沒明講時走自動規則
+（有並排圖→靠左、單張大圖→置中）。`buildBlock` 與 admin 的 `autoAlign()`
+必須保持一致，改了其中一個就要改另一個。舊 Weebly 商品的對齊是寫在
+外層 `text-align:`，不歸這套管。
+
 修改後端解析邏輯時，務必先跑無損測試（切開再合併必須與原檔一字不差）。
 
 ## 流量統計
@@ -137,6 +142,19 @@ node tests/products.test.mjs    # 28 項
 node tests/track.test.mjs       # 41 項
 ```
 不必安裝套件（用 Node 內建 `node:sqlite` 模擬 D1）。改 `functions/api/*` 前後都要跑。
+
+## Weebly 殘留
+
+匯出的 HTML 帶著整套 Weebly 商店程式，但本站沒有購物車（所有購買都是外連）。
+2026-08-29 已清掉：`initCustomerAccountsModels` / `initCommerceModels` 的 RPC 設定、
+`commerce-core.js`、`main-commerce-browse.js`、`main-customer-accounts-site.js`
+與 `<div id="customer-accounts-app">`。每頁因此少 53KB，console 也不再噴
+`/ajax/api/JsonRPC/` 的 405。函式名稱與 `customerAccountsModelsInitialized`
+事件刻意保留為空殼，避免 Weebly 其他腳本找不到而報新的錯。
+
+**尚未處理**：每頁仍載入三個已經 404 的腳本（舊站取消發佈後就掛了）——
+`cankingstore.weebly.com/files/templateArtifacts.js`、`files/theme/plugins.js`、
+`files/theme/mobile.js`。其中 `mobile.js` 是佈景主題的手機版導覽。
 
 ## SEO / 其他
 

@@ -42,6 +42,11 @@
   .range button.on { border-color:var(--red); color:var(--red); }
   .cf-link { display:inline-block; font-size:14px; font-weight:700; color:var(--red); text-decoration:none;
              border:1.5px solid var(--red); border-radius:8px; padding:8px 14px; }
+  /* 說明文字對齊切換 */
+  .align { display:flex; align-items:center; gap:6px; margin-top:7px; font-size:13px; color:var(--muted); }
+  .align button { padding:4px 12px; font-size:13px; border-color:var(--line); color:#666; }
+  .align button.on { border-color:var(--red); color:var(--red); font-weight:700; }
+  .align .hint { margin:0; }
   button { font-family:inherit; font-size:14px; cursor:pointer; border-radius:8px; border:1.5px solid var(--red);
            background:#fff; color:var(--red); padding:8px 14px; }
   button.primary { background:var(--red); color:#fff; }
@@ -134,6 +139,12 @@
         <input type="text" id="f-title" placeholder="例如：下雨天杯墊" />
         <label>說明文字（選填）</label>
         <input type="text" id="f-desc" placeholder="例如：陶瓷 吸水 杯墊｜UV浮雕印刷｜NT$200" />
+        <div class="align" id="f-align">
+          <span>對齊：</span>
+          <button type="button" data-align="center">置中</button>
+          <button type="button" data-align="left">靠左</button>
+          <span class="hint" id="align-auto">（目前自動判斷）</span>
+        </div>
         <label>商品圖片</label>
         <div class="imgs" id="f-imgs"></div>
         <div class="drop" id="drop">點這裡選圖片，或把圖片拖進來（可一次多張）</div>
@@ -271,12 +282,13 @@
   function openEditor(i) {
     state.isNewItem = (i == null);
     if (state.isNewItem) {
-      state.editing = { new: true, title: '', desc: '', images: [], editable: true, removed: false };
+      state.editing = { new: true, title: '', desc: '', descAlign: null, images: [], editable: true, removed: false };
       $('edit-heading').textContent = '新增商品';
     } else {
       var p = state.products[i];
       state.editing = {
         idx: i, new: !!p.new, title: p.title, desc: p.desc || '',
+        descAlign: p.descAlign || null,
         images: (p.images || []).map(function (im) { return { file: im.file, size: im.size, dataUrl: im.dataUrl }; }),
         editable: true, removed: false, origIdx: p.idx
       };
@@ -327,13 +339,31 @@
     });
   }
 
+  /* 沒有明講對齊時的自動規則：有並排圖就靠左，單張大圖置中。
+     必須與 functions/api/products.js 的 buildBlock 一致。 */
+  function autoAlign(images) {
+    return images.some(function (im) { return im.size === 'md' || im.size === 'sm'; }) ? 'left' : 'center';
+  }
+  function effectiveAlign(e) {
+    return e.descAlign === 'left' || e.descAlign === 'center' ? e.descAlign : autoAlign(e.images);
+  }
+  function renderAlign() {
+    var e = state.editing; if (!e) return;
+    var cur = effectiveAlign(e);
+    Array.prototype.forEach.call($('f-align').querySelectorAll('button'), function (b) {
+      b.classList.toggle('on', b.getAttribute('data-align') === cur);
+    });
+    $('align-auto').style.display =
+      e.descAlign === 'left' || e.descAlign === 'center' ? 'none' : '';
+  }
+
   function renderPreview() {
     var e = state.editing; if (!e) return;
     var imgs = e.images.map(function (im) {
       return '<figure class="ck-img ck-' + (im.size || 'lg') + '"><img src="' + imgSrc(im) + '" alt="" /></figure>';
     }).join('');
-    var sideBySide = e.images.some(function (im) { return im.size === 'md' || im.size === 'sm'; });
-    var descCls = 'ck-prod-desc' + (sideBySide ? ' ck-desc-left' : '');
+    var descCls = 'ck-prod-desc' + (effectiveAlign(e) === 'left' ? ' ck-desc-left' : '');
+    renderAlign();
     $('stage').innerHTML =
       '<h3 class="pv-title">' + (esc(e.title) || '<span style="color:#bbb">（商品名稱）</span>') + '</h3>' +
       '<div class="ck-prod"><div class="ck-prod-imgs">' + imgs + '</div>' +
@@ -393,11 +423,13 @@
     var items = keep.map(function (p) {
       if (p.new) {
         (p.images || []).forEach(function (im) { used[im.file] = 1; });
-        return { new: true, title: p.title, desc: p.desc || '', images: p.images.map(function (im) { return { file: im.file, size: im.size }; }) };
+        return { new: true, title: p.title, desc: p.desc || '', descAlign: p.descAlign || null,
+                 images: p.images.map(function (im) { return { file: im.file, size: im.size }; }) };
       }
       var o = { idx: p.idx, title: p.title };
       if (p.editable) {
         o.desc = p.desc || '';
+        o.descAlign = p.descAlign || null;
         o.images = (p.images || []).map(function (im) { used[im.file] = 1; return { file: im.file, size: im.size }; });
       }
       return o;
@@ -425,16 +457,25 @@
   $('btn-cancel').addEventListener('click', closeEditor);
   $('f-title').addEventListener('input', function () { state.editing.title = this.value; renderPreview(); });
   $('f-desc').addEventListener('input', function () { state.editing.desc = this.value; renderPreview(); });
+  $('f-align').addEventListener('click', function (ev) {
+    var b = ev.target.closest('button[data-align]');
+    if (!b || !state.editing) return;
+    // 按下之後就是明講的，不再跟著圖片版型自動變
+    state.editing.descAlign = b.getAttribute('data-align');
+    renderPreview();
+  });
   $('btn-apply').addEventListener('click', function () {
     var e = state.editing;
     if (!e.title.trim()) { setMsg('請填寫商品名稱。', 'err'); return; }
     if (!e.images.length) { setMsg('請至少上傳一張圖片。', 'err'); return; }
     setMsg('');
     if (state.isNewItem) {
-      state.products.unshift({ new: true, title: e.title.trim(), desc: e.desc.trim(), images: e.images, editable: true, removed: false });
+      state.products.unshift({ new: true, title: e.title.trim(), desc: e.desc.trim(),
+        descAlign: e.descAlign || null, images: e.images, editable: true, removed: false });
     } else {
       var p = state.products[e.idx];
       p.title = e.title.trim(); p.desc = e.desc.trim(); p.images = e.images;
+      p.descAlign = e.descAlign || null;
     }
     markDirty(); closeEditor();
   });

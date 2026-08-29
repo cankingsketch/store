@@ -98,5 +98,23 @@ ok('三張並排 -> 靠左', /ck-desc-left/.test(dSm));
 ok('大圖+並排 -> 靠左', /ck-desc-left/.test(dMix));
 ok('靠左時說明仍解析得回來', M.parseBlock(dMd, 0).desc === '說明', M.parseBlock(dMd, 0).desc);
 
+console.log('');
+console.log('[11] 後台明講的對齊優先於自動規則');
+const mkA = (align, sizes) => M.buildBlock({ title: 'T', desc: '說明',
+  images: sizes.map((sz, k) => ({ file: 'i' + k + '.jpg', size: sz })), descAlign: align });
+ok('並排圖但指定置中 -> 置中', !/ck-desc-left/.test(mkA('center', ['md', 'md'])));
+ok('單張大圖但指定靠左 -> 靠左', /ck-desc-left/.test(mkA('left', ['lg'])));
+ok('沒指定時仍走自動規則(並排->靠左)', /ck-desc-left/.test(mkA(null, ['md', 'md'])));
+ok('沒指定時仍走自動規則(單大圖->置中)', !/ck-desc-left/.test(mkA(undefined, ['lg'])));
+ok('亂給的值當成沒指定', /ck-desc-left/.test(mkA('bogus', ['sm'])));
+ok('解析得回 left', M.parseBlock(mkA('left', ['lg']), 0).descAlign === 'left');
+ok('解析得回 center', M.parseBlock(mkA('center', ['md', 'md']), 0).descAlign === 'center');
+
+// 讀出來的對齊原封不動存回去，檔案必須一字不差
+const reSaved = rebuild(parsed.map(p => p.editable
+  ? { idx: p.idx, title: p.title, desc: p.desc, images: p.images, descAlign: p.descAlign }
+  : { idx: p.idx, title: p.title }));
+ok('帶著解析出的對齊重存 = 原檔', reSaved === src);
+
 console.log('\n=== ' + pass + ' 通過 / ' + fail + ' 失敗 ===');
 process.exit(fail ? 1 : 0);
