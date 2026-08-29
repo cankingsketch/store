@@ -40,7 +40,7 @@ function cors() {
   return {
     'Access-Control-Allow-Origin': ORIGIN,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, X-Push-Key', // 少了 X-Push-Key 預檢就會擋下整個請求
     'Access-Control-Max-Age': '86400',
   };
 }
