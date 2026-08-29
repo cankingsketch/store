@@ -105,8 +105,14 @@ export function onRequestOptions() {
   return new Response(null, { status: 204, headers: cors() });
 }
 
-export async function onRequestGet({ env }) {
+// 官網每次開頁都會打這支（繞開瀏覽器對 events-live.js 的 4 小時快取），
+// 所以在邊緣快取 60 秒，免得每個訪客都去敲一次 GitHub API。
+export async function onRequestGet({ request, env, waitUntil }) {
   if (!env.GITHUB_TOKEN) return json({ error: '伺服器尚未設定 GITHUB_TOKEN。' }, 500);
+  const cache = caches.default;
+  const key = new Request(new URL(request.url).origin + '/api/events', { method: 'GET' });
+  const hit = await cache.match(key);
+  if (hit) return hit;
   const r = await gh(env, `contents/${FILE}?ref=${BRANCH}`);
   if (r.status === 404) return json({ ok: true, events: [], 檔案: null });
   if (!r.ok) return json({ error: `GitHub 讀取失敗 (${r.status})` }, 502);
@@ -115,7 +121,14 @@ export async function onRequestGet({ env }) {
   const m = text.match(/window\.CANKING_EVENTS_LIVE\s*=\s*(\[[\s\S]*?\]);/);
   let events = [];
   if (m) { try { events = JSON.parse(m[1]); } catch (_) { events = []; } }
-  return json({ ok: true, events: events, sha: meta.sha });
+  const res = new Response(JSON.stringify({ ok: true, events: events, sha: meta.sha }), {
+    headers: Object.assign({
+      'content-type': 'application/json; charset=utf-8',
+      'cache-control': 'public, max-age=60',
+    }, cors()),
+  });
+  if (waitUntil) waitUntil(cache.put(key, res.clone()));
+  return res;
 }
 
 export async function onRequestPost({ request, env }) {

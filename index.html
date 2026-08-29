@@ -1187,10 +1187,25 @@ margin-top: -2px;
             window.cankingRenderEvents({ upcomingEl: boxEl });
           }
         }
+    // events-live.js 會被瀏覽器快取（這個網域的 Browser Cache TTL 是 4 小時，蓋過 _headers），
+        // 所以剛推送完就來看的人會看到舊的。畫完之後再跟 /api/events 要一次最新的，有差異才重畫。
+        function refreshFromApi() {
+          if (!window.fetch) return;
+          fetch('/api/events', { cache: 'no-store' })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+              if (!d || !d.ok || !Array.isArray(d.events)) return;
+              if (JSON.stringify(d.events) === JSON.stringify(window.CANKING_EVENTS_LIVE || [])) return;
+              window.CANKING_EVENTS_LIVE = d.events;
+              start();
+            })
+            .catch(function () { /* 拿不到就算了，畫面上還是有靜態那份 */ });
+        }
         if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', start);
+          document.addEventListener('DOMContentLoaded', function () { start(); refreshFromApi(); });
         } else {
           start();
+          refreshFromApi();
         }
       })();
     </script></div>
