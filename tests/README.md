@@ -4,6 +4,7 @@
 
 ```
 node tests/products.test.mjs    # 商品後台：goods.html 的無損切割／重組
+node tests/save.test.mjs        # 存檔流程：所有變更打包成單一 commit、只推一次
 node tests/track.test.mjs       # 點擊追蹤：/api/track 寫入與 /api/stats 彙總
 ```
 

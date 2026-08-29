@@ -70,33 +70,80 @@ function requireAuth(request, env) {
 }
 
 /* ---------- GitHub ---------- */
-async function ghGet(env, path) {
-  const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}?ref=${BRANCH}`, {
-    headers: {
-      Authorization: `Bearer ${env.GITHUB_TOKEN}`,
-      Accept: 'application/vnd.github+json',
-      'User-Agent': 'cankingstore-admin',
-    },
-  });
-  if (r.status === 404) return null;
-  if (!r.ok) throw new Error(`GitHub 讀取失敗 (${r.status}): ${await r.text()}`);
-  return r.json();
-}
-async function ghPut(env, path, contentB64, message, sha) {
-  const body = { message, content: contentB64, branch: BRANCH };
-  if (sha) body.sha = sha;
-  const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
-    method: 'PUT',
-    headers: {
+async function gh(env, path, init) {
+  const r = await fetch(`https://api.github.com/repos/${REPO}/${path}`, Object.assign({}, init, {
+    headers: Object.assign({
       Authorization: `Bearer ${env.GITHUB_TOKEN}`,
       Accept: 'application/vnd.github+json',
       'Content-Type': 'application/json',
       'User-Agent': 'cankingstore-admin',
-    },
-    body: JSON.stringify(body),
-  });
-  if (!r.ok) throw new Error(`GitHub 寫入失敗 (${r.status}): ${await r.text()}`);
+    }, (init && init.headers) || {}),
+  }));
+  return r;
+}
+
+async function ghGet(env, path, ref) {
+  const r = await gh(env, `contents/${path}?ref=${ref || BRANCH}`);
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error(`GitHub 讀取失敗 (${r.status}): ${await r.text()}`);
   return r.json();
+}
+
+async function ghJson(env, path, init, what) {
+  const r = await gh(env, path, init);
+  if (!r.ok) throw new Error(`GitHub ${what}失敗 (${r.status}): ${await r.text()}`);
+  return r.json();
+}
+
+/* 分支目前指到哪個 commit。所有寫入都以它為基準，推送時再回頭比對。 */
+async function headSha(env) {
+  const d = await ghJson(env, `git/ref/heads/${BRANCH}`, null, '讀取分支');
+  return d.object.sha;
+}
+
+/* 把所有變更打包成「一個 commit、一次推送」。
+ *
+ * 這件事很重要：Contents API 每寫一個檔案就是一個 commit，而 Cloudflare Pages
+ * 是每個 commit 部署一次——上傳 3 張圖會排 4 次部署、彼此還會互相取消。
+ * blob 與 tree 都只是 Git 物件，不會驚動 Cloudflare；只有最後更新分支那一步算推送。
+ *
+ * parentSha 同時是併發保護：中途若有別人推了東西，分支就不是快轉，
+ * GitHub 會拒絕，我們回 409 請使用者重新整理，而不是默默蓋掉對方。
+ */
+async function commitAll(env, files, message, parentSha) {
+  if (!files.length) return null;
+
+  // blob 彼此獨立，可以同時建立（這是省時間的關鍵）
+  const blobs = await Promise.all(files.map(async function (f) {
+    const b = await ghJson(env, 'git/blobs', {
+      method: 'POST',
+      body: JSON.stringify({ content: f.contentB64, encoding: 'base64' }),
+    }, '建立檔案物件');
+    return { path: f.path, mode: '100644', type: 'blob', sha: b.sha };
+  }));
+
+  const base = await ghJson(env, `git/commits/${parentSha}`, null, '讀取 commit');
+  const tree = await ghJson(env, 'git/trees', {
+    method: 'POST',
+    // base_tree：以現有內容為底，只覆蓋我們指定的路徑，其餘檔案完全不動
+    body: JSON.stringify({ base_tree: base.tree.sha, tree: blobs }),
+  }, '建立目錄樹');
+
+  const commit = await ghJson(env, 'git/commits', {
+    method: 'POST',
+    body: JSON.stringify({ message, tree: tree.sha, parents: [parentSha] }),
+  }, '建立 commit');
+
+  // 唯一一次推送，也是唯一一次觸發部署
+  const r = await gh(env, `git/refs/heads/${BRANCH}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ sha: commit.sha, force: false }),
+  });
+  if (r.status === 422) {
+    throw Object.assign(new Error('網站內容在你編輯期間有異動，請重新整理後再試一次。'), { conflict: true });
+  }
+  if (!r.ok) throw new Error(`GitHub 推送失敗 (${r.status}): ${await r.text()}`);
+  return commit.sha;
 }
 
 /* ---------- goods.html 解析 ---------- */
@@ -190,23 +237,20 @@ export async function onRequestPost({ request, env }) {
     const items = payload.items;
     if (!Array.isArray(items) || !items.length) return json({ error: '沒有收到商品資料。' }, 400);
 
-    const file = await ghGet(env, FILE);
+    // 先鎖定分支目前的位置，再從同一個位置讀檔案，最後以它為 parent 推送。
+    // 這樣「讀到的內容」與「推送的基準」一定是同一個狀態。
+    const parent = await headSha(env);
+    const file = await ghGet(env, FILE, parent);
     if (payload.sha && payload.sha !== file.sha) {
       return json({ error: '網站內容在你編輯期間有異動，請重新整理後再試一次。' }, 409);
     }
     const src = textFromB64(file.content);
     const { head, blocks, tail } = splitDoc(src);
 
-    // 1) 先上傳新圖片
     const uploads = payload.uploads || {};
     const names = Object.keys(uploads);
-    for (const name of names) {
-      const existing = await ghGet(env, `images/${name}`);
-      await ghPut(env, `images/${name}`, uploads[name],
-        `Add product image ${name} (via admin)`, existing ? existing.sha : null);
-    }
 
-    // 2) 依前端送來的最終狀態重組
+    // 依前端送來的最終狀態重組
     const out = [];
     for (const item of items) {
       if (item.new) {
@@ -227,11 +271,19 @@ export async function onRequestPost({ request, env }) {
     const next = head + out.join('') + tail;
     if (next === src && !names.length) return json({ ok: true, changed: false, message: '沒有變更。' });
 
-    await ghPut(env, FILE, b64FromText(next),
-      `Update products via admin (${auth.email})`, file.sha);
+    // 圖片與 goods.html 一起送，打包成單一 commit ＝ 只觸發一次部署
+    const files = names.map(function (name) {
+      return { path: `images/${name}`, contentB64: uploads[name] };
+    });
+    if (next !== src) files.push({ path: FILE, contentB64: b64FromText(next) });
 
-    return json({ ok: true, changed: true, count: items.length, images: names.length });
+    const message = `Update products via admin (${auth.email})` +
+      (names.length ? `\n\n新增圖片 ${names.length} 張：\n${names.join('\n')}` : '');
+    const sha = await commitAll(env, files, message, parent);
+
+    return json({ ok: true, changed: true, count: items.length, images: names.length, commit: sha });
   } catch (e) {
+    if (e && e.conflict) return json({ error: e.message }, 409);
     return json({ error: String(e.message || e) }, 500);
   }
 }

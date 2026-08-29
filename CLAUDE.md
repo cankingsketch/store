@@ -102,6 +102,15 @@
 
 修改後端解析邏輯時，務必先跑無損測試（切開再合併必須與原檔一字不差）。
 
+**存檔＝單一 commit（2026-08-30 改）**：所有圖片與 `goods.html` 用 GitHub 的
+Git Data API（blob → tree → commit → 更新 ref）打包成一個 commit。
+原本用 Contents API 每個檔案一次 PUT，**每次 PUT 就是一個 commit，
+而 Cloudflare Pages 是每個 commit 部署一次**——上傳 3 張圖會排 4 次部署、
+還會互相取消，使用者就要等 1～2 分鐘。實測：11 個圖片 commit + 4 個存檔 commit
+＝ 15 次部署。改完之後不管幾張圖都只推一次。
+`base_tree` 讓其餘檔案完全不動；`parents: [讀取時的 head]` + `force: false`
+順便成為真正的併發保護（別人插隊推送 → GitHub 回 422 → 我們回 409）。
+
 ## 流量統計
 
 分兩塊，資料來源不同：
@@ -152,7 +161,8 @@
 ## 測試
 
 ```
-node tests/products.test.mjs    # 36 項
+node tests/products.test.mjs    # 37 項
+node tests/save.test.mjs        # 33 項（存檔只推一次）
 node tests/track.test.mjs       # 41 項
 node tests/traffic.test.mjs     # 35 項
 ```
