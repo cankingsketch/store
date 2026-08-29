@@ -68,6 +68,7 @@ console.log('\n[2] 送給 Cloudflare 的查詢內容');
   ok('限定本站 siteTag', f.some(x => Array.isArray(x.siteTag_in)), f);
   ok('沒指定 host 時不加 requestHost', !f.some(x => x.requestHost), f);
   ok('排序用 sum_visits_DESC', sentBody.variables.order === 'sum_visits_DESC');
+  ok('排除後台自己的造訪', f.some(x => x.requestPath_neq === '/admin'), f);
 
   await call('?days=7&host=cankingstore.com');
   const f2 = sentBody.variables.filter.AND;
@@ -89,12 +90,14 @@ console.log('\n[3] 天數參數');
 console.log('\n[4] 每小時資料合併成台北時間的每一天');
 {
   const now = Date.now();
-  const hour = (offsetH, visits) => {
-    const d = new Date(now - offsetH * 3600e3);
-    d.setUTCMinutes(0, 0, 0);
-    return { count: visits * 2, sum: { visits }, dimensions: { ts: d.toISOString().replace('.000', '') } };
+  // 直接指定「台北的第幾天、第幾點」，不要用「幾小時前」——
+  // 那樣半夜跑測試時 1 小時前是今天、2 小時前變昨天，結果會飄。
+  const at = (daysAgo, taipeiHour, visits) => {
+    const day = taipeiDay(now - daysAgo * 86400e3);
+    const utcHour = String(taipeiHour - 8).padStart(2, '0');   // 台北 12:00 = UTC 04:00
+    return { count: visits * 2, sum: { visits }, dimensions: { ts: day + 'T' + utcHour + ':00:00Z' } };
   };
-  withGraphQL(payload([hour(1, 5), hour(2, 3), hour(30, 7)]));
+  withGraphQL(payload([at(0, 12, 5), at(0, 14, 3), at(1, 12, 7)]));
   // 帶一個獨有的 host，避開前面測試留下的 5 分鐘快取
   const d = await (await call('?days=7&host=daytest')).json();
 
@@ -108,7 +111,7 @@ console.log('\n[4] 每小時資料合併成台北時間的每一天');
   ok('昨天的 7 有算到', d.byDay[5].visits === 7, d.byDay[5]);
 
   // 帶不帶 Z 都要能解析（Cloudflare 目前給的是帶 Z 的）
-  const noZ = { count: 4, sum: { visits: 2 }, dimensions: { ts: new Date(now).toISOString().slice(0, 13) + ':00:00' } };
+  const noZ = { count: 4, sum: { visits: 2 }, dimensions: { ts: taipeiDay(now) + 'T04:00:00' } };
   withGraphQL(payload([noZ]));
   const d2 = await (await call('?days=1&host=daytest2')).json();
   ok('ts 沒有 Z 也算得進去', d2.byDay[0].visits === 2, d2.byDay);
@@ -127,6 +130,7 @@ console.log('\n[5] 各區塊解析');
   ok('子網域拆得出來',
     d.hosts.length === 2 && d.hosts[0].name === 'cankingstore.com', d.hosts);
   ok('裝置三類都在', d.devices.length === 3, d.devices);
+  ok('回應有標示排除了什麼（別讓行為藏起來）', d.excludes === '/admin', d.excludes);
 }
 
 console.log('\n[6] 失敗處理');

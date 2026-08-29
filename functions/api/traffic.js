@@ -20,6 +20,7 @@ const DEFAULT_DAYS = 7;
 const MAX_DAYS = 180;
 const TOP_N = 10;
 const CACHE_MS = 5 * 60 * 1000; // 後台自己看的頁面，5 分鐘新鮮度夠了
+const ADMIN_PATH = '/admin';   // 這一頁的造訪是我們自己，不算進網站流量
 
 /* 同一個 isolate 內的短期快取，避免每次切分頁都打一次 API */
 const memo = new Map();
@@ -128,6 +129,9 @@ export async function onRequestGet({ request, env }) {
     { datetime_geq: new Date(start).toISOString(), datetime_leq: new Date(now).toISOString() },
     { bot: 0 },
     { siteTag_in: [env.CF_SITE_TAG || SITE_TAG] },
+    // 後台是我們自己在用，不是客人。算進去會灌水造訪數、稀釋轉換率，
+    // 還會讓 /admin 擠進「熱門頁面」。
+    { requestPath_neq: ADMIN_PATH },
   ];
   if (host) and.push({ requestHost: host });
 
@@ -184,6 +188,7 @@ export async function onRequestGet({ request, env }) {
       host,
       from: fromDay,
       to: taipeiDay(now),
+      excludes: ADMIN_PATH,
       visits: (t.sum && t.sum.visits) || 0,
       views: t.count || 0,
       byDay,

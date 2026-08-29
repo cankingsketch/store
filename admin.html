@@ -666,7 +666,8 @@
       return;
     }
     $('tf-period').textContent = d.from + ' ～ ' + d.to + '（台灣時間）' +
-      (d.host ? '｜只計 ' + d.host : '｜含所有子網域') + (d.cached ? '｜快取' : '');
+      (d.host ? '｜只計 ' + d.host : '｜含所有子網域') +
+      (d.excludes ? '｜已排除 ' + d.excludes : '') + (d.cached ? '｜快取' : '');
     lastTraffic = d;
 
     var html = '<div id="tf-nums"></div>';
