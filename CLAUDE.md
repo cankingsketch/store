@@ -193,6 +193,14 @@ node tests/traffic.test.mjs     # 35 項
 兩者都只是把訪客資料送去我們看不到的地方，移除後全站不再種任何 cookie。
 `_W.Analytics` 只被這兩個區塊自己用（main.js 完全沒引用），移除安全。
 
+**指向舊站的連結也修好了（2026-08-29）**：舊站是 404，這些點下去都會掉出去。
+- **9 個頁面的網站 logo** 連到 `cankingstore.weebly.com/` → 改回 `index.html`
+  （index/goods 本來就是對的，其餘頁面漏改）
+- 首頁「**貼圖**」泡泡按鈕 → 改成 `goods.html#line-stickers`
+  （在 goods.html 的 LINE 區塊 h2 加了 `id`，並用 `scroll-margin-top:80px`
+  避開 65px 的固定頁首。id 加在 `class` 之後，`splitDoc` 的前綴比對不受影響）
+- 畫冊頁「寄賣實體店」按鈕 → 改成本機就有的 `events-883299.html`
+
 **仍會連的外部主機**：`cdn11/cdn2.editmysite.com`（jQuery、main.js、佈景 CSS、字型
 ——這些是佈景真正的執行環境，不能拿掉）、`cdn-promote.weebly.com/js/dist/messenger.js`。
 

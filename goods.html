@@ -388,6 +388,8 @@ var STYLE_PREFIX = 'wsite';
   /* 商品之間統一留白 45px，取代原本的紅線分隔 */
   #wsite-content h2.wsite-content-title { margin-top: 45px; }
   #wsite-content hr.styled-hr { display: none; }
+  /* 從首頁「貼圖」按鈕跳過來時，標題不要被固定頁首（65px）蓋住 */
+  #line-stickers { scroll-margin-top: 80px; }
   #wsite-content div:has(> hr.styled-hr) { display: none; }
   @media screen and (max-width: 700px) {
     .ck-prod-imgs .ck-md, .ck-prod-imgs .ck-sm { flex: 0 0 100%; max-width: 100%; }
@@ -999,7 +1001,7 @@ var STYLE_PREFIX = 'wsite';
 					
 						
 
-<h2 class="wsite-content-title"><strong><font size="7">LINE&#36028;&#22294;&#33287;&#20027;&#38988;</font>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;</strong></h2>
+<h2 class="wsite-content-title" id="line-stickers"><strong><font size="7">LINE&#36028;&#22294;&#33287;&#20027;&#38988;</font>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;</strong></h2>
 
 
 					
