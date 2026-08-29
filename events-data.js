@@ -1,6 +1,9 @@
 /* =========================================================
    空罐商店 — 活動清單（單一資料來源 / Single Source of Truth）
    ---------------------------------------------------------
+   ★ 未來的場次請在「一罐指揮部」建立，按「🌐 推送到官網」即可（會寫進 events-live.js）。
+     這裡只放歷史活動；未來場次若同時寫在這裡，指揮部刪掉也刪不掉，還可能重複顯示。
+
    ★ 要新增活動：在下面 CANKING_EVENTS 陣列裡「複製一行、改內容」即可。
      順序不用管，程式會自動依日期排序、自動分「預定 / 過往」。
 
@@ -16,8 +19,6 @@
    ========================================================= */
 window.CANKING_EVENTS = [
   // ---------- 較新的活動放上面比較好找，但順序其實不影響顯示 ----------
-  { date: "2026/9/5~9/6",   end: "2026-09-06", name: "CWT-K51 高雄場",   booth: "" },
-  { date: "2026/8/29~8/30", end: "2026-08-30", name: "CWT-T36 台中場",   booth: "" },
   { date: "2026/8/6~8/12",  end: "2026-08-12", name: "臺灣文博會",       booth: "J1-029" },
   { date: "2026/7/3~7/6",   end: "2026-07-06", name: "台北世貿文具展",   booth: "C122" },
   { date: "2026/5/23~5/24", end: "2026-05-24", name: "CooMIC 二元創庫4", booth: "A47.48" },
@@ -99,7 +100,8 @@ window.CANKING_EVENTS = [
     // 規則：同一年、名稱相同或互相包含 → 視為同一活動。
     //       靜態清單有攤位而規劃器沒有 → 保留靜態；否則以規劃器為準。
     var live = (window.CANKING_EVENTS_LIVE || []).slice();
-    function norm(s) { return String(s || "").replace(/\s+/g, ""); }
+    // 連字號／中點／底線也一併去掉：「CWT-T36 台中場」與指揮部推來的「CWTT36」要能認出是同一場
+    function norm(s) { return String(s || "").replace(/[\s\-–—・·_]+/g, ""); }
     function yearOf(e) { return String(e.end || "").slice(0, 4); }
     live.forEach(function (le) {
       list = list.filter(function (se) {
