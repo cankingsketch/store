@@ -199,5 +199,46 @@ console.log('\n[7] 存檔後的內容仍與解析結果一致（無損）');
     after.products.slice(1).map(p => p.title).join('|') === listed.products.map(p => p.title).join('|'));
 }
 
+console.log('\n[8] 賣場按鈕經過完整存檔流程');
+{
+  const calls = fakeGitHub();
+  const li = listed.products.findIndex(p => p.kind === 'legacy');
+  const items = keepAll.slice();
+  items[li] = Object.assign({}, items[li], { myship: true, shopee: 'https://shopee.tw/canking?itemId=1' });
+  await save({ sha: 'FILESHA', items });
+
+  const blob = calls.filter(c => c.path === 'git/blobs').pop().body;
+  const written = Buffer.from(blob.content, 'base64').toString('utf8');
+  ok('寫出的檔案含賣場按鈕', /<div class="ck-buy"/.test(written));
+  ok('賣貨便用共用網址（不是前端送什麼就寫什麼）',
+    /data-buy="myship"/.test(written) && /myship\.7-11\.com\.tw/.test(written));
+  ok('蝦皮用填入的網址', /shopee\.tw\/canking\?itemId=1/.test(written));
+
+  // 讀回來，商品名稱不能被按鈕文字污染
+  fakeGitHub({ src: written });
+  const after = await (await mod.onRequestGet({
+    request: new Request('https://cankingstore.com/api/products', { headers: AUTH }), env: ENV,
+  })).json();
+  ok('商品數不變', after.products.length === listed.products.length, after.products.length);
+  ok('★ 商品名稱沒被按鈕文字污染',
+    after.products[li].title === listed.products[li].title, after.products[li].title);
+  ok('讀得回賣貨便設定', !!after.products[li].myship);
+  ok('讀得回蝦皮網址',
+    after.products[li].shopee === 'https://shopee.tw/canking?itemId=1', after.products[li].shopee);
+  ok('其他商品沒被加上按鈕',
+    after.products.filter(p => p.myship || p.shopee).length === 1);
+
+  // 再取消掉，檔案要回到原樣
+  const off = after.products.map(p => p.editable
+    ? { idx: p.idx, title: p.title, desc: p.desc, images: p.images, descAlign: p.descAlign }
+    : { idx: p.idx, title: p.title });
+  const calls2 = fakeGitHub({ src: written });
+  await save({ sha: 'FILESHA', items: off });
+  const blob2 = calls2.filter(c => c.path === 'git/blobs').pop().body;
+  const restored = Buffer.from(blob2.content, 'base64').toString('utf8');
+  ok('★ 取消按鈕後與原檔一字不差', restored === SRC,
+    restored.length + ' vs ' + SRC.length);
+}
+
 console.log('\n=== ' + pass + ' 通過 / ' + fail + ' 失敗 ===');
 process.exit(fail ? 1 : 0);

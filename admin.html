@@ -56,6 +56,20 @@
   .align button { padding:4px 12px; font-size:13px; border-color:var(--line); color:#666; }
   .align button.on { border-color:var(--red); color:var(--red); font-weight:700; }
   .align .hint { margin:0; }
+  /* 賣場按鈕設定 */
+  .buyrow { display:flex; align-items:center; gap:10px; margin:6px 0 8px; flex-wrap:wrap; }
+  .chk { display:inline-flex; align-items:center; gap:6px; font-size:14px; font-weight:400;
+         margin:0; cursor:pointer; }
+  .chk input { width:16px; height:16px; cursor:pointer; }
+  .buyrow .hint { margin:0; word-break:break-all; }
+  .legacy-note { background:#fff8e6; border:1px solid #ffe2a8; color:#8a6a1a;
+                 border-radius:8px; padding:8px 10px; margin:0 0 4px; }
+  /* 預覽裡的賣場按鈕（模擬網站上的 wsite-button） */
+  .pv-buy { display:flex; gap:8px; margin:0 0 12px; flex-wrap:wrap; }
+  .pv-buy a { display:inline-block; color:#fff; font-size:13px; padding:8px 20px;
+              border-radius:2px; text-decoration:none; }
+  .pv-buy .pv-myship { background:#f64c3f; }
+  .pv-buy .pv-shopee { background:#484848; }
   button { font-family:inherit; font-size:14px; cursor:pointer; border-radius:8px; border:1.5px solid var(--red);
            background:#fff; color:var(--red); padding:8px 14px; }
   button.primary { background:var(--red); color:#fff; }
@@ -84,6 +98,7 @@
                         border:1px solid var(--line); display:flex; align-items:center; justify-content:center;
                         font-size:10px; color:#bbb; }
   .tag.new { background:#ffe9e9; color:var(--red); }
+  .tag.shop { background:#eaf3ff; color:#2b5f9e; }
   /* 圖片管理 */
   .imgs { display:flex; flex-wrap:wrap; gap:10px; margin-top:8px; }
   .thumb { width:132px; border:1px solid var(--line); border-radius:9px; padding:6px; background:#fff; }
@@ -146,10 +161,23 @@
     <div class="cols">
       <div class="card">
         <h2 id="edit-heading">新增商品</h2>
+        <p class="hint legacy-note" id="legacy-note" style="display:none">
+          這是舊版結構的商品，圖片與說明沒辦法在這裡改，但名稱與賣場按鈕可以。
+        </p>
         <label>商品名稱</label>
         <input type="text" id="f-title" placeholder="例如：下雨天杯墊" />
+
+        <label>賣場按鈕（會顯示在商品標題下方）</label>
+        <div class="buyrow">
+          <label class="chk"><input type="checkbox" id="f-myship" /> 賣貨便</label>
+          <span class="hint" id="myship-url"></span>
+        </div>
+        <input type="text" id="f-shopee" placeholder="蝦皮連結（留空就不顯示蝦皮按鈕）" />
+        <p class="hint" id="own-buttons-note" style="display:none"></p>
+
+        <div id="edit-rich">
         <label>說明文字（選填）</label>
-        <input type="text" id="f-desc" placeholder="例如：陶瓷 吸水 杯墊｜UV浮雕印刷｜NT$200" />
+        <input type="text" id="f-desc" placeholder="例如：陶瓷 吸水 杯墊｜UV浮雕印刷" />
         <div class="align" id="f-align">
           <span>對齊：</span>
           <button type="button" data-align="center">置中</button>
@@ -161,6 +189,7 @@
         <div class="drop" id="drop">點這裡選圖片，或把圖片拖進來（可一次多張）</div>
         <input type="file" id="file" accept="image/*" multiple hidden />
         <p class="hint">圖片會自動壓縮。版型：大＝獨佔一行、中＝兩張並排、小＝三張並排；手機一律單欄。</p>
+        </div><!-- /edit-rich -->
         <div style="margin-top:18px; display:flex; gap:8px;">
           <button id="btn-apply" class="primary">完成，回到清單</button>
           <button id="btn-cancel" class="ghost">取消</button>
@@ -232,6 +261,7 @@
     }).then(function (res) {
       if (!res.ok) { setMsg(res.d.error || '載入失敗', 'err'); return; }
       state.sha = res.d.sha;
+      state.myshipUrl = res.d.myshipUrl || '';
       state.products = res.d.products.map(function (p) { p.removed = false; return p; });
       $('who').textContent = res.d.user || '';
       setMsg(okMsg || '', okMsg ? 'ok' : '');
@@ -258,6 +288,10 @@
       var badge = p.editable
         ? '<span class="tag new">可完整編輯</span>'
         : '<span class="tag">舊版結構' + (p.hasVideo ? '·含影片' : '') + '</span>';
+      // 已經設定了哪些賣場按鈕，一眼看得出來
+      var shops = '';
+      if (p.myship) shops += '<span class="tag shop">賣貨便</span>';
+      if (p.shopee) shops += '<span class="tag shop">蝦皮</span>';
       var src = thumbOf(p);
       var thumb = src
         ? '<img class="rowthumb" src="' + esc(src) + '" alt="" loading="lazy" />'
@@ -267,7 +301,8 @@
         '<button class="mini ghost" data-a="down" title="下移">▼</button>' +
         thumb +
         '<span class="name">' + esc(p.title) + '</span>' + badge +
-        '<button class="mini" data-a="edit">' + (p.editable ? '編輯' : '改名') + '</button>' +
+        shops +
+        '<button class="mini" data-a="edit">編輯</button>' +
         '<button class="mini ghost" data-a="del">' + (p.removed ? '復原' : '下架') + '</button>';
       row.addEventListener('click', function (e) {
         var b = e.target.closest('button'); if (!b) return;
@@ -275,7 +310,7 @@
         if (a === 'up' && i > 0) { swap(i, i - 1); }
         else if (a === 'down' && i < state.products.length - 1) { swap(i, i + 1); }
         else if (a === 'del') { p.removed = !p.removed; markDirty(); renderList(); }
-        else if (a === 'edit') { p.editable ? openEditor(i) : rename(i); }
+        else if (a === 'edit') { openEditor(i); }
       });
       box.appendChild(row);
     });
@@ -284,19 +319,13 @@
     var t = state.products[a]; state.products[a] = state.products[b]; state.products[b] = t;
     markDirty(); renderList();
   }
-  function rename(i) {
-    var p = state.products[i];
-    var v = window.prompt('修改商品名稱：', p.title);
-    if (v == null) return;
-    v = v.trim(); if (!v) return;
-    if (v !== p.title) { p.title = v; markDirty(); renderList(); }
-  }
 
   /* ---------- 編輯器 ---------- */
   function openEditor(i) {
     state.isNewItem = (i == null);
     if (state.isNewItem) {
-      state.editing = { new: true, title: '', desc: '', descAlign: null, images: [], editable: true, removed: false };
+      state.editing = { new: true, title: '', desc: '', descAlign: null, images: [],
+        editable: true, rich: true, removed: false, myship: false, shopee: '' };
       $('edit-heading').textContent = '新增商品';
     } else {
       var p = state.products[i];
@@ -304,12 +333,23 @@
         idx: i, new: !!p.new, title: p.title, desc: p.desc || '',
         descAlign: p.descAlign || null,
         images: (p.images || []).map(function (im) { return { file: im.file, size: im.size, dataUrl: im.dataUrl }; }),
-        editable: true, removed: false, origIdx: p.idx
+        // 舊版結構只能改名稱與賣場按鈕，圖片／說明藏起來
+        editable: true, rich: !!p.editable, removed: false, origIdx: p.idx,
+        myship: !!p.myship, shopee: p.shopee || '', ownButtons: !!p.ownButtons
       };
       $('edit-heading').textContent = '編輯商品';
     }
-    $('f-title').value = state.editing.title;
-    $('f-desc').value = state.editing.desc;
+    var e = state.editing;
+    $('f-title').value = e.title;
+    $('f-desc').value = e.desc;
+    $('f-myship').checked = !!e.myship;
+    $('f-shopee').value = e.shopee;
+    $('edit-rich').style.display = e.rich ? '' : 'none';
+    $('legacy-note').style.display = e.rich ? 'none' : '';
+    $('myship-url').textContent = state.myshipUrl ? '→ ' + state.myshipUrl : '（找不到賣貨便網址）';
+    $('own-buttons-note').style.display = e.ownButtons ? '' : 'none';
+    $('own-buttons-note').textContent = e.ownButtons
+      ? '注意：這個商品本來就有自己的按鈕，再加可能會重複。' : '';
     renderImgs(); renderPreview();
     $('view-list').style.display = 'none';
     $('view-edit').style.display = '';
@@ -371,6 +411,14 @@
       e.descAlign === 'left' || e.descAlign === 'center' ? 'none' : '';
   }
 
+  /* 預覽裡的賣場按鈕，配色比照網站上的 wsite-button */
+  function buyPreview(e) {
+    var out = '';
+    if (e.myship) out += '<a class="pv-myship">賣貨便</a>';
+    if (e.shopee) out += '<a class="pv-shopee">蝦皮</a>';
+    return out ? '<div class="pv-buy">' + out + '</div>' : '';
+  }
+
   function renderPreview() {
     var e = state.editing; if (!e) return;
     var imgs = e.images.map(function (im) {
@@ -380,6 +428,7 @@
     renderAlign();
     $('stage').innerHTML =
       '<h3 class="pv-title">' + (esc(e.title) || '<span style="color:#bbb">（商品名稱）</span>') + '</h3>' +
+      buyPreview(e) +
       '<div class="ck-prod"><div class="ck-prod-imgs">' + imgs + '</div>' +
       (e.desc.trim() ? '<div class="' + descCls + '">' + esc(e.desc) + '</div>' : '') + '</div>';
   }
@@ -438,9 +487,10 @@
       if (p.new) {
         (p.images || []).forEach(function (im) { used[im.file] = 1; });
         return { new: true, title: p.title, desc: p.desc || '', descAlign: p.descAlign || null,
+                 myship: !!p.myship, shopee: p.shopee || '',
                  images: p.images.map(function (im) { return { file: im.file, size: im.size }; }) };
       }
-      var o = { idx: p.idx, title: p.title };
+      var o = { idx: p.idx, title: p.title, myship: !!p.myship, shopee: p.shopee || '' };
       if (p.editable) {
         o.desc = p.desc || '';
         o.descAlign = p.descAlign || null;
@@ -471,6 +521,8 @@
   $('btn-cancel').addEventListener('click', closeEditor);
   $('f-title').addEventListener('input', function () { state.editing.title = this.value; renderPreview(); });
   $('f-desc').addEventListener('input', function () { state.editing.desc = this.value; renderPreview(); });
+  $('f-myship').addEventListener('change', function () { state.editing.myship = this.checked; renderPreview(); });
+  $('f-shopee').addEventListener('input', function () { state.editing.shopee = this.value.trim(); renderPreview(); });
   $('f-align').addEventListener('click', function (ev) {
     var b = ev.target.closest('button[data-align]');
     if (!b || !state.editing) return;
@@ -481,15 +533,24 @@
   $('btn-apply').addEventListener('click', function () {
     var e = state.editing;
     if (!e.title.trim()) { setMsg('請填寫商品名稱。', 'err'); return; }
-    if (!e.images.length) { setMsg('請至少上傳一張圖片。', 'err'); return; }
+    // 舊版商品沒辦法在這裡管圖片，不能拿「至少一張圖」去要求它
+    if (e.rich && !e.images.length) { setMsg('請至少上傳一張圖片。', 'err'); return; }
+    if (e.shopee && !/^https?:\/\//i.test(e.shopee)) {
+      setMsg('蝦皮連結要以 http:// 或 https:// 開頭。', 'err'); return;
+    }
     setMsg('');
     if (state.isNewItem) {
       state.products.unshift({ new: true, title: e.title.trim(), desc: e.desc.trim(),
-        descAlign: e.descAlign || null, images: e.images, editable: true, removed: false });
+        descAlign: e.descAlign || null, images: e.images, editable: true, removed: false,
+        myship: !!e.myship, shopee: e.shopee || '' });
     } else {
       var p = state.products[e.idx];
-      p.title = e.title.trim(); p.desc = e.desc.trim(); p.images = e.images;
-      p.descAlign = e.descAlign || null;
+      p.title = e.title.trim();
+      p.myship = !!e.myship; p.shopee = e.shopee || '';
+      if (e.rich) {
+        p.desc = e.desc.trim(); p.images = e.images;
+        p.descAlign = e.descAlign || null;
+      }
     }
     markDirty(); closeEditor();
   });

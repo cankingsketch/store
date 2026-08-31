@@ -161,12 +161,70 @@ function splitDoc(src) {
   return { head: src.slice(0, first), blocks, tail: src.slice(end) };
 }
 
-function parseBlock(block, idx) {
+/* 全站共用的賣貨便網址：取頁面上第一個賣貨便連結。
+ * 賣貨便是單頁式賣場（實測：點商品只開彈窗、網址不變、無分享功能），
+ * 做不到個別商品網址，所以每個商品都指向同一個賣場。 */
+function findMyshipUrl(src) {
+  const m = src.match(/href="(https:\/\/myship\.7-11\.com\.tw\/[^"]+)"/);
+  return m ? m[1] : '';
+}
+
+/* ---------- 賣場按鈕 ----------
+ * 沿用網站既有的 wsite-button（全站 7 頁約 40 顆都是這個樣式），
+ * 不另造一套，才不會出現「新按鈕跟舊按鈕長不一樣」。
+ * 紅色 highlight = 主要通路，深灰 normal = 次要。
+ *
+ * 這排按鈕放在 </h2> 之後、自成一行——刻意不塞進標題裡面：
+ * 塞進去會讓 parseBlock 把按鈕文字當成商品名稱、renameLegacy 也會改到按鈕文字。
+ * 放在外面就完全碰不到舊商品的標題結構。
+ */
+const BUY_RE = /\n?<div class="ck-buy" data-ck="1">[\s\S]*?<\/div>\n?/;
+
+/* 把生成的按鈕列拿掉，還原成「乾淨區塊」。
+ * 所有解析與改名都在乾淨區塊上做，無損保證才守得住。 */
+function stripBuy(block) {
+  return block.replace(BUY_RE, '\n');
+}
+
+function parseBuy(block) {
+  const row = block.match(BUY_RE);
+  if (!row) return { myship: '', shopee: '' };
+  const get = (cls) => {
+    const m = row[0].match(new RegExp('<a class="[^"]*" href="([^"]+)"[^>]*data-buy="' + cls + '"'));
+    return m ? unesc(m[1]) : '';
+  };
+  return { myship: get('myship'), shopee: get('shopee') };
+}
+
+function buildBuy(item) {
+  const btn = (kind, url, label, variant) => url
+    ? `<a class="wsite-button wsite-button-small wsite-button-${variant}" href="${esc(url)}"` +
+      ` target="_blank" rel="noopener" data-buy="${kind}"><span class="wsite-button-inner">${label}</span></a>`
+    : '';
+  const parts = [
+    btn('myship', item.myship, '賣貨便', 'highlight'),
+    btn('shopee', item.shopee, '蝦皮', 'normal'),
+  ].filter(Boolean);
+  return parts.length ? `\n<div class="ck-buy" data-ck="1">\n${parts.join('\n')}\n</div>\n` : '';
+}
+
+/* 這個舊商品本來就有自己的 Weebly 按鈕嗎？（例如「合作蝦皮賣場」「貼圖」）
+ * 有的話後台會提醒，避免再加一組變成重複。 */
+function hasOwnButtons(block) {
+  return /wsite-button/.test(stripBuy(block));
+}
+
+function parseBlock(rawBlock, idx) {
+  const block = stripBuy(rawBlock);
   const m = block.match(/<h2[^>]*>([\s\S]*?)<\/h2>/);
   const rawTitle = m ? m[1] : '';
   const title = unesc(rawTitle.replace(/<[^>]+>/g, '')).replace(/\s+/g, ' ').trim();
   const isNew = /<h2[^>]*data-ck="1"/.test(block);
-  const out = { idx, title, editable: isNew, kind: isNew ? 'new' : 'legacy' };
+  const buy = parseBuy(rawBlock);
+  const out = {
+    idx, title, editable: isNew, kind: isNew ? 'new' : 'legacy',
+    myship: buy.myship, shopee: buy.shopee, ownButtons: hasOwnButtons(rawBlock),
+  };
   if (isNew) {
     out.images = [];
     const re = /<figure class="ck-img ck-(lg|md|sm)"><img src="images\/([^"]+)"/g;
@@ -201,11 +259,13 @@ function buildBlock(item) {
   const descCls = 'ck-prod-desc' + (left ? ' ck-desc-left' : '');
   const desc = item.desc && item.desc.trim()
     ? `\n<div class="${descCls}">${esc(item.desc.trim())}</div>` : '';
-  return `<h2 class="wsite-content-title" data-ck="1"><strong><font size="7">${title}</font></strong></h2>\n\n` +
+  return `<h2 class="wsite-content-title" data-ck="1"><strong><font size="7">${title}</font></strong></h2>\n` +
+    buildBuy(item) + '\n' +
     `<div class="ck-prod" data-ck="1">\n<div class="ck-prod-imgs">\n${imgs}\n</div>${desc}\n</div>\n\n`;
 }
 
-/* 只換掉舊商品 h2 內的文字，其餘結構原封不動 */
+/* 只換掉舊商品 h2 內的文字，其餘結構原封不動。
+ * 一定要傳入乾淨區塊（stripBuy 過的），否則會把按鈕文字也一起改名。 */
 function renameLegacy(block, newTitle) {
   return block.replace(/(<h2[^>]*>)([\s\S]*?)(<\/h2>)/, function (_, open, inner, close) {
     const replaced = inner.replace(/>([^<>]+)</g, function (seg, text) {
@@ -213,6 +273,13 @@ function renameLegacy(block, newTitle) {
     });
     return open + replaced + close;
   });
+}
+
+/* 舊商品：在 </h2> 之後插入按鈕列（先確保區塊是乾淨的） */
+function withBuy(cleanBlock, item) {
+  const row = buildBuy(item);
+  if (!row) return cleanBlock;
+  return cleanBlock.replace('</h2>', '</h2>' + row.replace(/\n$/, ''));
 }
 
 /* ---------- 路由 ---------- */
@@ -223,7 +290,8 @@ export async function onRequestGet({ request, env }) {
     const file = await ghGet(env, FILE);
     const src = textFromB64(file.content);
     const { blocks } = splitDoc(src);
-    return json({ sha: file.sha, products: blocks.map(parseBlock), user: auth.email });
+    return json({ sha: file.sha, products: blocks.map(parseBlock),
+      myshipUrl: findMyshipUrl(src), user: auth.email });
   } catch (e) {
     return json({ error: String(e.message || e) }, 500);
   }
@@ -250,20 +318,30 @@ export async function onRequestPost({ request, env }) {
     const uploads = payload.uploads || {};
     const names = Object.keys(uploads);
 
+    // 賣貨便沒有個別商品網址（實測過：整個賣場只有一個網址），
+    // 所以全站共用一個，從頁面頂端原本那顆按鈕帶入。
+    const myshipUrl = findMyshipUrl(src);
+
     // 依前端送來的最終狀態重組
     const out = [];
     for (const item of items) {
+      // 前端只送「有沒有要放賣貨便」，網址一律用共用的那個
+      const buy = { myship: item.myship ? myshipUrl : '', shopee: (item.shopee || '').trim() };
       if (item.new) {
-        out.push(buildBlock(item));
+        out.push(buildBlock(Object.assign({}, item, buy)));
       } else {
-        const b = blocks[item.idx];
-        if (b == null) return json({ error: `找不到商品 #${item.idx}，請重新整理。` }, 400);
-        if (/<h2[^>]*data-ck="1"/.test(b)) {
-          out.push(buildBlock(item));            // 新結構：整塊重建
-        } else if (parseBlock(b, item.idx).title === item.title) {
-          out.push(b);                           // 舊結構且標題沒改：原封不動
+        const raw = blocks[item.idx];
+        if (raw == null) return json({ error: `找不到商品 #${item.idx}，請重新整理。` }, 400);
+        if (/<h2[^>]*data-ck="1"/.test(raw)) {
+          out.push(buildBlock(Object.assign({}, item, buy)));  // 新結構：整塊重建
         } else {
-          out.push(renameLegacy(b, item.title)); // 舊結構：只換標題文字
+          // 舊結構：一律先還原成乾淨區塊，改完再把按鈕列放回去。
+          // 這樣「沒設定按鈕」時產出的內容與原檔一字不差。
+          const clean = stripBuy(raw);
+          const renamed = parseBlock(clean, item.idx).title === item.title
+            ? clean
+            : renameLegacy(clean, item.title);
+          out.push(withBuy(renamed, buy));
         }
       }
     }

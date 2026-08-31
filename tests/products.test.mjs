@@ -8,7 +8,8 @@ const src = fs.readFileSync(REPO_DIR + '/goods.html', 'utf8').split(CR).join('')
 
 let code = fs.readFileSync(REPO_DIR + '/functions/api/products.js', 'utf8')
   .replace(/export async function/g, 'async function');
-code += '\nexport { splitDoc, parseBlock, buildBlock, renameLegacy, b64FromText, textFromB64 };';
+code += '\nexport { splitDoc, parseBlock, buildBlock, renameLegacy, b64FromText, textFromB64,'
+  + ' stripBuy, parseBuy, buildBuy, withBuy, findMyshipUrl };';
 const tmp = REPO_DIR + 'tests/_products_mod.tmp.mjs';
 fs.writeFileSync(tmp, code, 'utf8');
 const M = await import('file://' + tmp + '?v=' + Date.now());
@@ -132,6 +133,97 @@ const reSaved = rebuild(parsed.map(p => p.editable
   ? { idx: p.idx, title: p.title, desc: p.desc, images: p.images, descAlign: p.descAlign }
   : { idx: p.idx, title: p.title }));
 ok('帶著解析出的對齊重存 = 原檔', reSaved === src);
+
+console.log('');
+console.log('[12] 賣場按鈕：解析／生成／剝離');
+{
+  const clean = blocks[parsed.findIndex(p => p.kind === 'legacy')];
+  const MY = 'https://myship.7-11.com.tw/general/detail/GM123';
+  const SP = 'https://shopee.tw/canking?itemId=999';
+
+  ok('沒設定就不產生任何東西', M.buildBuy({ myship: '', shopee: '' }) === '');
+  ok('沿用網站既有的 wsite-button 樣式',
+    /wsite-button wsite-button-small wsite-button-highlight/.test(M.buildBuy({ myship: MY })));
+  ok('賣貨便是紅色主要鈕', /highlight[\s\S]*賣貨便/.test(M.buildBuy({ myship: MY })));
+  ok('蝦皮是深灰次要鈕', /normal[\s\S]*蝦皮/.test(M.buildBuy({ shopee: SP })));
+  ok('外連要開新分頁且加 noopener',
+    /target="_blank" rel="noopener"/.test(M.buildBuy({ myship: MY })));
+
+  const withBoth = M.withBuy(clean, { myship: MY, shopee: SP });
+  ok('按鈕插在 </h2> 之後（不在標題裡面）',
+    /<\/h2>\s*<div class="ck-buy"/.test(withBoth), withBoth.slice(0, 200));
+  ok('讀得回賣貨便網址', M.parseBuy(withBoth).myship === MY, M.parseBuy(withBoth));
+  ok('讀得回蝦皮網址', M.parseBuy(withBoth).shopee === SP, M.parseBuy(withBoth));
+
+  ok('★ 剝掉按鈕後與原區塊一字不差', M.stripBuy(withBoth) === clean);
+  ok('剝離可重複執行（不會愈剝愈少）', M.stripBuy(M.stripBuy(withBoth)) === clean);
+  ok('沒有按鈕的區塊剝了也不變', M.stripBuy(clean) === clean);
+}
+
+console.log('');
+console.log('[13] 按鈕不能污染商品名稱與改名');
+{
+  const li = parsed.findIndex(p => p.kind === 'legacy');
+  const clean = blocks[li];
+  const origTitle = parsed[li].title;
+  const withBtn = M.withBuy(clean, {
+    myship: 'https://myship.7-11.com.tw/x', shopee: 'https://shopee.tw/y',
+  });
+
+  ok('★ 商品名稱不會變成「原名+賣貨便+蝦皮」',
+    M.parseBlock(withBtn, li).title === origTitle, M.parseBlock(withBtn, li).title);
+
+  const renamed = M.withBuy(M.renameLegacy(M.stripBuy(withBtn), '新名字'), M.parseBuy(withBtn));
+  ok('改名後標題正確', M.parseBlock(renamed, li).title === '新名字');
+  ok('★ 改名後按鈕文字仍是「賣貨便」「蝦皮」', /賣貨便/.test(renamed) && /蝦皮/.test(renamed));
+  ok('改名後網址沒被動到', M.parseBuy(renamed).shopee === 'https://shopee.tw/y', M.parseBuy(renamed));
+  ok('剝掉按鈕後只有標題不同',
+    M.stripBuy(renamed).replace(/<h2[^>]*>[\s\S]*?<\/h2>/, '') === clean.replace(/<h2[^>]*>[\s\S]*?<\/h2>/, ''));
+}
+
+console.log('');
+console.log('[14] 加了再拿掉，要能完美復原');
+{
+  const li = parsed.findIndex(p => p.kind === 'legacy');
+  const clean = blocks[li];
+  const on = M.withBuy(clean, { myship: 'https://myship.7-11.com.tw/x', shopee: '' });
+  const off = M.withBuy(M.stripBuy(on), { myship: '', shopee: '' });
+  ok('★ 取消按鈕後與原檔一字不差', off === clean);
+}
+
+console.log('');
+console.log('[15] 共用的賣貨便網址');
+{
+  const url = M.findMyshipUrl(src);
+  ok('從頁面上抓得到賣貨便網址', /^https:\/\/myship\.7-11\.com\.tw\//.test(url), url);
+  ok('找不到時回空字串（不會壞掉）', M.findMyshipUrl('<html>沒有賣貨便</html>') === '');
+}
+
+console.log('');
+console.log('[16] 新結構商品也能有按鈕');
+{
+  const b = M.buildBlock({
+    title: '測試', desc: '說明', images: [{ file: 'a.jpg', size: 'lg' }],
+    myship: 'https://myship.7-11.com.tw/x', shopee: 'https://shopee.tw/y',
+  });
+  ok('產生的區塊含按鈕列', /<div class="ck-buy"/.test(b));
+  ok('標題仍解析正確', M.parseBlock(b, 0).title === '測試', M.parseBlock(b, 0).title);
+  ok('說明仍解析正確', M.parseBlock(b, 0).desc === '說明');
+  ok('圖片仍解析正確', M.parseBlock(b, 0).images.length === 1);
+  ok('按鈕網址解析正確', M.parseBlock(b, 0).shopee === 'https://shopee.tw/y');
+
+  const noBtn = M.buildBlock({ title: '測試', desc: '說明', images: [{ file: 'a.jpg', size: 'lg' }] });
+  ok('沒設定按鈕時不留空 div', !/ck-buy/.test(noBtn));
+}
+
+console.log('');
+console.log('[17] 認得出商品本來就有的按鈕（避免重複）');
+{
+  const own = parsed.filter(p => p.ownButtons).map(p => p.title);
+  ok('抓得到既有按鈕的商品', own.length >= 1, own);
+  ok('沒有按鈕的商品不會被誤判', parsed.filter(p => !p.ownButtons).length > 0);
+  console.log('     本來就有按鈕的：' + own.join(' / '));
+}
 
 console.log('\n=== ' + pass + ' 通過 / ' + fail + ' 失敗 ===');
 process.exit(fail ? 1 : 0);

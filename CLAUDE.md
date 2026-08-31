@@ -117,6 +117,21 @@
 
 修改後端解析邏輯時，務必先跑無損測試（切開再合併必須與原檔一字不差）。
 
+**商品的賣場按鈕（2026-08-30）**：每個商品可以在標題下方放「賣貨便／蝦皮」按鈕。
+- **沿用網站既有的 `wsite-button`**（全站 7 頁約 40 顆都是這套：`highlight`=#f64c3f 紅、
+  `normal`=#484848 深灰）。不另造樣式，才不會新舊按鈕長得不一樣。
+- **賣貨便沒有個別商品網址**——實測過：整個賣場是單一頁面，點商品只開彈窗、
+  網址不變、沒有分享功能。所以全站共用一個網址，用 `findMyshipUrl()` 從頁面上既有的
+  那顆按鈕帶入。蝦皮則可以填個別商品網址。
+- **按鈕放在 `</h2>` 之後、不塞進標題裡**。塞進去的話 `parseBlock` 會把按鈕文字
+  當成商品名稱（變成「明信片組合賣貨便蝦皮」）、`renameLegacy` 還會把按鈕文字一起改掉。
+- 生成的按鈕列是**可完全剝離**的：`stripBuy()` 拿掉後必須與原區塊一字不差，
+  所有解析與改名都在乾淨區塊上做。沒設定按鈕的商品，檔案完全不變。
+- `ownButtons` 會標出本來就有自家按鈕的商品（手搖動畫機、LINE貼圖與主題），
+  後台會提醒避免重複。
+- 後台**舊版商品也能開編輯器**了（只顯示名稱與賣場按鈕，圖片／說明區隱藏），
+  原本的 `window.prompt` 改名已移除。
+
 **存檔＝單一 commit（2026-08-30 改）**：所有圖片與 `goods.html` 用 GitHub 的
 Git Data API（blob → tree → commit → 更新 ref）打包成一個 commit。
 原本用 Contents API 每個檔案一次 PUT，**每次 PUT 就是一個 commit，
@@ -176,8 +191,8 @@ Git Data API（blob → tree → commit → 更新 ref）打包成一個 commit�
 ## 測試
 
 ```
-node tests/products.test.mjs    # 37 項
-node tests/save.test.mjs        # 33 項（存檔只推一次）
+node tests/products.test.mjs    # 64 項
+node tests/save.test.mjs        # 42 項（存檔只推一次）
 node tests/track.test.mjs       # 41 項
 node tests/traffic.test.mjs     # 35 項
 ```
