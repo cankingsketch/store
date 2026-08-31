@@ -484,6 +484,18 @@ var STYLE_PREFIX = 'wsite';
     #ck-hot .ck-hot-card { flex: 0 1 calc(50% - 6px); }
     #ck-hot .ck-hot-name { font-size: 14px; padding: 8px 8px; }
   }
+  /* 點圖放大。原本點圖是連到 YouTube，拿掉之後點下去沒反應，補回一個純看圖的燈箱 */
+  #ck-lightbox { position: fixed; inset: 0; z-index: 9999; display: none;
+    align-items: center; justify-content: center; background: rgba(0, 0, 0, .88);
+    padding: 24px; box-sizing: border-box; cursor: zoom-out; }
+  #ck-lightbox.on { display: flex; }
+  #ck-lightbox img { max-width: 100%; max-height: 100%; object-fit: contain;
+    border-radius: 6px; box-shadow: 0 10px 40px rgba(0, 0, 0, .5); }
+  #ck-lightbox .ck-lb-close { position: absolute; top: 14px; right: 18px; width: 40px; height: 40px;
+    border: 0; border-radius: 50%; background: rgba(255, 255, 255, .15); color: #fff;
+    font-size: 22px; line-height: 1; cursor: pointer; }
+  #ck-lightbox .ck-lb-close:hover { background: rgba(255, 255, 255, .3); }
+  #wsite-content .ck-prod-imgs img, #wsite-content .wsite-image img { cursor: zoom-in; }
 </style>
 <script>
   (function () {
@@ -532,6 +544,30 @@ var STYLE_PREFIX = 'wsite';
       html += '</div></div>';
       menu.innerHTML = html;
       heads[0].parentNode.insertBefore(menu, heads[0]);
+
+      /* 點商品圖放大 */
+      var lb = document.createElement('div');
+      lb.id = 'ck-lightbox';
+      lb.innerHTML = '<button type="button" class="ck-lb-close" aria-label="關閉">✕</button><img alt="" />';
+      document.body.appendChild(lb);
+      var lbImg = lb.querySelector('img');
+      function closeLb() { lb.classList.remove('on'); document.body.style.overflow = ''; lbImg.src = ''; }
+      lb.addEventListener('click', closeLb);
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && lb.classList.contains('on')) closeLb();
+      });
+      content.addEventListener('click', function (e) {
+        var img = e.target;
+        if (!img || img.tagName !== 'IMG') return;
+        // 只放大商品圖；熱銷卡片本身是連結，點了要捲過去而不是放大
+        if (!img.closest('.ck-prod-imgs, .wsite-image')) return;
+        if (img.closest('#ck-hot')) return;
+        e.preventDefault();
+        lbImg.src = img.currentSrc || img.src;
+        lbImg.alt = img.alt || '';
+        lb.classList.add('on');
+        document.body.style.overflow = 'hidden';
+      });
 
       /* 熱銷推薦：資料就掛在商品自己的按鈕列上（data-hot = 要顯示的圖），
          所以排序、改名都不必額外維護一份名單。點卡片就捲到那個商品，
