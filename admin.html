@@ -64,12 +64,12 @@
   .buyrow .hint { margin:0; word-break:break-all; }
   .legacy-note { background:#fff8e6; border:1px solid #ffe2a8; color:#8a6a1a;
                  border-radius:8px; padding:8px 10px; margin:0 0 4px; }
-  /* 預覽裡的賣場按鈕（模擬網站上的 wsite-button） */
-  .pv-buy { display:flex; gap:8px; margin:0 0 12px; flex-wrap:wrap; }
-  .pv-buy a { display:inline-block; color:#fff; font-size:13px; padding:8px 20px;
-              border-radius:2px; text-decoration:none; }
-  .pv-buy .pv-myship { background:#f64c3f; }
-  .pv-buy .pv-shopee { background:#484848; }
+  /* 預覽裡的賣場按鈕——要跟 goods.html 的 .ck-buy 長得一樣，改了那邊記得同步 */
+  .pv-buy { display:flex; align-items:center; gap:14px; margin:0 0 12px; flex-wrap:wrap; }
+  .pv-buy a { text-decoration:none; }
+  .pv-buy .pv-myship { display:inline-block; background:#f64c3f; color:#fff; font-size:13px;
+                       line-height:1; padding:7px 16px; border-radius:999px; }
+  .pv-buy .pv-shopee { font-size:14px; color:#555; border-bottom:1px solid #ccc; padding-bottom:1px; }
   button { font-family:inherit; font-size:14px; cursor:pointer; border-radius:8px; border:1.5px solid var(--red);
            background:#fff; color:var(--red); padding:8px 14px; }
   button.primary { background:var(--red); color:#fff; }

@@ -170,13 +170,16 @@ function findMyshipUrl(src) {
 }
 
 /* ---------- 賣場按鈕 ----------
- * 沿用網站既有的 wsite-button（全站 7 頁約 40 顆都是這個樣式），
- * 不另造一套，才不會出現「新按鈕跟舊按鈕長不一樣」。
- * 紅色 highlight = 主要通路，深灰 normal = 次要。
+ * 主要通路做成小紅膠囊、次要通路做成文字連結，刻意比頁面頂端的大按鈕安靜——
+ * 21 個商品一路滑下來，如果每個都是兩塊實心色塊會非常吵。
+ * 這個主次之分也反映真實使用比例（賣貨便約佔購買點擊 62%、蝦皮 34%）。
  *
  * 這排按鈕放在 </h2> 之後、自成一行——刻意不塞進標題裡面：
- * 塞進去會讓 parseBlock 把按鈕文字當成商品名稱、renameLegacy 也會改到按鈕文字。
- * 放在外面就完全碰不到舊商品的標題結構。
+ * 一來塞進去按鈕的左右位置會隨標題長短跳動，滑起來參差；
+ * 二來 parseBlock 會把按鈕文字當成商品名稱、renameLegacy 也會改到按鈕文字。
+ * 放在外面就完全碰不到舊商品的標題結構，左緣也跟標題切齊。
+ *
+ * 樣式在 goods.html 的 <style> 裡，換風格只要改 CSS，不用動任何商品資料。
  */
 const BUY_RE = /\n?<div class="ck-buy" data-ck="1">[\s\S]*?<\/div>\n?/;
 
@@ -197,13 +200,13 @@ function parseBuy(block) {
 }
 
 function buildBuy(item) {
-  const btn = (kind, url, label, variant) => url
-    ? `<a class="wsite-button wsite-button-small wsite-button-${variant}" href="${esc(url)}"` +
-      ` target="_blank" rel="noopener" data-buy="${kind}"><span class="wsite-button-inner">${label}</span></a>`
+  const btn = (kind, url, label, cls) => url
+    ? `<a class="${cls}" href="${esc(url)}" target="_blank" rel="noopener"` +
+      ` data-buy="${kind}">${label}</a>`
     : '';
   const parts = [
-    btn('myship', item.myship, '賣貨便', 'highlight'),
-    btn('shopee', item.shopee, '蝦皮', 'normal'),
+    btn('myship', item.myship, '賣貨便', 'ck-buy-main'),
+    btn('shopee', item.shopee, '蝦皮', 'ck-buy-sub'),
   ].filter(Boolean);
   return parts.length ? `\n<div class="ck-buy" data-ck="1">\n${parts.join('\n')}\n</div>\n` : '';
 }

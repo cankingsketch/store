@@ -390,6 +390,22 @@ var STYLE_PREFIX = 'wsite';
   #wsite-content hr.styled-hr { display: none; }
   /* 從首頁「貼圖」按鈕跳過來時，標題不要被固定頁首（65px）蓋住 */
   #line-stickers { scroll-margin-top: 80px; }
+  /* 商品的賣場按鈕：主要通路做成小紅膠囊、次要通路做成文字連結。
+     刻意比頁面頂端那排大按鈕安靜——21 個商品一路滑下來不該是一整排色塊。
+     換風格只要改這一段，不用動任何商品資料。 */
+  #wsite-content .ck-buy { margin: 0 0 14px; line-height: 1.9; }
+  #wsite-content .ck-buy a { text-decoration: none; }
+  #wsite-content .ck-buy .ck-buy-main {
+    display: inline-block; background: #f64c3f; color: #fff;
+    font-size: 13px; line-height: 1; padding: 7px 16px;
+    border-radius: 999px; margin-right: 14px;
+  }
+  #wsite-content .ck-buy .ck-buy-main:hover { background: #ff5b4f; }
+  #wsite-content .ck-buy .ck-buy-sub {
+    font-size: 14px; color: #555;
+    border-bottom: 1px solid #ccc; padding-bottom: 1px;
+  }
+  #wsite-content .ck-buy .ck-buy-sub:hover { border-bottom-color: #555; }
   #wsite-content div:has(> hr.styled-hr) { display: none; }
   @media screen and (max-width: 700px) {
     .ck-prod-imgs .ck-md, .ck-prod-imgs .ck-sm { flex: 0 0 100%; max-width: 100%; }

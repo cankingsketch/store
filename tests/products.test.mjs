@@ -142,10 +142,13 @@ console.log('[12] 賣場按鈕：解析／生成／剝離');
   const SP = 'https://shopee.tw/canking?itemId=999';
 
   ok('沒設定就不產生任何東西', M.buildBuy({ myship: '', shopee: '' }) === '');
-  ok('沿用網站既有的 wsite-button 樣式',
-    /wsite-button wsite-button-small wsite-button-highlight/.test(M.buildBuy({ myship: MY })));
-  ok('賣貨便是紅色主要鈕', /highlight[\s\S]*賣貨便/.test(M.buildBuy({ myship: MY })));
-  ok('蝦皮是深灰次要鈕', /normal[\s\S]*蝦皮/.test(M.buildBuy({ shopee: SP })));
+  ok('賣貨便是主要鈕（小紅膠囊）',
+    /class="ck-buy-main"[\s\S]*賣貨便/.test(M.buildBuy({ myship: MY })));
+  ok('蝦皮是次要連結', /class="ck-buy-sub"[\s\S]*蝦皮/.test(M.buildBuy({ shopee: SP })));
+  ok('主次分明：兩者類別不同', (function () {
+    const both = M.buildBuy({ myship: MY, shopee: SP });
+    return both.includes('ck-buy-main') && both.includes('ck-buy-sub');
+  })());
   ok('外連要開新分頁且加 noopener',
     /target="_blank" rel="noopener"/.test(M.buildBuy({ myship: MY })));
 
