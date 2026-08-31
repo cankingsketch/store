@@ -101,6 +101,12 @@
                         font-size:10px; color:#bbb; }
   .tag.new { background:#ffe9e9; color:var(--red); }
   .tag.shop { background:#eaf3ff; color:#2b5f9e; }
+  .tag.hot { background:#ff2d2d; color:#fff; }
+  .hotimgs { display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 2px; }
+  .hotimgs button { padding:0; border:2px solid #ddd; border-radius:8px; background:none;
+    cursor:pointer; line-height:0; overflow:hidden; }
+  .hotimgs button.on { border-color:var(--red); }
+  .hotimgs img { width:64px; height:64px; object-fit:cover; display:block; }
   /* 圖片管理 */
   .imgs { display:flex; flex-wrap:wrap; gap:10px; margin-top:8px; }
   .thumb { width:132px; border:1px solid var(--line); border-radius:9px; padding:6px; background:#fff; }
@@ -177,6 +183,16 @@
         <input type="text" id="f-shopee" placeholder="蝦皮連結（留空就不顯示蝦皮按鈕）" />
         <input type="text" id="f-video" placeholder="影片網址（留空就不顯示影片按鈕）" />
         <p class="hint" id="own-buttons-note" style="display:none"></p>
+
+        <label>熱銷推薦</label>
+        <div class="buyrow">
+          <label class="chk"><input type="checkbox" id="f-hot" /> 放進頁面最上方的熱銷推薦區</label>
+        </div>
+        <div id="f-hot-pick" style="display:none">
+          <p class="hint">卡片要用哪一張圖：</p>
+          <div class="hotimgs" id="f-hot-imgs"></div>
+        </div>
+        <p class="hint">最多三個。點卡片會捲到那個商品，賣場按鈕就在商品標題下方。</p>
 
         <div id="edit-rich">
         <label>說明文字（選填）</label>
@@ -295,6 +311,7 @@
       var shops = '';
       if (p.myship) shops += '<span class="tag shop">賣貨便</span>';
       if (p.shopee) shops += '<span class="tag shop">蝦皮</span>';
+      if (p.hot) shops += '<span class="tag hot">熱銷</span>';
       var src = thumbOf(p);
       var thumb = src
         ? '<img class="rowthumb" src="' + esc(src) + '" alt="" loading="lazy" />'
@@ -328,7 +345,8 @@
     state.isNewItem = (i == null);
     if (state.isNewItem) {
       state.editing = { new: true, title: '', desc: '', descAlign: null, images: [],
-        editable: true, rich: true, removed: false, myship: false, shopee: '', video: '' };
+        editable: true, rich: true, removed: false, myship: false, shopee: '', video: '',
+        hot: '', allImages: [] };
       $('edit-heading').textContent = '新增商品';
     } else {
       var p = state.products[i];
@@ -339,6 +357,7 @@
         // 舊版結構只能改名稱與賣場按鈕，圖片／說明藏起來
         editable: true, rich: !!p.editable, removed: false, origIdx: p.idx,
         myship: !!p.myship, shopee: p.shopee || '', video: p.video || '',
+        hot: p.hot || '', allImages: p.allImages || [],
         ownButtons: !!p.ownButtons
       };
       $('edit-heading').textContent = '編輯商品';
@@ -349,6 +368,8 @@
     $('f-myship').checked = !!e.myship;
     $('f-shopee').value = e.shopee;
     $('f-video').value = e.video || '';
+    $('f-hot').checked = !!e.hot;
+    renderHotPick();
     $('edit-rich').style.display = e.rich ? '' : 'none';
     $('legacy-note').style.display = e.rich ? 'none' : '';
     $('myship-url').textContent = state.myshipUrl ? '→ ' + state.myshipUrl : '（找不到賣貨便網址）';
@@ -396,6 +417,8 @@
       });
       box.appendChild(d);
     });
+    // 圖片動了，熱銷卡片能挑的圖也跟著動
+    renderHotPick();
   }
 
   /* 沒有明講對齊時的自動規則：有並排圖就靠左，單張大圖置中。
@@ -494,9 +517,11 @@
         (p.images || []).forEach(function (im) { used[im.file] = 1; });
         return { new: true, title: p.title, desc: p.desc || '', descAlign: p.descAlign || null,
                  myship: !!p.myship, shopee: p.shopee || '', video: p.video || '',
+                 hot: p.hot || '',
                  images: p.images.map(function (im) { return { file: im.file, size: im.size }; }) };
       }
-      var o = { idx: p.idx, title: p.title, myship: !!p.myship, shopee: p.shopee || '', video: p.video || '' };
+      var o = { idx: p.idx, title: p.title, myship: !!p.myship, shopee: p.shopee || '',
+                video: p.video || '', hot: p.hot || '' };
       if (p.editable) {
         o.desc = p.desc || '';
         o.descAlign = p.descAlign || null;
@@ -530,6 +555,66 @@
   $('f-myship').addEventListener('change', function () { state.editing.myship = this.checked; renderPreview(); });
   $('f-shopee').addEventListener('input', function () { state.editing.shopee = this.value.trim(); renderPreview(); });
   $('f-video').addEventListener('input', function () { state.editing.video = this.value.trim(); renderPreview(); });
+
+  /* ---------- 熱銷推薦 ---------- */
+  var HOT_MAX = 3;
+  // 這個商品可以挑的圖：新結構用編輯中的圖片清單（還沒存檔的也看得到），
+  // 舊結構用後端掃出來的原圖清單
+  function hotChoices() {
+    var e = state.editing;
+    if (e.rich) {
+      return (e.images || []).map(function (im) {
+        return { value: 'images/' + im.file, show: im.dataUrl || 'images/' + im.file };
+      });
+    }
+    return (e.allImages || []).map(function (src) { return { value: src, show: src }; });
+  }
+  function hotCount(exceptIdx) {
+    return state.products.filter(function (p, i) {
+      return p.hot && !p.removed && i !== exceptIdx;
+    }).length;
+  }
+  function renderHotPick() {
+    var e = state.editing;
+    var on = !!e.hot;
+    $('f-hot').checked = on;
+    $('f-hot-pick').style.display = on ? '' : 'none';
+    if (!on) return;
+    // 選中的圖被刪掉了就退回第一張；一張都沒有就不算熱銷
+    var choices = hotChoices();
+    if (!choices.length) { e.hot = ''; $('f-hot').checked = false;
+      $('f-hot-pick').style.display = 'none'; return; }
+    if (!choices.some(function (c) { return c.value === e.hot; })) e.hot = choices[0].value;
+    var box = $('f-hot-imgs');
+    box.innerHTML = '';
+    choices.forEach(function (c) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = c.value === e.hot ? 'on' : '';
+      b.innerHTML = '<img src="' + esc(c.show) + '" alt="" />';
+      b.addEventListener('click', function () { e.hot = c.value; renderHotPick(); });
+      box.appendChild(b);
+    });
+  }
+  $('f-hot').addEventListener('change', function () {
+    var e = state.editing;
+    if (!this.checked) { e.hot = ''; renderHotPick(); setMsg(''); return; }
+    var others = hotCount(state.isNewItem ? -1 : e.idx);
+    if (others >= HOT_MAX) {
+      this.checked = false;
+      setMsg('熱銷推薦最多 ' + HOT_MAX + ' 個，先把其中一個取消再加。', 'err');
+      return;
+    }
+    var choices = hotChoices();
+    if (!choices.length) {
+      this.checked = false;
+      setMsg('這個商品找不到可以放上卡片的圖片。', 'err');
+      return;
+    }
+    setMsg('');
+    e.hot = choices[0].value;   // 預設第一張，想換再點
+    renderHotPick();
+  });
   $('f-align').addEventListener('click', function (ev) {
     var b = ev.target.closest('button[data-align]');
     if (!b || !state.editing) return;
@@ -549,11 +634,13 @@
     if (state.isNewItem) {
       state.products.unshift({ new: true, title: e.title.trim(), desc: e.desc.trim(),
         descAlign: e.descAlign || null, images: e.images, editable: true, removed: false,
-        myship: !!e.myship, shopee: e.shopee || '', video: e.video || '' });
+        myship: !!e.myship, shopee: e.shopee || '', video: e.video || '',
+        hot: e.hot || '' });
     } else {
       var p = state.products[e.idx];
       p.title = e.title.trim();
       p.myship = !!e.myship; p.shopee = e.shopee || ''; p.video = e.video || '';
+      p.hot = e.hot || '';
       if (e.rich) {
         p.desc = e.desc.trim(); p.images = e.images;
         p.descAlign = e.descAlign || null;

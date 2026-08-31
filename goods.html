@@ -462,6 +462,28 @@ var STYLE_PREFIX = 'wsite';
   @media screen and (max-width: 600px) {
     #ck-quick-menu .ck-qm-item { font-size: 13px; padding: 6px 11px; }
   }
+  /* 熱銷推薦：明星商品會被新品往下擠，這一區把它們拉回眼前 */
+  #ck-hot { max-width: 900px; margin: 0 auto 22px; box-sizing: border-box; }
+  #ck-hot .ck-hot-title { display: flex; align-items: center; justify-content: center; gap: 10px;
+    font-weight: 800; color: #ff2d2d; font-size: 20px; margin: 0 0 14px; }
+  #ck-hot .ck-hot-title::before, #ck-hot .ck-hot-title::after {
+    content: ''; flex: 1 1 0; height: 2px; background: #ffd9d6; border-radius: 2px; max-width: 120px; }
+  #ck-hot .ck-hot-grid { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; }
+  #ck-hot .ck-hot-card { flex: 0 1 260px; max-width: 280px; display: block; background: #fff;
+    border: 2px solid #ffd9d6; border-radius: 14px; overflow: hidden; text-decoration: none;
+    cursor: pointer; padding: 0; text-align: left; font: inherit;
+    transition: border-color .15s, transform .15s, box-shadow .15s; }
+  #ck-hot .ck-hot-card:hover { border-color: #ff2d2d; transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(255, 45, 45, .15); }
+  #ck-hot .ck-hot-card img { display: block; width: 100%; aspect-ratio: 1 / 1;
+    object-fit: cover; background: #f6f6f6; }
+  #ck-hot .ck-hot-name { display: block; padding: 10px 12px; color: #333; font-size: 15px;
+    font-weight: 700; line-height: 1.35; text-align: center; }
+  @media screen and (max-width: 600px) {
+    #ck-hot .ck-hot-grid { gap: 12px; }
+    #ck-hot .ck-hot-card { flex: 0 1 calc(50% - 6px); }
+    #ck-hot .ck-hot-name { font-size: 14px; padding: 8px 8px; }
+  }
 </style>
 <script>
   (function () {
@@ -510,6 +532,40 @@ var STYLE_PREFIX = 'wsite';
       html += '</div></div>';
       menu.innerHTML = html;
       heads[0].parentNode.insertBefore(menu, heads[0]);
+
+      /* 熱銷推薦：資料就掛在商品自己的按鈕列上（data-hot = 要顯示的圖），
+         所以排序、改名都不必額外維護一份名單。點卡片就捲到那個商品，
+         而商品標題下面本來就有賣場按鈕，不必再捲回頂端。 */
+      var hotRows = [].slice.call(content.querySelectorAll('.ck-buy[data-hot]'));
+      if (hotRows.length) {
+        var hot = document.createElement('div');
+        hot.id = 'ck-hot';
+        var hh = '<div class="ck-hot-title">熱銷推薦</div><div class="ck-hot-grid">';
+        hotRows.forEach(function (row) {
+          var h = row.previousElementSibling;
+          while (h && h.tagName !== 'H2') h = h.previousElementSibling;
+          if (!h) return;
+          if (!h.id) h.id = 'prod-hot-' + hotRows.indexOf(row);
+          var strong = h.querySelector('strong');
+          var name = (strong ? strong.textContent : h.textContent).replace(/\s+/g, ' ').trim();
+          var img = row.getAttribute('data-hot');
+          // 商品名稱由我自己在後台輸入，還是照樣跳脫——字串拼 HTML 就要跳脫
+          var safe = name.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+          hh += '<button type="button" class="ck-hot-card" data-t="' + h.id + '">'
+             + '<img src="' + img + '" alt="' + safe + '" loading="lazy" />'
+             + '<span class="ck-hot-name">' + safe + '</span></button>';
+        });
+        hh += '</div>';
+        hot.innerHTML = hh;
+        menu.parentNode.insertBefore(hot, menu);
+        hot.addEventListener('click', function (e) {
+          var c = e.target.closest ? e.target.closest('.ck-hot-card') : null;
+          if (!c) return;
+          var el = document.getElementById(c.getAttribute('data-t'));
+          if (el) scrollToY(el.getBoundingClientRect().top + window.pageYOffset - headerOffset());
+        });
+      }
 
       // 展開／收合。記住選擇，喜歡攤開的人不必每次再點一次。
       var toggle = menu.querySelector('.ck-qm-title');

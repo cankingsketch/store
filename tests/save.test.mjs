@@ -70,7 +70,7 @@ const listed = await (async () => {
 
 // 賣場按鈕與影片新舊結構都有，不帶上就等於把它們清空，那不是「什麼都不改」
 const carry = p => Object.assign(
-  { idx: p.idx, title: p.title, myship: !!p.myship, shopee: p.shopee, video: p.video },
+  { idx: p.idx, title: p.title, myship: !!p.myship, shopee: p.shopee, video: p.video, hot: p.hot },
   p.editable ? { desc: p.desc, images: p.images, descAlign: p.descAlign } : {});
 const keepAll = listed.products.map(carry);
 
@@ -242,6 +242,45 @@ console.log('\n[8] 賣場按鈕經過完整存檔流程');
   const restored = Buffer.from(blob2.content, 'base64').toString('utf8');
   ok('★ 取消按鈕後與原檔一字不差', restored === SRC,
     restored.length + ' vs ' + SRC.length);
+}
+
+console.log('\n[9] 熱銷推薦經過完整存檔流程');
+{
+  fakeGitHub();
+  // 挑四個有圖可用的商品都設成熱銷，後端只該留前三個
+  const pick = listed.products.filter(p => (p.allImages || p.images || []).length).slice(0, 4);
+  ok('找得到四個有圖的商品可測', pick.length === 4, pick.length);
+  const items = keepAll.map(o => {
+    const hit = pick.find(p => p.idx === o.idx);
+    return hit ? Object.assign({}, o, { hot: 'images/x' + o.idx + '.jpg' }) : o;
+  });
+  const calls = fakeGitHub();
+  await save({ sha: 'FILESHA', items });
+  const written = Buffer.from(
+    calls.filter(c => c.path === 'git/blobs').pop().body.content, 'base64').toString('utf8');
+  const marks = written.match(/data-hot="[^"]*"/g) || [];
+  ok('★ 超過三個時只留前三個', marks.length === 3, marks.length + ' -> ' + marks.join(' '));
+
+  fakeGitHub({ src: written });
+  const after = await (await mod.onRequestGet({
+    request: new Request('https://cankingstore.com/api/products', { headers: AUTH }), env: ENV,
+  })).json();
+  ok('讀得回熱銷設定', after.products.filter(p => p.hot).length === 3);
+  ok('留下的是前三個（依頁面順序）',
+    after.products.filter(p => p.hot).map(p => p.idx).join(',')
+      === pick.slice(0, 3).map(p => p.idx).join(','),
+    after.products.filter(p => p.hot).map(p => p.idx).join(','));
+  ok('商品數沒變', after.products.length === listed.products.length);
+  ok('標題沒被標記污染',
+    after.products.map(p => p.title).join('|') === listed.products.map(p => p.title).join('|'));
+
+  // 全部取消，檔案要回到原樣
+  const off = after.products.map(carry).map(o => Object.assign({}, o, { hot: '' }));
+  const calls2 = fakeGitHub({ src: written });
+  await save({ sha: 'FILESHA', items: off });
+  const restored = Buffer.from(
+    calls2.filter(c => c.path === 'git/blobs').pop().body.content, 'base64').toString('utf8');
+  ok('★ 取消熱銷後與原檔一字不差', restored === SRC, restored.length + ' vs ' + SRC.length);
 }
 
 console.log('\n=== ' + pass + ' 通過 / ' + fail + ' 失敗 ===');

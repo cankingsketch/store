@@ -29,7 +29,7 @@ function rebuild(items) {
   const out = items.map(item => {
     // 賣貨便沒有單品網址，勾選就是共用店舖網址——跟後端一樣
     const buy = { myship: item.myship ? MYSHIP : '', shopee: (item.shopee || '').trim(),
-                  video: (item.video || '').trim() };
+                  video: (item.video || '').trim(), hot: (item.hot || '').trim() };
     if (item.new) return M.buildBlock(Object.assign({}, item, buy));
     const raw = blocks[item.idx];
     if (/<h2[^>]*data-ck="1"/.test(raw)) return M.buildBlock(Object.assign({}, item, buy));
@@ -45,7 +45,7 @@ function rebuild(items) {
 // 只送 {idx,title} 會把它們清空，那不是「什麼都不改」。
 const keepAll = parsed.map(p => Object.assign(
   // 賣場按鈕與影片對新舊結構都適用，不帶上就等於把它們清空
-  { idx: p.idx, title: p.title, myship: !!p.myship, shopee: p.shopee, video: p.video },
+  { idx: p.idx, title: p.title, myship: !!p.myship, shopee: p.shopee, video: p.video, hot: p.hot },
   p.editable ? { desc: p.desc, images: p.images, descAlign: p.descAlign } : {}));
 
 console.log('\n[1] 解析與無損性');
@@ -234,6 +234,41 @@ console.log('[17] 認得出商品本來就有的按鈕（避免重複）');
   ok('抓得到既有按鈕的商品', own.length >= 1, own);
   ok('沒有按鈕的商品不會被誤判', parsed.filter(p => !p.ownButtons).length > 0);
   console.log('     本來就有按鈕的：' + own.join(' / '));
+}
+
+console.log('');
+console.log('[18] 熱銷推薦標記');
+{
+  const img = 'images/star.jpg';
+  // 只設熱銷、沒有任何賣場按鈕，也要留得住標記
+  const onlyHot = M.buildBuy({ hot: img });
+  ok('只有熱銷也會產生標記列', /data-hot="images\/star\.jpg"/.test(onlyHot), onlyHot);
+  ok('沒按鈕時列裡不會有連結', !/<a /.test(onlyHot));
+  ok('沒設熱銷也沒按鈕就什麼都不產生', M.buildBuy({}) === '');
+
+  const withBoth = M.buildBuy({ hot: img, myship: 'https://myship.7-11.com.tw/x' });
+  ok('熱銷與按鈕可以同時存在',
+    /data-hot=/.test(withBoth) && /data-buy="myship"/.test(withBoth));
+
+  // 舊結構：貼上去、讀回來、剝掉，三件事要對得起來
+  const hli = parsed.findIndex(p => p.kind === 'legacy');
+  const hclean = M.stripBuy(blocks[hli]);
+  const hotted = M.withBuy(hclean, { hot: img });
+  ok('讀得回熱銷圖片', M.parseBuy(hotted).hot === img, M.parseBuy(hotted).hot);
+  ok('parseBlock 也讀得回', M.parseBlock(hotted, hli).hot === img);
+  ok('★ 剝掉熱銷標記後與乾淨區塊一字不差', M.stripBuy(hotted) === hclean);
+  ok('標題沒被標記污染', M.parseBlock(hotted, hli).title === M.parseBlock(hclean, hli).title);
+
+  // 新結構走 buildBlock 那條路
+  const nb = M.buildBlock({ title: '測試', images: [{ file: 'a.jpg', size: 'lg' }], hot: img });
+  ok('新結構也帶得動熱銷', M.parseBlock(nb, 0).hot === img);
+  ok('不是熱銷時讀回空字串',
+    M.parseBlock(M.buildBlock({ title: '測試', images: [] }), 0).hot === '');
+
+  // 引號要跳脫，否則屬性會被打斷
+  const q = M.buildBuy({ hot: 'images/a"b.jpg' });
+  ok('圖片路徑裡的引號有跳脫', /data-hot="images\/a&quot;b\.jpg"/.test(q), q);
+  ok('跳脫後仍讀得回原值', M.parseBuy(q).hot === 'images/a"b.jpg', M.parseBuy(q).hot);
 }
 
 console.log('\n=== ' + pass + ' 通過 / ' + fail + ' 失敗 ===');

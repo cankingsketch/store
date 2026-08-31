@@ -181,7 +181,7 @@ function findMyshipUrl(src) {
  *
  * 樣式在 goods.html 的 <style> 裡，換風格只要改 CSS，不用動任何商品資料。
  */
-const BUY_RE = /\n?<div class="ck-buy" data-ck="1">[\s\S]*?<\/div>\n?/;
+const BUY_RE = /\n?<div class="ck-buy" data-ck="1"[^>]*>[\s\S]*?<\/div>\n?/;
 
 /* 把生成的按鈕列拿掉，還原成「乾淨區塊」。
  * 所有解析與改名都在乾淨區塊上做，無損保證才守得住。 */
@@ -191,12 +191,15 @@ function stripBuy(block) {
 
 function parseBuy(block) {
   const row = block.match(BUY_RE);
-  if (!row) return { myship: '', shopee: '', video: '' };
+  if (!row) return { myship: '', shopee: '', video: '', hot: '' };
   const get = (cls) => {
     const m = row[0].match(new RegExp('<a class="[^"]*" href="([^"]+)"[^>]*data-buy="' + cls + '"'));
     return m ? unesc(m[1]) : '';
   };
-  return { myship: get('myship'), shopee: get('shopee'), video: get('video') };
+  // 熱銷推薦：值就是要放在卡片上的圖片路徑，空的就不是熱銷
+  const hot = row[0].match(/<div class="ck-buy" data-ck="1" data-hot="([^"]*)"/);
+  return { myship: get('myship'), shopee: get('shopee'), video: get('video'),
+           hot: hot ? unesc(hot[1]) : '' };
 }
 
 function buildBuy(item) {
@@ -210,7 +213,12 @@ function buildBuy(item) {
     // 影片用另一種顏色，明講「這不是賣場」；只有 1% 的人會點，不該跟購買搶注意力
     btn('video', item.video, '▶ 影片', 'ck-buy-video'),
   ].filter(Boolean);
-  return parts.length ? `\n<div class="ck-buy" data-ck="1">\n${parts.join('\n')}\n</div>\n` : '';
+  // 熱銷標記掛在同一列上：一個商品的所有設定集中在一個地方，
+  // 排序、改名、剝離都沿用既有那條路徑，不必再多一種標記
+  const hot = (item.hot || '').trim();
+  if (!parts.length && !hot) return '';
+  const attr = hot ? ` data-hot="${esc(hot)}"` : '';
+  return `\n<div class="ck-buy" data-ck="1"${attr}>\n${parts.join('\n')}\n</div>\n`;
 }
 
 /* 這個舊商品本來就有自己的 Weebly 按鈕嗎？（例如「合作蝦皮賣場」「貼圖」）
@@ -228,7 +236,7 @@ function parseBlock(rawBlock, idx) {
   const buy = parseBuy(rawBlock);
   const out = {
     idx, title, editable: isNew, kind: isNew ? 'new' : 'legacy',
-    myship: buy.myship, shopee: buy.shopee, video: buy.video,
+    myship: buy.myship, shopee: buy.shopee, video: buy.video, hot: buy.hot,
     ownButtons: hasOwnButtons(rawBlock),
   };
   if (isNew) {
@@ -246,6 +254,11 @@ function parseBlock(rawBlock, idx) {
     // 清單縮圖用：舊商品取第一張圖（含可能的 ?timestamp）
     const firstImg = block.match(/<img[^>]+src=["'](images\/[^"']+)["']/);
     if (firstImg) out.thumb = firstImg[1];
+    // 熱銷推薦要讓我挑用哪一張圖，所以舊商品也要回傳完整圖片清單
+    out.allImages = [];
+    const ire = /<img[^>]+src=["'](images\/[^"']+)["']/g;
+    let ig;
+    while ((ig = ire.exec(block))) if (out.allImages.indexOf(ig[1]) < 0) out.allImages.push(ig[1]);
   }
   return out;
 }
@@ -331,12 +344,19 @@ export async function onRequestPost({ request, env }) {
     // 所以全站共用一個，從頁面頂端原本那顆按鈕帶入。
     const myshipUrl = findMyshipUrl(src);
 
+    // 熱銷推薦最多三個。後台會擋，這裡再擋一次——超過就只留前三個，
+    // 免得哪天前端出錯把整頁變成熱銷區。
+    const HOT_MAX = 3;
+    let hotLeft = HOT_MAX;
+
     // 依前端送來的最終狀態重組
     const out = [];
     for (const item of items) {
+      const wantHot = (item.hot || '').trim();
+      const hot = wantHot && hotLeft > 0 ? (hotLeft--, wantHot) : '';
       // 前端只送「有沒有要放賣貨便」，網址一律用共用的那個
       const buy = { myship: item.myship ? myshipUrl : '', shopee: (item.shopee || '').trim(),
-                     video: (item.video || '').trim() };
+                     video: (item.video || '').trim(), hot };
       if (item.new) {
         out.push(buildBlock(Object.assign({}, item, buy)));
       } else {
