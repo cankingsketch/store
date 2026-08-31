@@ -150,7 +150,46 @@ var STYLE_PREFIX = 'wsite';
                     c)})(window,document,'script', '//cdn-promote.weebly.com/js/dist/messenger.js','messenger');
             messenger({ preview: 0, asset_domain: 'cdn-promote.weebly.com', data_domain: 'promote.weebly.com', align: 'right', style: 'long_blue', size: 'medium', page_id: '494522277323748' });
         </script>
-	</head>
+	<style>
+  /* ── 與周邊一覽／畫冊一覽同一套設計語言 ── */
+  /* 頁面上的按鈕列：Weebly 的四欄表格改成置中的一組膠囊 */
+  .wsite-section-elements .wsite-multicol:has(.wsite-button) .wsite-multicol-table-wrap { margin: 0 !important; }
+  .wsite-section-elements .wsite-multicol:has(.wsite-button) .wsite-multicol-table,
+  .wsite-section-elements .wsite-multicol:has(.wsite-button) .wsite-multicol-tbody { display: block; width: 100%; }
+  .wsite-section-elements .wsite-multicol:has(.wsite-button) .wsite-multicol-tr {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center;
+  }
+  .wsite-section-elements .wsite-multicol:has(.wsite-button) .wsite-multicol-col {
+    display: block; width: auto !important; padding: 0 !important;
+  }
+  /* 原本用來墊高的空 div */
+  .wsite-section-elements .wsite-multicol:has(.wsite-button) .wsite-multicol-col > div > div { display: none; }
+
+  .wsite-section-elements .wsite-button {
+    border-radius: 999px !important; padding: 11px 26px !important;
+  }
+  .wsite-section-elements .wsite-button,
+  .wsite-section-elements .wsite-button .wsite-button-inner { font-size: 16px !important; }
+
+  /* 實際賣場一律實心紅 */
+  .wsite-section-elements .wsite-button[href*="myship.7-11.com.tw"],
+  .wsite-section-elements .wsite-button[href*="myship.7-11.com.tw"] .wsite-button-inner,
+  .wsite-section-elements .wsite-button[href*="gumroad"],
+  .wsite-section-elements .wsite-button[href*="gumroad"] .wsite-button-inner,
+  .wsite-section-elements .wsite-button[href*="devilcase"],
+  .wsite-section-elements .wsite-button[href*="devilcase"] .wsite-button-inner {
+    background-color: #f64c3f !important; color: #fff !important; border: none;
+  }
+  /* 表單類改外框，主次分明 */
+  .wsite-section-elements .wsite-button[href*="forms.gle"],
+  .wsite-section-elements .wsite-button[href*="forms.gle"] .wsite-button-inner {
+    background-color: #fff !important; color: #666 !important;
+  }
+  .wsite-section-elements .wsite-button[href*="forms.gle"] { border: 1.5px solid #ddd; }
+  .wsite-section-elements .wsite-button[href*="forms.gle"]:hover { border-color: #999; }
+
+</style>
+</head>
 	<body class="header-page  wsite-page-illusts  full-width-on  wsite-theme-light"><div class="body-wrap">
 		<div id="header">
 			<div class="nav-trigger hamburger">
@@ -308,9 +347,9 @@ var STYLE_PREFIX = 'wsite';
 						<div id="banner">
 							<div id="banner-container">
 				<div class="wsite-section-elements">
-					<h2 class="wsite-content-title" style="text-align:left;"><strong><font size="7" color="#3f3f3f">&#38971;&#36947;&#26371;&#21729;&#29518;&#21237;&#19968;&#35261;</font></strong></h2>
+					<h2 class="wsite-content-title" style="text-align:center;"><strong><font size="7" color="#3f3f3f">&#38971;&#36947;&#26371;&#21729;&#29518;&#21237;&#19968;&#35261;</font></strong></h2>
 
-<div style="text-align:left;"><div style="height: 0px; overflow: hidden;"></div>
+<div style="text-align:center;"><div style="height: 0px; overflow: hidden;"></div>
 <a class="wsite-button wsite-button-small wsite-button-highlight" href="https://cankingsketch.gumroad.com/" target="_blank">
 <span class="wsite-button-inner">SHOP NOW</span>
 </a>

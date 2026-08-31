@@ -150,7 +150,61 @@ var STYLE_PREFIX = 'wsite';
                     c)})(window,document,'script', '//cdn-promote.weebly.com/js/dist/messenger.js','messenger');
             messenger({ preview: 0, asset_domain: 'cdn-promote.weebly.com', data_domain: 'promote.weebly.com', align: 'right', style: 'long_blue', size: 'medium', page_id: '494522277323748' });
         </script>
-	</head>
+	<style>
+  /* ── 與周邊一覽／畫冊一覽同一套設計語言 ── */
+  /* 頁面上的按鈕列：Weebly 的四欄表格改成置中的一組膠囊 */
+  .wsite-section-elements .wsite-multicol:has(.wsite-button) .wsite-multicol-table-wrap { margin: 0 !important; }
+  .wsite-section-elements .wsite-multicol:has(.wsite-button) .wsite-multicol-table,
+  .wsite-section-elements .wsite-multicol:has(.wsite-button) .wsite-multicol-tbody { display: block; width: 100%; }
+  .wsite-section-elements .wsite-multicol:has(.wsite-button) .wsite-multicol-tr {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center;
+  }
+  .wsite-section-elements .wsite-multicol:has(.wsite-button) .wsite-multicol-col {
+    display: block; width: auto !important; padding: 0 !important;
+  }
+  /* 原本用來墊高的空 div */
+  .wsite-section-elements .wsite-multicol:has(.wsite-button) .wsite-multicol-col > div > div { display: none; }
+
+  .wsite-section-elements .wsite-button {
+    border-radius: 999px !important; padding: 11px 26px !important;
+  }
+  .wsite-section-elements .wsite-button,
+  .wsite-section-elements .wsite-button .wsite-button-inner { font-size: 16px !important; }
+
+  /* 實際賣場一律實心紅 */
+  .wsite-section-elements .wsite-button[href*="myship.7-11.com.tw"],
+  .wsite-section-elements .wsite-button[href*="myship.7-11.com.tw"] .wsite-button-inner,
+  .wsite-section-elements .wsite-button[href*="gumroad"],
+  .wsite-section-elements .wsite-button[href*="gumroad"] .wsite-button-inner,
+  .wsite-section-elements .wsite-button[href*="devilcase"],
+  .wsite-section-elements .wsite-button[href*="devilcase"] .wsite-button-inner {
+    background-color: #f64c3f !important; color: #fff !important; border: none;
+  }
+  /* 商品大標靠左，標題下方接賣場按鈕——跟周邊一覽同一個排法 */
+  .wsite-section-elements h2.wsite-content-title { text-align: left; }
+  .wsite-section-elements .ck-buy { margin: 0 0 14px; line-height: 1.9; text-align: left; }
+  .wsite-section-elements .ck-buy a { text-decoration: none; }
+  .wsite-section-elements .ck-buy .ck-buy-main {
+    display: inline-block; background: #f64c3f; color: #fff;
+    font-size: 13px; line-height: 1; padding: 7px 16px;
+    border-radius: 999px; margin-right: 14px;
+  }
+  .wsite-section-elements .ck-buy .ck-buy-main:hover { background: #ff5b4f; }
+  .wsite-section-elements .ck-buy .ck-buy-sub {
+    font-size: 14px; color: #555;
+    border-bottom: 1px solid #ccc; padding-bottom: 1px;
+  }
+  .wsite-section-elements .ck-buy .ck-buy-sub:hover { border-bottom-color: #555; }
+  /* 表單類改外框，主次分明 */
+  .wsite-section-elements .wsite-button[href*="forms.gle"],
+  .wsite-section-elements .wsite-button[href*="forms.gle"] .wsite-button-inner {
+    background-color: #fff !important; color: #666 !important;
+  }
+  .wsite-section-elements .wsite-button[href*="forms.gle"] { border: 1.5px solid #ddd; }
+  .wsite-section-elements .wsite-button[href*="forms.gle"]:hover { border-color: #999; }
+
+</style>
+</head>
 	<body class="header-page  wsite-page-t24676  full-width-on  wsite-theme-light"><div class="body-wrap">
 		<div id="header">
 			<div class="nav-trigger hamburger">
@@ -308,7 +362,7 @@ var STYLE_PREFIX = 'wsite';
 						<div id="banner">
 							<div id="banner-container">
 				<div class="wsite-section-elements">
-					<div class="paragraph" style="text-align:left;"><strong><font color="#3f3f3f" size="7">T&#24676;&#19968;&#35261;</font></strong></div>
+					<div class="paragraph" style="text-align:center;"><strong><font color="#3f3f3f" size="7">T&#24676;&#19968;&#35261;</font></strong></div>
 
 <div><div class="wsite-multicol"><div class="wsite-multicol-table-wrap" style="margin:0 -15px;">
 	<table class="wsite-multicol-table">
@@ -344,6 +398,10 @@ var STYLE_PREFIX = 'wsite';
 </div></div></div>
 
 <h2 class="wsite-content-title"><strong><font color="#2a2a2a">&#30772;&#38450;T</font></strong></h2>
+<div class="ck-buy" data-track-label="破防T">
+<a class="ck-buy-main" href="https://myship.7-11.com.tw/general/detail/GM2308212736960" target="_blank" rel="noopener">711賣貨便</a>
+<a class="ck-buy-sub" href="https://forms.gle/zkzFUKQJnLB1xqSWA" target="_blank" rel="noopener">海外預購</a>
+</div>
 
 <div><div class="wsite-image wsite-image-border-none " style="padding-top:10px;padding-bottom:10px;margin-left:0;margin-right:0;text-align:right">
 <a>
@@ -353,6 +411,10 @@ var STYLE_PREFIX = 'wsite';
 </div></div>
 
 <h2 class="wsite-content-title"><strong><font color="#2a2a2a">&#25289;&#40629;T</font></strong></h2>
+<div class="ck-buy" data-track-label="拉麵T">
+<a class="ck-buy-main" href="https://myship.7-11.com.tw/general/detail/GM2308212736960" target="_blank" rel="noopener">711賣貨便</a>
+<a class="ck-buy-sub" href="https://forms.gle/zkzFUKQJnLB1xqSWA" target="_blank" rel="noopener">海外預購</a>
+</div>
 
 <div><div class="wsite-image wsite-image-border-none " style="padding-top:10px;padding-bottom:10px;margin-left:0;margin-right:0;text-align:right">
 <a>
@@ -369,6 +431,10 @@ var STYLE_PREFIX = 'wsite';
 </div></div>
 
 <h2 class="wsite-content-title"><strong><font color="#2a2a2a">&#19981;&#24819;&#21152;&#29677;T</font></strong></h2>
+<div class="ck-buy" data-track-label="不想加班T">
+<a class="ck-buy-main" href="https://myship.7-11.com.tw/general/detail/GM2308212736960" target="_blank" rel="noopener">711賣貨便</a>
+<a class="ck-buy-sub" href="https://forms.gle/zkzFUKQJnLB1xqSWA" target="_blank" rel="noopener">海外預購</a>
+</div>
 
 <div><div class="wsite-image wsite-image-border-none " style="padding-top:10px;padding-bottom:10px;margin-left:0px;margin-right:0px;text-align:inherit">
 <a href='images/01_orig.jpg' rel='lightbox' onclick='if (!lightboxLoaded) return false'>
@@ -427,6 +493,10 @@ var STYLE_PREFIX = 'wsite';
 </div></div></div>
 
 <h2 class="wsite-content-title"><strong><font color="#3f3f3f">&#19981;&#24819;&#19978;&#29677;T</font></strong></h2>
+<div class="ck-buy" data-track-label="不想上班T">
+<a class="ck-buy-main" href="https://myship.7-11.com.tw/general/detail/GM2308212736960" target="_blank" rel="noopener">711賣貨便</a>
+<a class="ck-buy-sub" href="https://forms.gle/zkzFUKQJnLB1xqSWA" target="_blank" rel="noopener">海外預購</a>
+</div>
 
 <div><div class="wsite-image wsite-image-border-none " style="padding-top:10px;padding-bottom:10px;margin-left:0px;margin-right:0px;text-align:inherit">
 <a href='images/2_orig.jpg' rel='lightbox' onclick='if (!lightboxLoaded) return false'>
