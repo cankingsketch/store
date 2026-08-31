@@ -150,7 +150,53 @@ var STYLE_PREFIX = 'wsite';
                     c)})(window,document,'script', '//cdn-promote.weebly.com/js/dist/messenger.js','messenger');
             messenger({ preview: 0, asset_domain: 'cdn-promote.weebly.com', data_domain: 'promote.weebly.com', align: 'right', style: 'long_blue', size: 'medium', page_id: '494522277323748' });
         </script>
-	</head>
+	<style>
+  /* ── 與周邊一覽同一套設計語言：紅色方塊改成膠囊，主次分明 ──
+     這頁的 8 組 multicol 全部都是按鈕列（用 :has 確認過），
+     所以可以整頁套用，不必逐個加 class。 */
+  #wsite-content .wsite-multicol:has(.wsite-button) .wsite-multicol-table-wrap { margin: 0 !important; }
+  #wsite-content .wsite-multicol:has(.wsite-button) .wsite-multicol-table,
+  #wsite-content .wsite-multicol:has(.wsite-button) .wsite-multicol-tbody { display: block; width: 100%; }
+  #wsite-content .wsite-multicol:has(.wsite-button) .wsite-multicol-tr {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center;
+  }
+  #wsite-content .wsite-multicol:has(.wsite-button) .wsite-multicol-col {
+    display: block; width: auto !important; padding: 0 !important;
+  }
+  /* 原本用來墊高的空 div */
+  #wsite-content .wsite-multicol:has(.wsite-button) .wsite-multicol-col > div > div { display: none; }
+
+  #wsite-content .wsite-button {
+    border-radius: 999px !important; padding: 11px 26px !important;
+  }
+  #wsite-content .wsite-button,
+  #wsite-content .wsite-button .wsite-button-inner { font-size: 16px !important; }
+
+  /* 實際賣場（賣貨便、電子版）一律實心紅——底下那排原本是 Weebly 的深灰配色，
+     跟頂端的紅色對不起來 */
+  #wsite-content .wsite-button[href*="myship.7-11.com.tw"],
+  #wsite-content .wsite-button[href*="myship.7-11.com.tw"] .wsite-button-inner,
+  #wsite-content .wsite-button[href*="gumroad"],
+  #wsite-content .wsite-button[href*="gumroad"] .wsite-button-inner {
+    background-color: #f64c3f !important; color: #fff !important; border: none;
+  }
+  /* 海外表單與寄賣店改外框，主次分明 */
+  #wsite-content .wsite-button[href*="forms.gle"],
+  #wsite-content .wsite-button[href*="forms.gle"] .wsite-button-inner,
+  #wsite-content .wsite-button[href*="events-883299"],
+  #wsite-content .wsite-button[href*="events-883299"] .wsite-button-inner {
+    background-color: #fff !important; color: #666 !important;
+  }
+  #wsite-content .wsite-button[href*="forms.gle"],
+  #wsite-content .wsite-button[href*="events-883299"] { border: 1.5px solid #ddd; }
+  #wsite-content .wsite-button[href*="forms.gle"]:hover,
+  #wsite-content .wsite-button[href*="events-883299"]:hover { border-color: #999; }
+
+  /* 封面大圖點了要能放大，游標也要說得出來 */
+  /* fancybox 會把 rel="lightbox" 換成 class="w-fancybox"，所以認 href 最保險 */
+  #wsite-content .wsite-image a[href] img { cursor: zoom-in; }
+</style>
+</head>
 	<body class="no-header  wsite-page-3005920874  full-width-on  wsite-theme-light"><div class="body-wrap">
 
 	<div id="header">
@@ -379,7 +425,7 @@ var STYLE_PREFIX = 'wsite';
 				<h2 class="wsite-content-title" style="text-align:center;"><strong><font size="6">&#12298;Canking &#25554;&#30059;&#35373;&#23450;&#38598;6&#12299;2022-2024&#30059;&#38598;</font></strong></h2>
 
 <div><div class="wsite-image wsite-image-border-none " style="padding-top:10px;padding-bottom:10px;margin-left:0;margin-right:0;text-align:center">
-<a>
+<a href='images/vol6_orig.png' rel='lightbox' onclick='if (!lightboxLoaded) return false'>
 <img src="images/vol6_orig.png" alt="圖片" style="width:auto;max-width:100%" />
 </a>
 <div style="display:block;font-size:90%"></div>
@@ -430,7 +476,7 @@ var STYLE_PREFIX = 'wsite';
 <h2 class="wsite-content-title" style="text-align:center;"><strong><font size="6">&#12298;Canking &#23436;&#20840;&#35373;&#23450;&#38598;&#12299;2022-2023&#30059;&#38598;</font></strong></h2>
 
 <div><div class="wsite-image wsite-image-border-none " style="padding-top:10px;padding-bottom:10px;margin-left:0px;margin-right:0px;text-align:center">
-<a>
+<a href='images/editor_ck.png?1714732171' rel='lightbox' onclick='if (!lightboxLoaded) return false'>
 <img src="images/editor_ck.png?1714732171" alt="圖片" style="width:556;max-width:100%" />
 </a>
 <div style="display:block;font-size:90%"></div>
@@ -689,7 +735,7 @@ var STYLE_PREFIX = 'wsite';
 <h2 class="wsite-content-title"><strong>FGO&#21345;&#29255;&#32068;&#21512;</strong>(&#20116;&#24373;&#19968;&#32068;)</h2>
 
 <div><div class="wsite-image wsite-image-border-none " style="padding-top:10px;padding-bottom:10px;margin-left:0;margin-right:0;text-align:center">
-<a>
+<a href='images/fgo_orig.png' rel='lightbox' onclick='if (!lightboxLoaded) return false'>
 <img src="images/fgo_orig.png" alt="圖片" style="width:auto;max-width:100%" />
 </a>
 <div style="display:block;font-size:90%"></div>
@@ -731,7 +777,7 @@ var STYLE_PREFIX = 'wsite';
 <h2 class="wsite-content-title"><strong>&#12298;DVA SKETCH&#12299;</strong><strong>&#39717;&#38499;&#29305;&#25915;DVA&#40657;&#30333;&#25554;&#30059;&#26412;</strong></h2>
 
 <div><div class="wsite-image wsite-image-border-none " style="padding-top:10px;padding-bottom:10px;margin-left:0;margin-right:0;text-align:center">
-<a>
+<a href='images/dva01_orig.jpg' rel='lightbox' onclick='if (!lightboxLoaded) return false'>
 <img src="images/dva01_orig.jpg" alt="圖片" style="width:auto;max-width:100%" />
 </a>
 <div style="display:block;font-size:90%"></div>
@@ -753,7 +799,7 @@ var STYLE_PREFIX = 'wsite';
 <h2 class="wsite-content-title"><strong>&#12298;ADDRESS&#12299;</strong>&#8203;<strong>LOL&#20840;&#24425;&#25554;&#30059;&#26412;<font size="7">2</font></strong></h2>
 
 <div><div class="wsite-image wsite-image-border-none " style="padding-top:10px;padding-bottom:10px;margin-left:0;margin-right:0;text-align:center">
-<a>
+<a href='images/address01.jpg?1748535590' rel='lightbox' onclick='if (!lightboxLoaded) return false'>
 <img src="images/address01.jpg?1748535590" alt="圖片" style="width:472;max-width:100%" />
 </a>
 <div style="display:block;font-size:90%"></div>
@@ -775,7 +821,7 @@ var STYLE_PREFIX = 'wsite';
 <h2 class="wsite-content-title"><strong><font size="7">&#12298;LOL&#38620;&#32362;&#38598;&#12299;</font></strong></h2>
 
 <div><div class="wsite-image wsite-image-border-none " style="padding-top:10px;padding-bottom:10px;margin-left:0;margin-right:0;text-align:center">
-<a>
+<a href='images/lol1.jpg?1748535972' rel='lightbox' onclick='if (!lightboxLoaded) return false'>
 <img src="images/lol1.jpg?1748535972" alt="圖片" style="width:470;max-width:100%" />
 </a>
 <div style="display:block;font-size:90%"></div>
