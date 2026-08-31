@@ -424,8 +424,15 @@ var STYLE_PREFIX = 'wsite';
     display: block; width: auto !important; padding: 0 !important;
   }
   #wsite-content .ck-shoprow .wsite-multicol-col > div > div { display: none; }  /* 原本用來墊高的空 div */
+  /* 跟首圖之間留一點呼吸（首圖底部沒有透明留白，圖案直接壓到邊） */
+  #wsite-content .ck-shoprow { padding-top: 7px; }
+  /* 按鈕群組的寬度對齊首圖（540px），視覺上才像同一組 */
   #wsite-content .ck-shoprow .wsite-button {
-    border-radius: 999px !important; padding: 9px 22px !important; font-size: 14px;
+    border-radius: 999px !important; padding: 11px 26px !important;
+  }
+  #wsite-content .ck-shoprow .wsite-button,
+  #wsite-content .ck-shoprow .wsite-button .wsite-button-inner {
+    font-size: 16px !important;
   }
   /* 賣貨便與蝦皮佔購買點擊 96%，維持實心；海外購買與實體店面改外框，讓主次分明 */
   #wsite-content .ck-shoprow .wsite-multicol-col:nth-child(n+3) .wsite-button,
