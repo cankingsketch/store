@@ -369,8 +369,17 @@ var STYLE_PREFIX = 'wsite';
 
 <style>
   #ck-quick-menu { max-width: 900px; margin: 6px auto 34px; padding: 16px 18px; background: #fff5f5; border: 2px solid #ff2d2d; border-radius: 16px; box-sizing: border-box; }
-  #ck-quick-menu .ck-qm-title { font-weight: 800; color: #ff2d2d; font-size: 18px; margin-bottom: 12px; text-align: center; }
-  #ck-quick-menu .ck-qm-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  /* 標題本身就是開關：預設收起來只佔一行，想找商品才展開 */
+  #ck-quick-menu .ck-qm-title { display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; padding: 0; border: 0; background: none; cursor: pointer; font: inherit;
+    font-weight: 800; color: #ff2d2d; font-size: 18px; text-align: center; }
+  #ck-quick-menu .ck-qm-count { font-weight: 500; font-size: 14px; color: #e07a72; }
+  #ck-quick-menu .ck-qm-caret { font-size: 12px; transition: transform .25s ease; }
+  #ck-quick-menu.ck-open .ck-qm-caret { transform: rotate(180deg); }
+  /* 用 grid-template-rows 做展開動畫，內容多高都不必寫死 */
+  #ck-quick-menu .ck-qm-wrap { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .25s ease, margin-top .25s ease; margin-top: 0; }
+  #ck-quick-menu.ck-open .ck-qm-wrap { grid-template-rows: 1fr; margin-top: 12px; }
+  #ck-quick-menu .ck-qm-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; overflow: hidden; min-height: 0; }
   #ck-quick-menu .ck-qm-item { display: inline-block; padding: 7px 14px; background: #fff; color: #ff2d2d !important; border: 1.5px solid #ff2d2d; border-radius: 999px; font-size: 14px; line-height: 1.2; text-decoration: none; white-space: nowrap; transition: background .15s, color .15s; }
   #ck-quick-menu .ck-qm-item:hover { background: #ff2d2d; color: #fff !important; }
   #ck-backtop { position: fixed; left: 18px; bottom: 24px; z-index: 9999; display: none; padding: 10px 16px; background: #ff2d2d; color: #fff; border: none; border-radius: 999px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
@@ -487,7 +496,10 @@ var STYLE_PREFIX = 'wsite';
 
       var menu = document.createElement('div');
       menu.id = 'ck-quick-menu';
-      var html = '<div class="ck-qm-title">商品快速選單</div><div class="ck-qm-grid">';
+      var html = '<button type="button" class="ck-qm-title" aria-expanded="false">'
+        + '商品快速選單<span class="ck-qm-count">' + heads.length + ' 項</span>'
+        + '<span class="ck-qm-caret" aria-hidden="true">▼</span></button>'
+        + '<div class="ck-qm-wrap"><div class="ck-qm-grid">';
       heads.forEach(function (h, i) {
         if (!h.id) h.id = 'prod-' + i;
         var strong = h.querySelector('strong');
@@ -495,9 +507,22 @@ var STYLE_PREFIX = 'wsite';
         if (name.length > 20) name = name.slice(0, 20) + '…';
         html += '<a href="#' + h.id + '" class="ck-qm-item" data-t="' + h.id + '">' + name + '</a>';
       });
-      html += '</div>';
+      html += '</div></div>';
       menu.innerHTML = html;
       heads[0].parentNode.insertBefore(menu, heads[0]);
+
+      // 展開／收合。記住選擇，喜歡攤開的人不必每次再點一次。
+      var toggle = menu.querySelector('.ck-qm-title');
+      // 只有親手點標題才算「偏好」；跳去商品、按返回鍵都是順手的動作，不寫進記憶
+      function setOpen(open, remember) {
+        menu.classList.toggle('ck-open', open);
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (remember) { try { localStorage.setItem('ck-qm-open', open ? '1' : '0'); } catch (err) {} }
+      }
+      try { if (localStorage.getItem('ck-qm-open') === '1') setOpen(true); } catch (err) {}
+      toggle.addEventListener('click', function () {
+        setOpen(!menu.classList.contains('ck-open'), true);
+      });
 
       menu.addEventListener('click', function (e) {
         var a = e.target.closest ? e.target.closest('.ck-qm-item') : null;
@@ -506,6 +531,7 @@ var STYLE_PREFIX = 'wsite';
         var el = document.getElementById(a.getAttribute('data-t'));
         if (el) {
           var y = el.getBoundingClientRect().top + window.pageYOffset - headerOffset();
+          setOpen(false);
           scrollToY(y);
         }
       });
@@ -515,7 +541,9 @@ var STYLE_PREFIX = 'wsite';
       btn.type = 'button';
       btn.textContent = '↑ 商品選單';
       btn.addEventListener('click', function () {
+        // 按這顆就是想挑商品，直接幫他攤開，省一次點擊
         var y = menu.getBoundingClientRect().top + window.pageYOffset - headerOffset();
+        setOpen(true);
         scrollToY(y);
       });
       document.body.appendChild(btn);
