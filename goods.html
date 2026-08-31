@@ -310,7 +310,7 @@ var STYLE_PREFIX = 'wsite';
 <div style="display:block;font-size:90%"></div>
 </div></div>
 
-<div><div class="wsite-multicol"><div class="wsite-multicol-table-wrap" style="margin:0 -15px;">
+<div class="ck-shoprow"><div class="wsite-multicol"><div class="wsite-multicol-table-wrap" style="margin:0 -15px;">
 	<table class="wsite-multicol-table">
 		<tbody class="wsite-multicol-tbody">
 			<tr class="wsite-multicol-tr">
@@ -406,6 +406,38 @@ var STYLE_PREFIX = 'wsite';
     border-bottom: 1px solid #ccc; padding-bottom: 1px;
   }
   #wsite-content .ck-buy .ck-buy-sub:hover { border-bottom-color: #555; }
+
+  /* 頂端的賣場入口：把 Weebly 的四欄表格收攏成一組圓角按鈕。
+     只作用在 .ck-shoprow 裡面——商品的並排圖也是同一套 multicol 表格，
+     不設界線的話會把商品版面一起弄壞。 */
+  #wsite-content .ck-shoprow .wsite-multicol-table-wrap { margin: 0 !important; }
+  #wsite-content .ck-shoprow .wsite-multicol-table,
+  #wsite-content .ck-shoprow .wsite-multicol-tbody { display: block; width: 100%; }
+  #wsite-content .ck-shoprow .wsite-multicol-tr {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    justify-content: center;   /* 上面的首圖與下面的快速選單都是置中，這裡跟著對齊 */
+  }
+  #wsite-content .ck-shoprow .wsite-multicol-col {
+    display: block; width: auto !important; padding: 0 !important;
+  }
+  #wsite-content .ck-shoprow .wsite-multicol-col > div > div { display: none; }  /* 原本用來墊高的空 div */
+  #wsite-content .ck-shoprow .wsite-button {
+    border-radius: 999px !important; padding: 9px 22px !important; font-size: 14px;
+  }
+  /* 賣貨便與蝦皮佔購買點擊 96%，維持實心；海外購買與實體店面改外框，讓主次分明 */
+  #wsite-content .ck-shoprow .wsite-multicol-col:nth-child(n+3) .wsite-button,
+  #wsite-content .ck-shoprow .wsite-multicol-col:nth-child(n+3) .wsite-button .wsite-button-inner {
+    background-color: #fff !important; color: #666 !important;
+  }
+  #wsite-content .ck-shoprow .wsite-multicol-col:nth-child(n+3) .wsite-button {
+    border: 1.5px solid #ddd;
+  }
+  #wsite-content .ck-shoprow .wsite-multicol-col:nth-child(n+3) .wsite-button:hover {
+    border-color: #999;
+  }
+  @media screen and (max-width: 700px) {
+    #wsite-content .ck-shoprow .wsite-multicol-tr { justify-content: center; }
+  }
   #wsite-content div:has(> hr.styled-hr) { display: none; }
   @media screen and (max-width: 700px) {
     .ck-prod-imgs .ck-md, .ck-prod-imgs .ck-sm { flex: 0 0 100%; max-width: 100%; }
