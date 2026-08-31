@@ -29,7 +29,8 @@ function rebuild(items) {
   const out = items.map(item => {
     // 賣貨便沒有單品網址，勾選就是共用店舖網址——跟後端一樣
     const buy = { myship: item.myship ? MYSHIP : '', shopee: (item.shopee || '').trim(),
-                  video: (item.video || '').trim(), hot: (item.hot || '').trim() };
+                  video: (item.video || '').trim(), hot: (item.hot || '').trim(),
+                  hotOrder: item.hotOrder || 0 };
     if (item.new) return M.buildBlock(Object.assign({}, item, buy));
     const raw = blocks[item.idx];
     if (/<h2[^>]*data-ck="1"/.test(raw)) return M.buildBlock(Object.assign({}, item, buy));
@@ -45,7 +46,7 @@ function rebuild(items) {
 // 只送 {idx,title} 會把它們清空，那不是「什麼都不改」。
 const keepAll = parsed.map(p => Object.assign(
   // 賣場按鈕與影片對新舊結構都適用，不帶上就等於把它們清空
-  { idx: p.idx, title: p.title, myship: !!p.myship, shopee: p.shopee, video: p.video, hot: p.hot },
+  { idx: p.idx, title: p.title, myship: !!p.myship, shopee: p.shopee, video: p.video, hot: p.hot, hotOrder: p.hotOrder },
   p.editable ? { desc: p.desc, images: p.images, descAlign: p.descAlign } : {}));
 
 console.log('\n[1] 解析與無損性');

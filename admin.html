@@ -102,6 +102,12 @@
   .tag.new { background:#ffe9e9; color:var(--red); }
   .tag.shop { background:#eaf3ff; color:#2b5f9e; }
   .tag.hot { background:#ff2d2d; color:#fff; }
+  .hotbar-row { display:flex; flex-wrap:wrap; gap:12px; }
+  .hotcard { width:140px; border:2px solid #ffd9d6; border-radius:10px; overflow:hidden; background:#fff; }
+  .hotcard img { width:100%; height:100px; object-fit:cover; display:block; background:#f6f6f6; }
+  .hotcard-name { padding:6px 8px; font-size:13px; font-weight:700; line-height:1.3; }
+  .hotcard-ops { display:flex; gap:4px; padding:0 6px 8px; }
+  .hotcard-ops button[disabled] { opacity:.3; cursor:default; }
   .hotimgs { display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 2px; }
   .hotimgs button { padding:0; border:2px solid #ddd; border-radius:8px; background:none;
     cursor:pointer; line-height:0; overflow:hidden; }
@@ -157,6 +163,7 @@
   <div id="pane-goods">
   <!-- 清單模式 -->
   <div id="view-list">
+    <div class="card" id="hotbar" style="display:none"></div>
     <div class="card">
       <h2>目前商品（由上到下就是網站顯示順序）</h2>
       <div id="list"></div>
@@ -298,7 +305,52 @@
   }
 
   /* ---------- 清單 ---------- */
+  /* 熱銷推薦的排序：跟商品在頁面上的順序無關，所以獨立一區來調 */
+  function hotList() {
+    return state.products
+      .map(function (p, i) { return { p: p, i: i }; })
+      .filter(function (x) { return x.p.hot && !x.p.removed; })
+      .sort(function (a, b) { return (a.p.hotOrder || 99) - (b.p.hotOrder || 99); });
+  }
+  function renumberHot() {
+    hotList().forEach(function (x, k) { x.p.hotOrder = k + 1; });
+  }
+  function renderHotBar() {
+    var box = $('hotbar');
+    var list = hotList();
+    if (!list.length) { box.innerHTML = ''; box.style.display = 'none'; return; }
+    box.style.display = '';
+    var h = '<h2>熱銷推薦（頁面最上方，由左到右）</h2><div class="hotbar-row">';
+    list.forEach(function (x, k) {
+      h += '<div class="hotcard">'
+        + '<img src="' + esc(x.p.hot) + '" alt="" />'
+        + '<div class="hotcard-name">' + esc(x.p.title) + '</div>'
+        + '<div class="hotcard-ops">'
+        + '<button class="mini ghost" data-h="l" data-k="' + k + '"'
+        + (k === 0 ? ' disabled' : '') + ' title="往前">◀</button>'
+        + '<button class="mini ghost" data-h="r" data-k="' + k + '"'
+        + (k === list.length - 1 ? ' disabled' : '') + ' title="往後">▶</button>'
+        + '<button class="mini ghost" data-h="x" data-k="' + k + '" title="移出熱銷">✕</button>'
+        + '</div></div>';
+    });
+    h += '</div><p class="hint">這裡的順序就是網站上卡片的左右順序，跟下方商品排序無關。</p>';
+    box.innerHTML = h;
+  }
+  $('hotbar').addEventListener('click', function (ev) {
+    var b = ev.target.closest ? ev.target.closest('button[data-h]') : null;
+    if (!b) return;
+    var list = hotList(), k = +b.getAttribute('data-k'), a = b.getAttribute('data-h');
+    if (a === 'x') { list[k].p.hot = ''; list[k].p.hotOrder = 0; }
+    else {
+      var j = a === 'l' ? k - 1 : k + 1;
+      if (j < 0 || j >= list.length) return;
+      var t = list[k].p.hotOrder; list[k].p.hotOrder = list[j].p.hotOrder; list[j].p.hotOrder = t;
+    }
+    renumberHot(); markDirty(); renderList();
+  });
+
   function renderList() {
+    renderHotBar();
     var box = $('list');
     box.innerHTML = '';
     state.products.forEach(function (p, i) {
@@ -346,7 +398,7 @@
     if (state.isNewItem) {
       state.editing = { new: true, title: '', desc: '', descAlign: null, images: [],
         editable: true, rich: true, removed: false, myship: false, shopee: '', video: '',
-        hot: '', allImages: [] };
+        hot: '', hotOrder: 0, allImages: [] };
       $('edit-heading').textContent = '新增商品';
     } else {
       var p = state.products[i];
@@ -357,7 +409,7 @@
         // 舊版結構只能改名稱與賣場按鈕，圖片／說明藏起來
         editable: true, rich: !!p.editable, removed: false, origIdx: p.idx,
         myship: !!p.myship, shopee: p.shopee || '', video: p.video || '',
-        hot: p.hot || '', allImages: p.allImages || [],
+        hot: p.hot || '', hotOrder: p.hotOrder || 0, allImages: p.allImages || [],
         ownButtons: !!p.ownButtons
       };
       $('edit-heading').textContent = '編輯商品';
@@ -517,11 +569,11 @@
         (p.images || []).forEach(function (im) { used[im.file] = 1; });
         return { new: true, title: p.title, desc: p.desc || '', descAlign: p.descAlign || null,
                  myship: !!p.myship, shopee: p.shopee || '', video: p.video || '',
-                 hot: p.hot || '',
+                 hot: p.hot || '', hotOrder: p.hotOrder || 0,
                  images: p.images.map(function (im) { return { file: im.file, size: im.size }; }) };
       }
       var o = { idx: p.idx, title: p.title, myship: !!p.myship, shopee: p.shopee || '',
-                video: p.video || '', hot: p.hot || '' };
+                video: p.video || '', hot: p.hot || '', hotOrder: p.hotOrder || 0 };
       if (p.editable) {
         o.desc = p.desc || '';
         o.descAlign = p.descAlign || null;
@@ -598,7 +650,7 @@
   }
   $('f-hot').addEventListener('change', function () {
     var e = state.editing;
-    if (!this.checked) { e.hot = ''; renderHotPick(); setMsg(''); return; }
+    if (!this.checked) { e.hot = ''; e.hotOrder = 0; renderHotPick(); setMsg(''); return; }
     var others = hotCount(state.isNewItem ? -1 : e.idx);
     if (others >= HOT_MAX) {
       this.checked = false;
@@ -613,6 +665,8 @@
     }
     setMsg('');
     e.hot = choices[0].value;   // 預設第一張，想換再點
+    // 新加入的排在最後面，順序之後在清單上的熱銷區調
+    e.hotOrder = Math.max(0, ...state.products.map(function (p) { return p.hotOrder || 0; })) + 1;
     renderHotPick();
   });
   $('f-align').addEventListener('click', function (ev) {
@@ -635,12 +689,12 @@
       state.products.unshift({ new: true, title: e.title.trim(), desc: e.desc.trim(),
         descAlign: e.descAlign || null, images: e.images, editable: true, removed: false,
         myship: !!e.myship, shopee: e.shopee || '', video: e.video || '',
-        hot: e.hot || '' });
+        hot: e.hot || '', hotOrder: e.hotOrder || 0 });
     } else {
       var p = state.products[e.idx];
       p.title = e.title.trim();
       p.myship = !!e.myship; p.shopee = e.shopee || ''; p.video = e.video || '';
-      p.hot = e.hot || '';
+      p.hot = e.hot || ''; p.hotOrder = e.hotOrder || 0;
       if (e.rich) {
         p.desc = e.desc.trim(); p.images = e.images;
         p.descAlign = e.descAlign || null;

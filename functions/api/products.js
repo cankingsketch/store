@@ -191,15 +191,16 @@ function stripBuy(block) {
 
 function parseBuy(block) {
   const row = block.match(BUY_RE);
-  if (!row) return { myship: '', shopee: '', video: '', hot: '' };
+  if (!row) return { myship: '', shopee: '', video: '', hot: '', hotOrder: 0 };
   const get = (cls) => {
     const m = row[0].match(new RegExp('<a class="[^"]*" href="([^"]+)"[^>]*data-buy="' + cls + '"'));
     return m ? unesc(m[1]) : '';
   };
   // 熱銷推薦：值就是要放在卡片上的圖片路徑，空的就不是熱銷
   const hot = row[0].match(/<div class="ck-buy" data-ck="1" data-hot="([^"]*)"/);
+  const hotN = row[0].match(/ data-hot-n="([0-9]+)"/);
   return { myship: get('myship'), shopee: get('shopee'), video: get('video'),
-           hot: hot ? unesc(hot[1]) : '' };
+           hot: hot ? unesc(hot[1]) : '', hotOrder: hotN ? Number(hotN[1]) : 0 };
 }
 
 function buildBuy(item) {
@@ -217,7 +218,11 @@ function buildBuy(item) {
   // 排序、改名、剝離都沿用既有那條路徑，不必再多一種標記
   const hot = (item.hot || '').trim();
   if (!parts.length && !hot) return '';
-  const attr = hot ? ` data-hot="${esc(hot)}"` : '';
+  // 順序一併寫進標記，前台才不必再維護一份名單
+  const n = Number(item.hotOrder);
+  const attr = hot
+    ? ` data-hot="${esc(hot)}"` + (n > 0 ? ` data-hot-n="${n}"` : '')
+    : '';
   return `\n<div class="ck-buy" data-ck="1"${attr}>\n${parts.join('\n')}\n</div>\n`;
 }
 
@@ -236,7 +241,8 @@ function parseBlock(rawBlock, idx) {
   const buy = parseBuy(rawBlock);
   const out = {
     idx, title, editable: isNew, kind: isNew ? 'new' : 'legacy',
-    myship: buy.myship, shopee: buy.shopee, video: buy.video, hot: buy.hot,
+    myship: buy.myship, shopee: buy.shopee, video: buy.video,
+    hot: buy.hot, hotOrder: buy.hotOrder,
     ownButtons: hasOwnButtons(rawBlock),
   };
   if (isNew) {
@@ -344,19 +350,25 @@ export async function onRequestPost({ request, env }) {
     // 所以全站共用一個，從頁面頂端原本那顆按鈕帶入。
     const myshipUrl = findMyshipUrl(src);
 
-    // 熱銷推薦最多三個。後台會擋，這裡再擋一次——超過就只留前三個，
-    // 免得哪天前端出錯把整頁變成熱銷區。
+    /* 熱銷推薦最多三個，順序由後台決定，跟商品在頁面上的排序無關。
+       後台會擋，這裡再擋一次——超過就只留排序最前面的三個。 */
     const HOT_MAX = 3;
-    let hotLeft = HOT_MAX;
+    const hotRank = new Map();
+    items
+      .map((it, i) => ({ i, n: Number(it.hotOrder) }))
+      .filter((x) => (items[x.i].hot || '').trim())
+      .sort((a, b) => (isFinite(a.n) ? a.n : 1e9) - (isFinite(b.n) ? b.n : 1e9) || a.i - b.i)
+      .slice(0, HOT_MAX)
+      .forEach((x, k) => hotRank.set(x.i, k + 1));
 
     // 依前端送來的最終狀態重組
     const out = [];
-    for (const item of items) {
-      const wantHot = (item.hot || '').trim();
-      const hot = wantHot && hotLeft > 0 ? (hotLeft--, wantHot) : '';
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const hot = hotRank.has(i) ? (item.hot || '').trim() : '';
       // 前端只送「有沒有要放賣貨便」，網址一律用共用的那個
       const buy = { myship: item.myship ? myshipUrl : '', shopee: (item.shopee || '').trim(),
-                     video: (item.video || '').trim(), hot };
+                     video: (item.video || '').trim(), hot, hotOrder: hotRank.get(i) || 0 };
       if (item.new) {
         out.push(buildBlock(Object.assign({}, item, buy)));
       } else {

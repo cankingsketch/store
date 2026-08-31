@@ -446,13 +446,14 @@ var STYLE_PREFIX = 'wsite';
     .ck-prod-imgs .ck-md, .ck-prod-imgs .ck-sm { flex: 0 0 100%; max-width: 100%; }
   }
   /* 熱銷推薦：明星商品會被新品往下擠，這一區把它們拉回眼前 */
-  #ck-hot { max-width: 900px; margin: 0 auto 22px; box-sizing: border-box; }
+  #ck-hot { max-width: 900px; margin: 40px auto 48px; box-sizing: border-box; }
   #ck-hot .ck-hot-title { display: flex; align-items: center; justify-content: center; gap: 10px;
-    font-weight: 800; color: #ff2d2d; font-size: 20px; margin: 0 0 14px; }
+    font-weight: 800; color: #ff2d2d; font-size: 20px; margin: 0 0 20px; }
   #ck-hot .ck-hot-title::before, #ck-hot .ck-hot-title::after {
     content: ''; flex: 1 1 0; height: 2px; background: #ffd9d6; border-radius: 2px; max-width: 120px; }
-  #ck-hot .ck-hot-grid { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; }
-  #ck-hot .ck-hot-card { flex: 0 1 260px; max-width: 280px; display: block; background: #fff;
+  /* 卡片撐滿整列，左右邊界才跟下方商品圖對齊——欄數由 JS 依實際張數指定 */
+  #ck-hot .ck-hot-grid { display: grid; grid-template-columns: repeat(var(--ck-hot-n, 3), 1fr); gap: 16px; }
+  #ck-hot .ck-hot-card { display: block; background: #fff;
     border: 2px solid #ffd9d6; border-radius: 14px; overflow: hidden; text-decoration: none;
     cursor: pointer; padding: 0; text-align: left; font: inherit;
     transition: border-color .15s, transform .15s, box-shadow .15s; }
@@ -463,8 +464,7 @@ var STYLE_PREFIX = 'wsite';
   #ck-hot .ck-hot-name { display: block; padding: 10px 12px; color: #333; font-size: 15px;
     font-weight: 700; line-height: 1.35; text-align: center; }
   @media screen and (max-width: 600px) {
-    #ck-hot .ck-hot-grid { gap: 12px; }
-    #ck-hot .ck-hot-card { flex: 0 1 calc(50% - 6px); }
+    #ck-hot .ck-hot-grid { grid-template-columns: repeat(var(--ck-hot-nm, 2), 1fr); gap: 12px; }
     #ck-hot .ck-hot-name { font-size: 14px; padding: 8px 8px; }
   }
   /* 點圖放大。原本點圖是連到 YouTube，拿掉之後點下去沒反應，補回一個純看圖的燈箱 */
@@ -539,6 +539,10 @@ var STYLE_PREFIX = 'wsite';
          所以排序、改名都不必額外維護一份名單。點卡片就捲到那個商品，
          而商品標題下面本來就有賣場按鈕，不必再捲回頂端。 */
       var hotRows = [].slice.call(content.querySelectorAll('.ck-buy[data-hot]'));
+      // 卡片順序由後台決定（data-hot-n），跟商品在頁面上的排序無關
+      hotRows.sort(function (a, b) {
+        return (+a.getAttribute('data-hot-n') || 99) - (+b.getAttribute('data-hot-n') || 99);
+      });
       if (hotRows.length) {
         var hot = document.createElement('div');
         hot.id = 'ck-hot';
@@ -560,6 +564,10 @@ var STYLE_PREFIX = 'wsite';
         });
         hh += '</div>';
         hot.innerHTML = hh;
+        // 幾張卡就幾欄，才不會只有一兩張時被拉成半寬或留出空欄
+        var grid = hot.querySelector('.ck-hot-grid');
+        grid.style.setProperty('--ck-hot-n', hotRows.length);
+        grid.style.setProperty('--ck-hot-nm', Math.min(hotRows.length, 2));
         heads[0].parentNode.insertBefore(hot, heads[0]);
         hot.addEventListener('click', function (e) {
           var c = e.target.closest ? e.target.closest('.ck-hot-card') : null;
@@ -584,7 +592,7 @@ var STYLE_PREFIX = 'wsite';
   })();
 </script>
 <h2 class="wsite-content-title" data-ck="1"><strong><font size="7">洗沐盥洗包</font></strong></h2>
-<div class="ck-buy" data-ck="1" data-hot="images/prod-20260830-010423-1.jpg">
+<div class="ck-buy" data-ck="1" data-hot="images/prod-20260830-010423-1.jpg" data-hot-n="1">
 <a class="ck-buy-main" href="https://myship.7-11.com.tw/general/detail/GM2308212736960" target="_blank" rel="noopener" data-buy="myship">賣貨便</a>
 </div>
 
@@ -642,7 +650,7 @@ var STYLE_PREFIX = 'wsite';
 </div>
 
 <h2 class="wsite-content-title"><strong><font size="7">下雨天杯墊</font></strong></h2>
-<div class="ck-buy" data-ck="1" data-hot="images/rain_coaster.jpg">
+<div class="ck-buy" data-ck="1" data-hot="images/rain_coaster.jpg" data-hot-n="2">
 <a class="ck-buy-main" href="https://myship.7-11.com.tw/general/detail/GM2308212736960" target="_blank" rel="noopener" data-buy="myship">賣貨便</a>
 </div>
 
@@ -694,7 +702,7 @@ var STYLE_PREFIX = 'wsite';
 <div style="height: 20px; overflow: hidden; width: 100%;"></div></div>
 
 <h2 class="wsite-content-title"><strong><font size="7">&#30332;&#26781;&#39135;&#29289;&#25225;&#25799;&#21205;&#30059;&#27231;(&#30450;&#30418;)</font></strong></h2>
-<div class="ck-buy" data-ck="1" data-hot="images/catoong01_orig.jpg">
+<div class="ck-buy" data-ck="1" data-hot="images/catoong01_orig.jpg" data-hot-n="3">
 <a class="ck-buy-main" href="https://myship.7-11.com.tw/general/detail/GM2308212736960" target="_blank" rel="noopener" data-buy="myship">賣貨便</a>
 <a class="ck-buy-video" href="https://youtube.com/shorts/CvTLK2Nmkvo?si=GKi81XvGAixM7jAL" target="_blank" rel="noopener" data-buy="video">▶ 影片</a>
 </div>

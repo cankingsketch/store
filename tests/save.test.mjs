@@ -70,7 +70,7 @@ const listed = await (async () => {
 
 // 賣場按鈕與影片新舊結構都有，不帶上就等於把它們清空，那不是「什麼都不改」
 const carry = p => Object.assign(
-  { idx: p.idx, title: p.title, myship: !!p.myship, shopee: p.shopee, video: p.video, hot: p.hot },
+  { idx: p.idx, title: p.title, myship: !!p.myship, shopee: p.shopee, video: p.video, hot: p.hot, hotOrder: p.hotOrder },
   p.editable ? { desc: p.desc, images: p.images, descAlign: p.descAlign } : {});
 const keepAll = listed.products.map(carry);
 
@@ -246,41 +246,48 @@ console.log('\n[8] 賣場按鈕經過完整存檔流程');
 
 console.log('\n[9] 熱銷推薦經過完整存檔流程');
 {
-  fakeGitHub();
-  // 挑四個有圖可用的商品都設成熱銷，後端只該留前三個
+  // 挑四個有圖可用的商品，故意給「跟頁面順序相反」的熱銷排序，
+  // 才驗得出排序是照後台指定的，不是照商品在頁面上的位置
   const pick = listed.products.filter(p => (p.allImages || p.images || []).length).slice(0, 4);
   ok('找得到四個有圖的商品可測', pick.length === 4, pick.length);
-  const items = keepAll.map(o => {
-    const hit = pick.find(p => p.idx === o.idx);
-    return hit ? Object.assign({}, o, { hot: 'images/x' + o.idx + '.jpg' }) : o;
-  });
+  const want = new Map(pick.map((p, k) => [p.idx, pick.length - k]));   // 4,3,2,1
+  const items = keepAll.map(o => want.has(o.idx)
+    ? Object.assign({}, o, { hot: 'images/x' + o.idx + '.jpg', hotOrder: want.get(o.idx) })
+    : Object.assign({}, o, { hot: '', hotOrder: 0 }));
+
   const calls = fakeGitHub();
   await save({ sha: 'FILESHA', items });
   const written = Buffer.from(
     calls.filter(c => c.path === 'git/blobs').pop().body.content, 'base64').toString('utf8');
-  const marks = written.match(/data-hot="[^"]*"/g) || [];
-  ok('★ 超過三個時只留前三個', marks.length === 3, marks.length + ' -> ' + marks.join(' '));
+  const marks = written.match(/data-hot="[^"]*" data-hot-n="[0-9]+"/g) || [];
+  ok('★ 超過三個時只留三個', marks.length === 3, marks.length + ' -> ' + marks.join(' '));
+  ok('★ 留下的是排序最前面的三個（不是頁面最前面的三個）',
+    marks.every(m => !m.includes('images/x' + pick[0].idx + '.jpg')),
+    marks.join(' '));
+  // 排序 1,2,3 應該落在 hotOrder 1,2,3 的那三個商品上
+  const rank = {};
+  marks.forEach(m => { rank[m.match(/images\/x(\d+)\.jpg/)[1]] = +m.match(/data-hot-n="(\d+)"/)[1]; });
+  ok('★ 排序照後台給的值重新編號成 1,2,3',
+    rank[pick[3].idx] === 1 && rank[pick[2].idx] === 2 && rank[pick[1].idx] === 3,
+    JSON.stringify(rank));
 
   fakeGitHub({ src: written });
   const after = await (await mod.onRequestGet({
     request: new Request('https://cankingstore.com/api/products', { headers: AUTH }), env: ENV,
   })).json();
   ok('讀得回熱銷設定', after.products.filter(p => p.hot).length === 3);
-  ok('留下的是前三個（依頁面順序）',
-    after.products.filter(p => p.hot).map(p => p.idx).join(',')
-      === pick.slice(0, 3).map(p => p.idx).join(','),
-    after.products.filter(p => p.hot).map(p => p.idx).join(','));
+  ok('讀得回排序', after.products.find(p => p.idx === pick[3].idx).hotOrder === 1,
+    after.products.find(p => p.idx === pick[3].idx).hotOrder);
   ok('商品數沒變', after.products.length === listed.products.length);
   ok('標題沒被標記污染',
     after.products.map(p => p.title).join('|') === listed.products.map(p => p.title).join('|'));
 
-  // 全部取消，檔案要回到原樣
-  const off = after.products.map(carry).map(o => Object.assign({}, o, { hot: '' }));
-  const calls2 = fakeGitHub({ src: written });
-  await save({ sha: 'FILESHA', items: off });
-  const restored = Buffer.from(
-    calls2.filter(c => c.path === 'git/blobs').pop().body.content, 'base64').toString('utf8');
-  ok('★ 取消熱銷後與原檔一字不差', restored === SRC, restored.length + ' vs ' + SRC.length);
+  // 照原樣存回去：內容既然一字不差，後端根本不該推送
+  const calls2 = fakeGitHub();
+  const back = await (await save({ sha: 'FILESHA', items: listed.products.map(carry) })).json();
+  ok('★ 照原樣存回去等於沒有變更（含熱銷與排序）', back.changed === false, back);
+  ok('★ 所以一次都沒有推送', calls2.filter(c => c.method === 'PATCH').length === 0,
+    calls2.map(c => c.method + ' ' + c.path));
 }
 
 console.log('\n=== ' + pass + ' 通過 / ' + fail + ' 失敗 ===');
