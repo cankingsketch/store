@@ -43,13 +43,24 @@
     return p.length > 2 ? p.slice(-2).join('.') : host;
   }
 
-  /* 這個連結是在賣什麼？往前找最近的商品標題，找不到就用連結自己的文字 */
+  /* 這個連結是在賣什麼？
+   * 1. 頁面自己講明白的最準：連結上、或外層容器上的 data-track-label。
+   *    課程頁那種「一個標題底下三堂課並排」的排版，只能靠這個分得開。
+   * 2. 沒標就往前找最近的商品標題；標了 data-track-skip 的標題略過——
+   *    公告、注意事項這類裝飾性標題排在商品前面時會冒充商品名。
+   * 3. 都沒有就用連結自己的文字。
+   */
   function labelFor(a) {
+    var tagged = a.closest ? a.closest('[data-track-label]') : null;
+    if (tagged) {
+      var given = (tagged.getAttribute('data-track-label') || '').replace(/\s+/g, ' ').trim();
+      if (given) return given.slice(0, 80);
+    }
     var node = a;
     for (var hop = 0; hop < 12 && node; hop++) {
       var sib = node.previousElementSibling;
       while (sib) {
-        if (/^H[1-4]$/.test(sib.tagName)) {
+        if (/^H[1-4]$/.test(sib.tagName) && !sib.hasAttribute('data-track-skip')) {
           var t = (sib.textContent || '').replace(/\s+/g, ' ').trim();
           if (t) return t.slice(0, 80);
         }
