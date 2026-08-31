@@ -193,6 +193,12 @@ var STYLE_PREFIX = 'wsite';
   #wsite-content .wsite-button[href*="events-883299"]:hover { border-color: #999; }
 
   /* 封面大圖點了要能放大，游標也要說得出來 */
+  /* 首圖縮到跟下方畫冊封面差不多寬（封面 562），也維持「首圖比按鈕列窄」的層次 */
+  #wsite-content .ck-hero { width: 590px; }
+  /* 按鈕列原本上面只有 15px、下面卻有 125px（兩個區塊各 60px 內距疊起來），
+     把它挪到中間：上 60 / 下 85 */
+  #wsite-content .ck-shoprow { padding-top: 45px; }
+  #wsite-content .wsite-section:has(.ck-shoprow) .container { padding-bottom: 20px; }
   /* fancybox 會把 rel="lightbox" 換成 class="w-fancybox"，所以認 href 最保險 */
   #wsite-content .wsite-image a[href] img { cursor: zoom-in; }
 </style>
@@ -350,12 +356,12 @@ var STYLE_PREFIX = 'wsite';
 			<div class="wsite-section-elements">
 				<div><div class="wsite-image wsite-image-border-none " style="padding-top:10px;padding-bottom:10px;margin-left:0;margin-right:0;text-align:center">
 <a>
-<img src="images/yoko07_orig.png" alt="圖片" style="width:auto;max-width:100%" />
+<img class="ck-hero" src="images/yoko07_orig.png" alt="圖片" style="max-width:100%" />
 </a>
 <div style="display:block;font-size:90%"></div>
 </div></div>
 
-<div><div class="wsite-multicol"><div class="wsite-multicol-table-wrap" style="margin:0 -15px;">
+<div class="ck-shoprow"><div class="wsite-multicol"><div class="wsite-multicol-table-wrap" style="margin:0 -15px;">
 	<table class="wsite-multicol-table">
 		<tbody class="wsite-multicol-tbody">
 			<tr class="wsite-multicol-tr">
