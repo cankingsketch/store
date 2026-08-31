@@ -305,7 +305,7 @@ var STYLE_PREFIX = 'wsite';
 			<div class="wsite-section-elements">
 				<div><div class="wsite-image wsite-image-border-none " style="padding-top:10px;padding-bottom:10px;margin-left:0;margin-right:0;text-align:center">
 <a>
-<img src="images/yoko08.png?1788187589" alt="圖片" style="width:auto;max-width:100%" />
+<img src="images/yoko08.png?1788192405" alt="圖片" style="width:auto;max-width:100%" />
 </a>
 <div style="display:block;font-size:90%"></div>
 </div></div>
@@ -410,12 +410,6 @@ var STYLE_PREFIX = 'wsite';
   /* 頂端的賣場入口：把 Weebly 的四欄表格收攏成一組圓角按鈕。
      只作用在 .ck-shoprow 裡面——商品的並排圖也是同一套 multicol 表格，
      不設界線的話會把商品版面一起弄壞。 */
-  /* 首圖是不透明的純白底 (#fff)，但內容區底色是 #fbfcfc，
-     大面積下就會看到一個「比較白」的方塊。multiply 讓白色與底色相乘後消失，
-     圖案本身在這種極淺底色上幾乎不受影響。
-     根本解是把圖重新輸出成透明背景的 PNG，那時這行就可以拿掉。 */
-  #wsite-content img[src*="yoko08"] { mix-blend-mode: multiply; }
-
   #wsite-content .ck-shoprow .wsite-multicol-table-wrap { margin: 0 !important; }
   #wsite-content .ck-shoprow .wsite-multicol-table,
   #wsite-content .ck-shoprow .wsite-multicol-tbody { display: block; width: 100%; }
