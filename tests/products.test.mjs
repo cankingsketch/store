@@ -24,21 +24,29 @@ const { head, blocks, tail } = M.splitDoc(src);
 const parsed = blocks.map((b, i) => M.parseBlock(b, i));
 
 // 模擬後端 onRequestPost 的重組流程
+const MYSHIP = M.findMyshipUrl(src);
 function rebuild(items) {
   const out = items.map(item => {
-    if (item.new) return M.buildBlock(item);
-    const b = blocks[item.idx];
-    if (/<h2[^>]*data-ck="1"/.test(b)) return M.buildBlock(item);
-    if (M.parseBlock(b, item.idx).title === item.title) return b;
-    return M.renameLegacy(b, item.title);
+    // 賣貨便沒有單品網址，勾選就是共用店舖網址——跟後端一樣
+    const buy = { myship: item.myship ? MYSHIP : '', shopee: (item.shopee || '').trim(),
+                  video: (item.video || '').trim() };
+    if (item.new) return M.buildBlock(Object.assign({}, item, buy));
+    const raw = blocks[item.idx];
+    if (/<h2[^>]*data-ck="1"/.test(raw)) return M.buildBlock(Object.assign({}, item, buy));
+    // 一律先剝乾淨再改名，最後才貼回按鈕列
+    const clean = M.stripBuy(raw);
+    const renamed = M.parseBlock(clean, item.idx).title === item.title
+      ? clean : M.renameLegacy(clean, item.title);
+    return M.withBuy(renamed, buy);
   });
   return head + out.join('') + tail;
 }
 // 要跟 admin.html 實際送出的內容一致：新結構商品會連圖片、說明、對齊一起送，
 // 只送 {idx,title} 會把它們清空，那不是「什麼都不改」。
-const keepAll = parsed.map(p => p.editable
-  ? { idx: p.idx, title: p.title, desc: p.desc, images: p.images, descAlign: p.descAlign }
-  : { idx: p.idx, title: p.title });
+const keepAll = parsed.map(p => Object.assign(
+  // 賣場按鈕與影片對新舊結構都適用，不帶上就等於把它們清空
+  { idx: p.idx, title: p.title, myship: !!p.myship, shopee: p.shopee, video: p.video },
+  p.editable ? { desc: p.desc, images: p.images, descAlign: p.descAlign } : {}));
 
 console.log('\n[1] 解析與無損性');
 ok('切得出商品（數量隨後台增減，不寫死）', blocks.length > 0, '實際 ' + blocks.length);
@@ -78,7 +86,9 @@ console.log('\n[5] 改舊商品名稱：只動那一個');
 // 不能寫死索引——後台新增的商品會把順序推移。
 const T = parsed.findIndex(p => p.kind === 'legacy');
 ok('找得到舊版商品可測', T >= 0, T);
-const renamedDoc = rebuild(keepAll.map((it, i) => i === T ? { idx: it.idx, title: '新名字' } : it));
+// 只改標題，其餘設定（含賣場按鈕）照送——否則就不只是「改名」了
+const renamedDoc = rebuild(keepAll.map((it, i) =>
+  i === T ? Object.assign({}, it, { title: '新名字' }) : it));
 const rb = M.splitDoc(renamedDoc).blocks;
 ok('目標商品已改名', M.parseBlock(rb[T], T).title === '新名字');
 ok('其他商品一字未動', rb.filter((_, i) => i !== T).join('') === blocks.filter((_, i) => i !== T).join(''));
@@ -129,15 +139,13 @@ ok('解析得回 left', M.parseBlock(mkA('left', ['lg']), 0).descAlign === 'left
 ok('解析得回 center', M.parseBlock(mkA('center', ['md', 'md']), 0).descAlign === 'center');
 
 // 讀出來的對齊原封不動存回去，檔案必須一字不差
-const reSaved = rebuild(parsed.map(p => p.editable
-  ? { idx: p.idx, title: p.title, desc: p.desc, images: p.images, descAlign: p.descAlign }
-  : { idx: p.idx, title: p.title }));
+const reSaved = rebuild(keepAll);
 ok('帶著解析出的對齊重存 = 原檔', reSaved === src);
 
 console.log('');
 console.log('[12] 賣場按鈕：解析／生成／剝離');
 {
-  const clean = blocks[parsed.findIndex(p => p.kind === 'legacy')];
+  const clean = M.stripBuy(blocks[parsed.findIndex(p => p.kind === 'legacy')]);
   const MY = 'https://myship.7-11.com.tw/general/detail/GM123';
   const SP = 'https://shopee.tw/canking?itemId=999';
 
@@ -167,7 +175,7 @@ console.log('');
 console.log('[13] 按鈕不能污染商品名稱與改名');
 {
   const li = parsed.findIndex(p => p.kind === 'legacy');
-  const clean = blocks[li];
+  const clean = M.stripBuy(blocks[li]);
   const origTitle = parsed[li].title;
   const withBtn = M.withBuy(clean, {
     myship: 'https://myship.7-11.com.tw/x', shopee: 'https://shopee.tw/y',
@@ -188,7 +196,7 @@ console.log('');
 console.log('[14] 加了再拿掉，要能完美復原');
 {
   const li = parsed.findIndex(p => p.kind === 'legacy');
-  const clean = blocks[li];
+  const clean = M.stripBuy(blocks[li]);
   const on = M.withBuy(clean, { myship: 'https://myship.7-11.com.tw/x', shopee: '' });
   const off = M.withBuy(M.stripBuy(on), { myship: '', shopee: '' });
   ok('★ 取消按鈕後與原檔一字不差', off === clean);

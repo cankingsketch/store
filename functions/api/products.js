@@ -191,12 +191,12 @@ function stripBuy(block) {
 
 function parseBuy(block) {
   const row = block.match(BUY_RE);
-  if (!row) return { myship: '', shopee: '' };
+  if (!row) return { myship: '', shopee: '', video: '' };
   const get = (cls) => {
     const m = row[0].match(new RegExp('<a class="[^"]*" href="([^"]+)"[^>]*data-buy="' + cls + '"'));
     return m ? unesc(m[1]) : '';
   };
-  return { myship: get('myship'), shopee: get('shopee') };
+  return { myship: get('myship'), shopee: get('shopee'), video: get('video') };
 }
 
 function buildBuy(item) {
@@ -207,6 +207,8 @@ function buildBuy(item) {
   const parts = [
     btn('myship', item.myship, '賣貨便', 'ck-buy-main'),
     btn('shopee', item.shopee, '蝦皮', 'ck-buy-sub'),
+    // 影片用另一種顏色，明講「這不是賣場」；只有 1% 的人會點，不該跟購買搶注意力
+    btn('video', item.video, '▶ 影片', 'ck-buy-video'),
   ].filter(Boolean);
   return parts.length ? `\n<div class="ck-buy" data-ck="1">\n${parts.join('\n')}\n</div>\n` : '';
 }
@@ -226,7 +228,8 @@ function parseBlock(rawBlock, idx) {
   const buy = parseBuy(rawBlock);
   const out = {
     idx, title, editable: isNew, kind: isNew ? 'new' : 'legacy',
-    myship: buy.myship, shopee: buy.shopee, ownButtons: hasOwnButtons(rawBlock),
+    myship: buy.myship, shopee: buy.shopee, video: buy.video,
+    ownButtons: hasOwnButtons(rawBlock),
   };
   if (isNew) {
     out.images = [];
@@ -262,8 +265,11 @@ function buildBlock(item) {
   const descCls = 'ck-prod-desc' + (left ? ' ck-desc-left' : '');
   const desc = item.desc && item.desc.trim()
     ? `\n<div class="${descCls}">${esc(item.desc.trim())}</div>` : '';
+  // buildBuy 前後各帶一個換行，h2 那行已自帶結尾換行，所以要去掉開頭那個；
+  // 否則存檔結果會比 withBuy 多一行空白（兩條路徑必須產生一模一樣的位元組）
+  const buyRow = buildBuy(item).replace(/^\n/, '');
   return `<h2 class="wsite-content-title" data-ck="1"><strong><font size="7">${title}</font></strong></h2>\n` +
-    buildBuy(item) + '\n' +
+    buyRow + '\n' +
     `<div class="ck-prod" data-ck="1">\n<div class="ck-prod-imgs">\n${imgs}\n</div>${desc}\n</div>\n\n`;
 }
 
@@ -329,7 +335,8 @@ export async function onRequestPost({ request, env }) {
     const out = [];
     for (const item of items) {
       // 前端只送「有沒有要放賣貨便」，網址一律用共用的那個
-      const buy = { myship: item.myship ? myshipUrl : '', shopee: (item.shopee || '').trim() };
+      const buy = { myship: item.myship ? myshipUrl : '', shopee: (item.shopee || '').trim(),
+                     video: (item.video || '').trim() };
       if (item.new) {
         out.push(buildBlock(Object.assign({}, item, buy)));
       } else {

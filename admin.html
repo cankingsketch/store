@@ -70,6 +70,8 @@
   .pv-buy .pv-myship { display:inline-block; background:#f64c3f; color:#fff; font-size:13px;
                        line-height:1; padding:7px 16px; border-radius:999px; }
   .pv-buy .pv-shopee { font-size:14px; color:#555; border-bottom:1px solid #ccc; padding-bottom:1px; }
+  .pv-buy .pv-video { display:inline-flex; align-items:center; gap:5px; font-size:13px; line-height:1;
+                      color:#c4302b; border:1.5px solid #f0c3c1; border-radius:999px; padding:5px 13px; }
   button { font-family:inherit; font-size:14px; cursor:pointer; border-radius:8px; border:1.5px solid var(--red);
            background:#fff; color:var(--red); padding:8px 14px; }
   button.primary { background:var(--red); color:#fff; }
@@ -173,6 +175,7 @@
           <span class="hint" id="myship-url"></span>
         </div>
         <input type="text" id="f-shopee" placeholder="蝦皮連結（留空就不顯示蝦皮按鈕）" />
+        <input type="text" id="f-video" placeholder="影片網址（留空就不顯示影片按鈕）" />
         <p class="hint" id="own-buttons-note" style="display:none"></p>
 
         <div id="edit-rich">
@@ -325,7 +328,7 @@
     state.isNewItem = (i == null);
     if (state.isNewItem) {
       state.editing = { new: true, title: '', desc: '', descAlign: null, images: [],
-        editable: true, rich: true, removed: false, myship: false, shopee: '' };
+        editable: true, rich: true, removed: false, myship: false, shopee: '', video: '' };
       $('edit-heading').textContent = '新增商品';
     } else {
       var p = state.products[i];
@@ -335,7 +338,8 @@
         images: (p.images || []).map(function (im) { return { file: im.file, size: im.size, dataUrl: im.dataUrl }; }),
         // 舊版結構只能改名稱與賣場按鈕，圖片／說明藏起來
         editable: true, rich: !!p.editable, removed: false, origIdx: p.idx,
-        myship: !!p.myship, shopee: p.shopee || '', ownButtons: !!p.ownButtons
+        myship: !!p.myship, shopee: p.shopee || '', video: p.video || '',
+        ownButtons: !!p.ownButtons
       };
       $('edit-heading').textContent = '編輯商品';
     }
@@ -344,6 +348,7 @@
     $('f-desc').value = e.desc;
     $('f-myship').checked = !!e.myship;
     $('f-shopee').value = e.shopee;
+    $('f-video').value = e.video || '';
     $('edit-rich').style.display = e.rich ? '' : 'none';
     $('legacy-note').style.display = e.rich ? 'none' : '';
     $('myship-url').textContent = state.myshipUrl ? '→ ' + state.myshipUrl : '（找不到賣貨便網址）';
@@ -416,6 +421,7 @@
     var out = '';
     if (e.myship) out += '<a class="pv-myship">賣貨便</a>';
     if (e.shopee) out += '<a class="pv-shopee">蝦皮</a>';
+    if (e.video) out += '<a class="pv-video">▶ 影片</a>';
     return out ? '<div class="pv-buy">' + out + '</div>' : '';
   }
 
@@ -487,10 +493,10 @@
       if (p.new) {
         (p.images || []).forEach(function (im) { used[im.file] = 1; });
         return { new: true, title: p.title, desc: p.desc || '', descAlign: p.descAlign || null,
-                 myship: !!p.myship, shopee: p.shopee || '',
+                 myship: !!p.myship, shopee: p.shopee || '', video: p.video || '',
                  images: p.images.map(function (im) { return { file: im.file, size: im.size }; }) };
       }
-      var o = { idx: p.idx, title: p.title, myship: !!p.myship, shopee: p.shopee || '' };
+      var o = { idx: p.idx, title: p.title, myship: !!p.myship, shopee: p.shopee || '', video: p.video || '' };
       if (p.editable) {
         o.desc = p.desc || '';
         o.descAlign = p.descAlign || null;
@@ -523,6 +529,7 @@
   $('f-desc').addEventListener('input', function () { state.editing.desc = this.value; renderPreview(); });
   $('f-myship').addEventListener('change', function () { state.editing.myship = this.checked; renderPreview(); });
   $('f-shopee').addEventListener('input', function () { state.editing.shopee = this.value.trim(); renderPreview(); });
+  $('f-video').addEventListener('input', function () { state.editing.video = this.value.trim(); renderPreview(); });
   $('f-align').addEventListener('click', function (ev) {
     var b = ev.target.closest('button[data-align]');
     if (!b || !state.editing) return;
@@ -542,11 +549,11 @@
     if (state.isNewItem) {
       state.products.unshift({ new: true, title: e.title.trim(), desc: e.desc.trim(),
         descAlign: e.descAlign || null, images: e.images, editable: true, removed: false,
-        myship: !!e.myship, shopee: e.shopee || '' });
+        myship: !!e.myship, shopee: e.shopee || '', video: e.video || '' });
     } else {
       var p = state.products[e.idx];
       p.title = e.title.trim();
-      p.myship = !!e.myship; p.shopee = e.shopee || '';
+      p.myship = !!e.myship; p.shopee = e.shopee || ''; p.video = e.video || '';
       if (e.rich) {
         p.desc = e.desc.trim(); p.images = e.images;
         p.descAlign = e.descAlign || null;

@@ -68,9 +68,11 @@ const listed = await (async () => {
   return r.json();
 })();
 
-const keepAll = listed.products.map(p => p.editable
-  ? { idx: p.idx, title: p.title, desc: p.desc, images: p.images, descAlign: p.descAlign }
-  : { idx: p.idx, title: p.title });
+// 賣場按鈕與影片新舊結構都有，不帶上就等於把它們清空，那不是「什麼都不改」
+const carry = p => Object.assign(
+  { idx: p.idx, title: p.title, myship: !!p.myship, shopee: p.shopee, video: p.video },
+  p.editable ? { desc: p.desc, images: p.images, descAlign: p.descAlign } : {});
+const keepAll = listed.products.map(carry);
 
 /* ---------------------------------------------------------------- */
 console.log('\n[1] 讀取');
@@ -202,7 +204,10 @@ console.log('\n[7] 存檔後的內容仍與解析結果一致（無損）');
 console.log('\n[8] 賣場按鈕經過完整存檔流程');
 {
   const calls = fakeGitHub();
-  const li = listed.products.findIndex(p => p.kind === 'legacy');
+  const li = listed.products.findIndex(
+    p => p.kind === 'legacy' && !p.myship && !p.shopee && !p.video);
+  ok('找得到沒有按鈕的舊版商品可測', li >= 0, li);
+  const base = listed.products.filter(p => p.myship || p.shopee).length;
   const items = keepAll.slice();
   items[li] = Object.assign({}, items[li], { myship: true, shopee: 'https://shopee.tw/canking?itemId=1' });
   await save({ sha: 'FILESHA', items });
@@ -226,12 +231,11 @@ console.log('\n[8] 賣場按鈕經過完整存檔流程');
   ok('讀得回蝦皮網址',
     after.products[li].shopee === 'https://shopee.tw/canking?itemId=1', after.products[li].shopee);
   ok('其他商品沒被加上按鈕',
-    after.products.filter(p => p.myship || p.shopee).length === 1);
+    after.products.filter(p => p.myship || p.shopee).length === base + 1);
 
   // 再取消掉，檔案要回到原樣
-  const off = after.products.map(p => p.editable
-    ? { idx: p.idx, title: p.title, desc: p.desc, images: p.images, descAlign: p.descAlign }
-    : { idx: p.idx, title: p.title });
+  const off = after.products.map(carry);
+  off[li] = Object.assign({}, off[li], { myship: false, shopee: '' });
   const calls2 = fakeGitHub({ src: written });
   await save({ sha: 'FILESHA', items: off });
   const blob2 = calls2.filter(c => c.path === 'git/blobs').pop().body;
