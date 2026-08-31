@@ -305,7 +305,7 @@ var STYLE_PREFIX = 'wsite';
 			<div class="wsite-section-elements">
 				<div><div class="wsite-image wsite-image-border-none " style="padding-top:10px;padding-bottom:10px;margin-left:0;margin-right:0;text-align:center">
 <a>
-<img src="images/yoko08.png?1788192405" alt="圖片" style="width:auto;max-width:100%" />
+<img class="ck-hero" src="images/yoko08.png?1788192405" alt="圖片" style="max-width:100%" />
 </a>
 <div style="display:block;font-size:90%"></div>
 </div></div>
@@ -424,6 +424,8 @@ var STYLE_PREFIX = 'wsite';
     display: block; width: auto !important; padding: 0 !important;
   }
   #wsite-content .ck-shoprow .wsite-multicol-col > div > div { display: none; }  /* 原本用來墊高的空 div */
+  /* 由上往下逐層變寬：首圖 460 → 賣場按鈕 539 → 商品區（滿版） */
+  #wsite-content .ck-hero { width: 460px; }
   /* 跟首圖之間留一點呼吸（首圖底部沒有透明留白，圖案直接壓到邊） */
   #wsite-content .ck-shoprow { padding-top: 7px; }
   /* 按鈕群組的寬度對齊首圖（540px），視覺上才像同一組 */
@@ -535,6 +537,7 @@ var STYLE_PREFIX = 'wsite';
         // 只放大商品圖；熱銷卡片本身是連結，點了要捲過去而不是放大
         if (!img.closest('.ck-prod-imgs, .wsite-image')) return;
         if (img.closest('#ck-hot')) return;
+        if (img.classList.contains('ck-hero')) return;   // 標題圖不是商品照，不放大
         e.preventDefault();
         lbImg.src = img.currentSrc || img.src;
         lbImg.alt = img.alt || '';
