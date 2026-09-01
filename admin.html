@@ -303,8 +303,10 @@
     <div class="card" style="margin-top:18px;">
       <div class="cardhead">
         <h2>數位賣場銷售</h2>
-        <span class="hint">Gumroad</span>
+        <button id="btn-gum-refresh" class="mini ghost" type="button"
+                title="上架新獎勵後想馬上顯示就按這裡">重抓商品清單</button>
       </div>
+      <p class="hint" id="gum-refresh-msg"></p>
       <p class="hint" id="gs-period">載入中…</p>
       <div id="gs-body"></div>
     </div>
@@ -1088,6 +1090,32 @@
     if (d.truncated) html += '<p class="hint">資料太多，只統計到前面幾頁。</p>';
     $('gs-body').innerHTML = html;
   }
+
+  /* 商品清單一個月只重抓一次（換月才會）。月中上架新獎勵想馬上出現，
+     就按這顆把快取清掉——下一次有人開賣場頁就會重抓。 */
+  var gumBusy = false;
+  var gumBtn = $('btn-gum-refresh');
+  if (gumBtn) gumBtn.addEventListener('click', function () {
+    if (gumBusy) return;
+    gumBusy = true;
+    var msg = $('gum-refresh-msg');
+    gumBtn.disabled = true;
+    msg.textContent = '清除中…';
+    fetch('/api/gumroad-refresh', { method: 'POST', credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.error) throw new Error(d.error + (d.reason ? '（' + d.reason + '）' : ''));
+        // 清完立刻打一次公開端點，讓重抓當場發生，不要等下一個訪客
+        return fetch('/api/gumroad', { cache: 'no-store' }).then(function (r) { return r.json(); });
+      })
+      .then(function (d) {
+        msg.textContent = d && d.count
+          ? '已重抓，目前 ' + d.count + ' 件商品。'
+          : '已清除快取，下次開啟賣場頁會重抓。';
+      })
+      .catch(function (e) { msg.textContent = '失敗：' + (e.message || e); })
+      .then(function () { gumBusy = false; gumBtn.disabled = false; });
+  });
 
   function loadSales(force) {
     var m = days <= 30 ? 6 : 12;   // 看 7/30 天時給半年，看 90 天時給一年
