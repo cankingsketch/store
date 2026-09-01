@@ -1,6 +1,9 @@
 /* Gumroad 會員獎勵清單（Cloudflare Pages Function）
- * GET /api/gumroad           <- 公開，數位賣場頁面自己抓
- * GET /api/gumroad?refresh=1 <- 需通過 Cloudflare Access，強制重抓
+ * GET /api/gumroad  <- 公開，數位賣場頁面自己抓
+ *
+ * 想手動重抓請打 /api/gumroad-refresh（那支才受 Access 保護）。
+ * 這支不能有 refresh 參數：Access 是綁在路徑上的，同一個路徑沒辦法
+ * 既公開又要求登入。
  *
  * 走官方 API（api.gumroad.com/v2/products），不是爬商店頁面。
  * 爬頁面在條款上是灰色地帶，而且商店首頁每個分區只塞前 9 個商品，
@@ -16,6 +19,8 @@
 
 const API = 'https://api.gumroad.com/v2/products';
 const WANT = /會員獎勵/;     // 使用者要的只有會員獎勵，電子畫冊等不列入
+// 回傳格式改版時把這個加一，舊格式的快取會自動失效重抓
+const VERSION = 2;
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -98,7 +103,7 @@ async function fetchProducts(token) {
       products: products.sort((a, b) => b.ym - a.ym).map(({ ym, ...rest }) => rest),
     }));
 
-  return { groups, count: items.length, diag, fetchedAt: new Date().toISOString() };
+  return { v: VERSION, groups, count: items.length, diag, fetchedAt: new Date().toISOString() };
 }
 
 /* ---------- 快取（D1，綁定名 STATS） ---------- */
@@ -137,19 +142,14 @@ async function writeCache(db, month, data) {
 }
 
 export async function onRequestGet({ request, env }) {
-  const url = new URL(request.url);
-  const force = url.searchParams.get('refresh') === '1';
   const db = env.STATS;
   const month = taipeiMonth(Date.now());
 
-  // 強制重抓要先登入後台，免得被人拿來一直打 Gumroad
-  if (force && !request.headers.get('Cf-Access-Authenticated-User-Email')) {
-    return json({ error: '需要登入後台才能強制更新' }, 403);
-  }
-
   const cached = db ? await readCache(db) : null;
-  if (cached && !force && cached.month === month) {
-    return json(Object.assign(JSON.parse(cached.data), { cached: true }));
+  if (cached && cached.month === month) {
+    const data = JSON.parse(cached.data);
+    // 程式改版過就不要再用舊格式的快取
+    if (data.v === VERSION) return json(Object.assign(data, { cached: true }));
   }
 
   if (!env.GUMROAD_TOKEN) {
