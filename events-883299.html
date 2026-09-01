@@ -150,7 +150,43 @@ var STYLE_PREFIX = 'wsite';
                     c)})(window,document,'script', '//cdn-promote.weebly.com/js/dist/messenger.js','messenger');
             messenger({ preview: 0, asset_domain: 'cdn-promote.weebly.com', data_domain: 'promote.weebly.com', align: 'right', style: 'long_blue', size: 'medium', page_id: '494522277323748' });
         </script>
-	</head>
+	<style>
+  /* 實體店寄售：這頁的任務是「幫人走到店裡」，所以每家店都要能一鍵開地圖。
+     原本地址是純文字，手機上得自己選取複製貼到地圖才找得到路。
+     品項也標出來——訪客想的是「我要買轉蛋機該去哪」。 */
+  .wsite-header-section .ck-stores-title { font-size: 25px; font-weight: 800; color: #2a2a2a;
+    text-align: center; margin: 22px 0 6px; }
+  .wsite-header-section .ck-stores-sub { text-align: center; color: #666; font-size: 14.5px;
+    line-height: 1.8; margin: 0 0 4px; }
+  .wsite-header-section .ck-stores { max-width: 760px; margin: 18px auto 0;
+    border-top: 1px solid #eee; }
+  .wsite-header-section .ck-store { display: grid; grid-template-columns: 190px 1fr 104px;
+    gap: 16px; align-items: center; padding: 15px 0; border-bottom: 1px solid #eee; text-align: left; }
+  .wsite-header-section .ck-store-nm { font-size: 16px; font-weight: 800; color: #2a2a2a; margin: 0; }
+  .wsite-header-section .ck-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+  .wsite-header-section .ck-tag { background: #ffe9e9; color: #c0392b; font-size: 11.5px;
+    font-weight: 700; border-radius: 999px; padding: 3px 9px; white-space: nowrap; }
+  .wsite-header-section .ck-store-a { font-size: 13.5px; line-height: 1.75; color: #555; margin: 0; }
+  .wsite-header-section .ck-note { color: #999; font-size: 12.5px; }
+  .wsite-header-section .ck-map { display: inline-block; background: #fff; color: #666 !important;
+    border: 1.5px solid #ddd; border-radius: 999px; padding: 8px 16px; font-size: 13.5px;
+    text-decoration: none; text-align: center; white-space: nowrap; }
+  .wsite-header-section .ck-map:hover { border-color: #999; }
+  .wsite-header-section .ck-stores-h3 { max-width: 760px; margin: 30px auto 4px; font-size: 16px;
+    font-weight: 800; color: #2a2a2a; padding-bottom: 7px; border-bottom: 2px solid #ffd9d6;
+    text-align: left; }
+  .wsite-header-section .ck-shots { max-width: 760px; margin: 14px auto 0; display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  .wsite-header-section .ck-shot { margin: 0; }
+  .wsite-header-section .ck-shot img { width: 100%; display: block; border-radius: 10px; }
+  .wsite-header-section .ck-shot figcaption { font-size: 12.5px; color: #999; margin-top: 7px;
+    text-align: center; }
+  @media screen and (max-width: 600px) {
+    .wsite-header-section .ck-store { grid-template-columns: 1fr; gap: 8px; padding: 16px 0; }
+    .wsite-header-section .ck-map { justify-self: start; }
+  }
+</style>
+</head>
 	<body class="header-page  wsite-page-events-883299  full-width-on  wsite-theme-light"><div class="body-wrap">
 		<div id="header">
 			<div class="nav-trigger hamburger">
@@ -315,41 +351,36 @@ var STYLE_PREFIX = 'wsite';
 <div style="display:block;font-size:90%"></div>
 </div></div>
 
-<h2 class="wsite-content-title" style="text-align:left;"><strong><font color="#ff0000" size="6">&#24215;&#38754;&#23492;&#21806;</font></strong></h2>
+<h2 class="ck-stores-title">實體店寄售</h2>
+<p class="ck-stores-sub">這幾家店裡可以直接買到，不用等宅配</p>
+<div class="ck-stores">
+<div class="ck-store">
+<div class="ck-store-h"><p class="ck-store-nm">虎之穴 台北店</p>
+<div class="ck-tags"><span class="ck-tag">畫冊 5 款</span><span class="ck-tag">立牌 4 款</span></div></div>
+<p class="ck-store-a">台北市中正區漢口街一段 85 號　博愛公元大樓 2F</p>
+<a class="ck-map" href="https://www.google.com/maps/search/?api=1&query=%E5%8F%B0%E5%8C%97%E5%B8%82%E4%B8%AD%E6%AD%A3%E5%8D%80%E6%BC%A2%E5%8F%A3%E8%A1%97%E4%B8%80%E6%AE%B585%E8%99%9F" target="_blank" rel="noopener" data-track-label="虎之穴 台北店">開地圖</a>
+</div>
+<div class="ck-store">
+<div class="ck-store-h"><p class="ck-store-nm">南風窗簾 基隆</p>
+<div class="ck-tags"><span class="ck-tag">轉蛋機 ×2</span><span class="ck-tag">可換零錢</span></div></div>
+<p class="ck-store-a">基隆市仁愛區仁一路 233 號<br /><span class="ck-note">門口放了兩台轉蛋機，「今日吃甚麼?」共六款。零錢可以跟店家換。</span></p>
+<a class="ck-map" href="https://www.google.com/maps/search/?api=1&query=%E5%9F%BA%E9%9A%86%E5%B8%82%E4%BB%81%E6%84%9B%E5%8D%80%E4%BB%81%E4%B8%80%E8%B7%AF233%E8%99%9F" target="_blank" rel="noopener" data-track-label="南風窗簾 基隆">開地圖</a>
+</div>
+<div class="ck-store">
+<div class="ck-store-h"><p class="ck-store-nm">時尚小拉基 台中</p>
+<div class="ck-tags"><span class="ck-tag">明信片</span><span class="ck-tag">盲盒</span><span class="ck-tag">畫冊</span></div></div>
+<p class="ck-store-a">臺中市北區精武路 320-6 號<br /><span class="ck-note">商品在 B1，下面那張照片就是實際櫃位。</span></p>
+<a class="ck-map" href="https://www.google.com/maps/search/?api=1&query=%E8%87%BA%E4%B8%AD%E5%B8%82%E5%8C%97%E5%8D%80%E7%B2%BE%E6%AD%A6%E8%B7%AF320-6%E8%99%9F" target="_blank" rel="noopener" data-track-label="時尚小拉基 台中">開地圖</a>
+</div>
+</div>
 
-<div class="paragraph" style="text-align:left;"><strong><font size="5">&#34382;&#20043;&#31348;&#21488;&#21271;&#24215;</font></strong>&nbsp; &#21488;&#21271;&#24066;&#20013;&#27491;&#21312;&#28450;&#21475;&#34903;1&#27573;-85&#34399;-&#21338;&#24859;&#20844;&#20803;&#22823;&#27155;2F (&#30059;&#20874;&#36319;&#31435;&#29260;&#23492;&#21806;&#20013;)<br /><br /><strong><font size="5">&#22522;&#38534;&#21335;&#39080;&#31383;&#31806;&#38272;&#21475;&nbsp;&nbsp;</font></strong>200&#22522;&#38534;&#24066;&#20161;&#24859;&#21312;&#20161;&#19968;&#36335;233&#34399; (&#20170;&#26085;&#21507;&#29978;&#40636;?&#36681;&#34507;&#27231;&#20841;&#27454;&#65292;&#24215;&#23478;&#21487;&#25563;&#38646;&#37666;)<br /><br /><strong><font size="5">&#26178;&#23578;&#23567;&#25289;&#22522;&#12288;</font></strong><span style="color:rgb(42, 42, 42)">&nbsp;&nbsp;</span><span>&#33274;&#20013;&#24066;&#21271;&#21312;&#31934;&#27494;&#36335;320-6&#34399;</span><br /><br /></div>
-
-<div><div class="wsite-multicol"><div class="wsite-multicol-table-wrap" style="margin:0 -15px;">
-	<table class="wsite-multicol-table">
-		<tbody class="wsite-multicol-tbody">
-			<tr class="wsite-multicol-tr">
-				<td class="wsite-multicol-col" style="width:50%; padding:0 15px;">
-					
-						
-
-<div class="paragraph">&nbsp;</div>
-
-
-					
-				</td>				<td class="wsite-multicol-col" style="width:50%; padding:0 15px;">
-					
-						
-
-<h2 class="wsite-content-title"><strong><font color="#2a2a2a" size="6">&#21488;&#20013;&#26178;&#23578;&#23567;&#25289;&#22522;(B1&#20301;&#32622;)</font></strong></h2>
-
-<div><div class="wsite-image wsite-image-border-none " style="padding-top:10px;padding-bottom:10px;margin-left:0;margin-right:0;text-align:inherit">
-<a>
-<img src="images/small-gabege1200_orig.jpg" alt="Picture" style="width:auto;max-width:100%" />
-</a>
-<div style="display:block;font-size:90%"></div>
-</div></div>
-
-
-					
-				</td>			</tr>
-		</tbody>
-	</table>
-</div></div></div>
+<h3 class="ck-stores-h3">店內實景</h3>
+<div class="ck-shots">
+<figure class="ck-shot">
+<img src="images/small-gabege1200_orig.jpg" alt="時尚小拉基 B1 櫃位" />
+<figcaption>時尚小拉基（台中）B1 櫃位</figcaption>
+</figure>
+</div>
 				</div>
 			</div>
 						</div>
