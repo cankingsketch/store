@@ -20,7 +20,8 @@
 const API = 'https://api.gumroad.com/v2/products';
 const WANT = /會員獎勵/;     // 使用者要的只有會員獎勵，電子畫冊等不列入
 // 回傳格式改版時把這個加一，舊格式的快取會自動失效重抓
-const VERSION = 2;
+const VERSION = 3;
+const MAX_PAGES = 30;   // 防呆：真有這麼多頁就先停
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -47,12 +48,14 @@ function ymOf(name) {
 /* 文件上的範例用 query string 帶 token，但那會讓金鑰出現在網址裡
  * （代理、記錄檔都可能留下）。先試標準的 Authorization 標頭，
  * 真的不吃再退回 query string。 */
-async function callApi(token) {
-  let res = await fetch(API, {
+async function callPage(token, page) {
+  const qs = page > 1 ? '?page=' + page : '';
+  let res = await fetch(API + qs, {
     headers: { authorization: 'Bearer ' + token, accept: 'application/json' },
   });
   if (res.status === 401 || res.status === 403) {
-    res = await fetch(API + '?access_token=' + encodeURIComponent(token), {
+    const sep = qs ? '&' : '?';
+    res = await fetch(API + qs + sep + 'access_token=' + encodeURIComponent(token), {
       headers: { accept: 'application/json' },
     });
   }
@@ -64,11 +67,36 @@ async function callApi(token) {
   return data.products || [];
 }
 
+/* 文件說 /products 會給「所有」商品，實際上只給最新的 10 個——
+ * 分頁沒有寫在文件上。所以這裡翻到「沒有新的 id 出現」為止：
+ * 萬一哪天 page 參數真的不被支援，第二頁會拿到跟第一頁一樣的東西，
+ * 靠 id 去重就會立刻停下來，不會變成無限迴圈。 */
+async function callApi(token) {
+  const seen = new Set();
+  const all = [];
+  let pages = 0;
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const batch = await callPage(token, page);
+    pages++;
+    let added = 0;
+    for (const p of batch) {
+      const key = p && (p.id || p.short_url || p.name);
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      all.push(p);
+      added++;
+    }
+    if (!batch.length || !added) break;   // 空頁、或整頁都是看過的 → 到底了
+  }
+  return { products: all, pages };
+}
+
 async function fetchProducts(token) {
-  const raw = await callApi(token);
+  const { products: raw, pages } = await callApi(token);
 
   // 診斷用計數：只有數量，不含任何商品內容或營收
   const diag = {
+    pages,
     raw: raw.length,
     unpublished: raw.filter((p) => p && !p.published).length,
     notWanted: raw.filter((p) => p && p.published && !WANT.test(p.name || '')).length,
