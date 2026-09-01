@@ -2,7 +2,8 @@
  * 驗證驗證、參數、日期分桶與各欄位解析。不需要真的 API token。 */
 
 const REPO = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
-const mod = await import('file://' + REPO + 'functions/api/traffic.js?v=' + Date.now());
+import { loadFunction } from './_load.mjs';
+const mod = await loadFunction(REPO, 'functions/api/traffic.js');
 
 let pass = 0, fail = 0;
 const ok = (name, cond, extra) => {
@@ -10,7 +11,9 @@ const ok = (name, cond, extra) => {
   else { console.log('  ❌ ' + name + (extra !== undefined ? '  → ' + JSON.stringify(extra) : '')); fail++; }
 };
 
-const AUTH = { Cookie: 'CF_Authorization=abc' };
+// 用真正的身分標頭。原本寫 Cookie: CF_Authorization=abc——那是漏洞本身，
+// 舊的驗證只看 cookie 名字存不存在，等於把破掉的行為寫成預期行為。
+const AUTH = { 'Cf-Access-Authenticated-User-Email': 'test@example.com' };
 const TOKEN = { CF_ANALYTICS_TOKEN: 'test-token' };
 
 /* 依 Cloudflare 實際回傳的形狀造資料 */

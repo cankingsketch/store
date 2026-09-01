@@ -3,6 +3,8 @@
  *
  * 安全：與 /api/products 同一套 Cloudflare Access 判斷。
  */
+import { requireAccess } from '../../lib/access.js';
+
 
 const DEFAULT_DAYS = 7;
 const MAX_DAYS = 365;
@@ -15,14 +17,9 @@ function json(data, status) {
   });
 }
 
+/* 真的驗簽章，不是看 cookie 名字存不存在。細節見 lib/access.js。 */
 function requireAuth(request) {
-  const email = request.headers.get('Cf-Access-Authenticated-User-Email');
-  const jwt = request.headers.get('Cf-Access-Jwt-Assertion');
-  const cookie = request.headers.get('Cookie') || '';
-  if (!email && !jwt && cookie.indexOf('CF_Authorization=') < 0) {
-    return { error: json({ error: '未通過 Cloudflare Access 驗證。' }, 403) };
-  }
-  return { email: email || 'Access 使用者' };
+  return requireAccess(request, json);
 }
 
 function taipeiDay(ms) {
@@ -30,7 +27,7 @@ function taipeiDay(ms) {
 }
 
 export async function onRequestGet({ request, env }) {
-  const auth = requireAuth(request);
+  const auth = await requireAuth(request);
   if (auth.error) return auth.error;
 
   const db = env.STATS;

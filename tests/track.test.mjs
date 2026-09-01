@@ -2,8 +2,9 @@
 import { makeD1 } from './d1shim.mjs';
 
 const REPO = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
-const track = await import('file://' + REPO + '/functions/api/track.js?v=' + Date.now());
-const stats = await import('file://' + REPO + '/functions/api/stats.js?v=' + Date.now());
+import { loadFunction } from './_load.mjs';
+const track = await loadFunction(REPO + '/', 'functions/api/track.js');
+const stats = await loadFunction(REPO + '/', 'functions/api/stats.js');
 
 let pass = 0, fail = 0;
 const ok = (name, cond, extra) => {
@@ -11,7 +12,9 @@ const ok = (name, cond, extra) => {
   else { console.log('  ❌ ' + name + (extra !== undefined ? '  → ' + JSON.stringify(extra) : '')); fail++; }
 };
 
-const AUTH = { Cookie: 'CF_Authorization=abc' };
+// 用真正的身分標頭。原本寫 Cookie: CF_Authorization=abc——那是漏洞本身，
+// 舊的驗證只看 cookie 名字存不存在，等於把破掉的行為寫成預期行為。
+const AUTH = { 'Cf-Access-Authenticated-User-Email': 'test@example.com' };
 const req = (url, opts = {}) => new Request(url, opts);
 
 function post(body, headers = {}) {
@@ -42,9 +45,10 @@ console.log('\n[2] 驗證');
   const r = await ask(env, '', {});
   ok('沒有 Access 憑證 -> 403', r.status === 403, r.status);
   const r2 = await ask(env, '', { 'Cf-Access-Authenticated-User-Email': 'a@b.c' });
-  ok('有 Access email -> 通過', r2.status === 200, r2.status);
-  const r3 = await ask(env, '', { 'Cf-Access-Jwt-Assertion': 'jwt' });
-  ok('有 Access JWT -> 通過', r3.status === 200, r3.status);
+  ok('有 Access 身分 -> 通過', r2.status === 200, r2.status);
+  // 隨手塞的 cookie 曾經可以通過，那是漏洞。現在必須被擋。
+  const r3 = await ask(env, '', { Cookie: 'CF_Authorization=anything' });
+  ok('★ 隨便塞的 CF_Authorization cookie -> 403', r3.status === 403, r3.status);
 }
 
 console.log('\n[3] 第一次點擊：自動建表');

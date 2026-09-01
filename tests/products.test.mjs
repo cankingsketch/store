@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { loadFunction } from './_load.mjs';
 
 const REPO_DIR = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
 // 線上 Function 讀的是 GitHub 上的檔案（純 LF）。Windows 的 git core.autocrlf
@@ -6,13 +7,9 @@ const REPO_DIR = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)
 const CR = String.fromCharCode(13);
 const src = fs.readFileSync(REPO_DIR + '/goods.html', 'utf8').split(CR).join('');
 
-let code = fs.readFileSync(REPO_DIR + '/functions/api/products.js', 'utf8')
-  .replace(/export async function/g, 'async function');
-code += '\nexport { splitDoc, parseBlock, buildBlock, renameLegacy, b64FromText, textFromB64,'
-  + ' stripBuy, parseBuy, buildBuy, withBuy, findMyshipUrl };';
-const tmp = REPO_DIR + 'tests/_products_mod.tmp.mjs';
-fs.writeFileSync(tmp, code, 'utf8');
-const M = await import('file://' + tmp + '?v=' + Date.now());
+const M = await loadFunction(REPO_DIR, '/functions/api/products.js',
+  ['splitDoc', 'parseBlock', 'buildBlock', 'renameLegacy', 'b64FromText', 'textFromB64',
+   'stripBuy', 'parseBuy', 'buildBuy', 'withBuy', 'findMyshipUrl']);
 
 let pass = 0, fail = 0;
 const ok = (name, cond, extra) => {

@@ -8,6 +8,8 @@
  * 金鑰：Cloudflare 環境變數 CF_ANALYTICS_TOKEN
  *       （API token，權限只需 Account > Account Analytics > Read）
  */
+import { requireAccess } from '../../lib/access.js';
+
 
 // 這兩個是識別碼不是憑證——沒有上面那把 token，知道它們也做不了任何事，
 // 而且本來就出現在儀表板網址裡。放這裡是為了讓設定只需要貼一個值。
@@ -32,14 +34,9 @@ function json(data, status) {
   });
 }
 
+/* 真的驗簽章，不是看 cookie 名字存不存在。細節見 lib/access.js。 */
 function requireAuth(request) {
-  const email = request.headers.get('Cf-Access-Authenticated-User-Email');
-  const jwt = request.headers.get('Cf-Access-Jwt-Assertion');
-  const cookie = request.headers.get('Cookie') || '';
-  if (!email && !jwt && cookie.indexOf('CF_Authorization=') < 0) {
-    return { error: json({ error: '未通過 Cloudflare Access 驗證。' }, 403) };
-  }
-  return { email: email || 'Access 使用者' };
+  return requireAccess(request, json);
 }
 
 function taipeiDay(ms) {
@@ -97,7 +94,7 @@ function rows(list, label) {
 }
 
 export async function onRequestGet({ request, env }) {
-  const auth = requireAuth(request);
+  const auth = await requireAuth(request);
   if (auth.error) return auth.error;
 
   const token = env.CF_ANALYTICS_TOKEN;

@@ -5,6 +5,8 @@
  * 安全：必須經過 Cloudflare Access（會帶 Cf-Access-Authenticated-User-Email）
  * 金鑰：Cloudflare 環境變數 GITHUB_TOKEN（Contents: Read and write）
  */
+import { requireAccess } from '../../lib/access.js';
+
 
 const REPO = 'cankingsketch/store';
 const BRANCH = 'main';
@@ -48,25 +50,16 @@ function json(data, status) {
     headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
   });
 }
-function requireAuth(request, env) {
-  // Cloudflare Access 通過驗證後，可能以下列任一形式帶入身分資訊
-  const email = request.headers.get('Cf-Access-Authenticated-User-Email');
-  const jwt = request.headers.get('Cf-Access-Jwt-Assertion');
-  const cookie = request.headers.get('Cookie') || '';
-  const hasAccessCookie = cookie.indexOf('CF_Authorization=') >= 0;
-
-  if (!email && !jwt && !hasAccessCookie) {
-    const cfHeaders = [];
-    request.headers.forEach(function (_v, k) { if (/^cf-/i.test(k)) cfHeaders.push(k); });
-    return { error: json({
-      error: '未通過 Cloudflare Access 驗證，請先在 Cloudflare 設定 /admin 與 /api/products 的存取保護。',
-      debug: { cfHeaders: cfHeaders, hasCookie: cookie.length > 0 }
-    }, 403) };
-  }
+/* 真的驗簽章，不是看 cookie 名字存不存在。細節見 lib/access.js。
+ * 這支目前另外還有 Cloudflare Access 擋在路徑前面，但那是設定，設定會被改；
+ * 端點自己也要守得住。 */
+async function requireAuth(request, env) {
+  const auth = await requireAccess(request, json);
+  if (auth.error) return auth;
   if (!env.GITHUB_TOKEN) {
     return { error: json({ error: '伺服器尚未設定 GITHUB_TOKEN 環境變數。' }, 500) };
   }
-  return { email: email || 'Access 使用者' };
+  return auth;
 }
 
 /* ---------- GitHub ---------- */
@@ -312,7 +305,7 @@ function withBuy(cleanBlock, item) {
 
 /* ---------- 路由 ---------- */
 export async function onRequestGet({ request, env }) {
-  const auth = requireAuth(request, env);
+  const auth = await requireAuth(request, env);
   if (auth.error) return auth.error;
   try {
     const file = await ghGet(env, FILE);
@@ -326,7 +319,7 @@ export async function onRequestGet({ request, env }) {
 }
 
 export async function onRequestPost({ request, env }) {
-  const auth = requireAuth(request, env);
+  const auth = await requireAuth(request, env);
   if (auth.error) return auth.error;
   try {
     const payload = await request.json();

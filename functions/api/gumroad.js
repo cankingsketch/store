@@ -106,12 +106,11 @@ async function callApi(token) {
 }
 
 async function fetchProducts(token) {
-  const { products: raw, pages, keys } = await callApi(token);
+  const { products: raw, pages } = await callApi(token);
 
   // 診斷用計數：只有數量，不含任何商品內容或營收
   const diag = {
     pages,
-    apiKeys: keys,        // Gumroad 回應有哪些欄位，用來確認分頁參數叫什麼
     raw: raw.length,
     unpublished: raw.filter((p) => p && !p.published).length,
     notWanted: raw.filter((p) => p && p.published && !WANT.test(p.name || '')).length,

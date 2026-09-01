@@ -7,7 +7,9 @@
 import fs from 'fs';
 
 const REPO_DIR = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
-const mod = await import('file://' + REPO_DIR + 'functions/api/products.js?v=' + Date.now());
+import { loadFunction } from './_load.mjs';
+// 驗證換成替身：這裡測的是存檔流程，不是 Cloudflare 的登入
+const mod = await loadFunction(REPO_DIR, 'functions/api/products.js');
 
 const CR = String.fromCharCode(13);
 const SRC = fs.readFileSync(REPO_DIR + 'goods.html', 'utf8').split(CR).join('');
@@ -19,7 +21,10 @@ const ok = (name, cond, extra) => {
 };
 
 const b64 = (s) => Buffer.from(s, 'utf8').toString('base64');
-const AUTH = { Cookie: 'CF_Authorization=abc', 'content-type': 'application/json' };
+// 用真正的身分標頭。原本寫 Cookie: CF_Authorization=abc——那是漏洞本身，
+// 舊的驗證只看 cookie 名字存不存在，等於把破掉的行為寫成預期行為。
+const AUTH = { 'Cf-Access-Authenticated-User-Email': 'test@example.com',
+  'content-type': 'application/json' };
 const ENV = { GITHUB_TOKEN: 'test-token' };
 
 /* 假的 GitHub：記錄每一次呼叫，好斷言到底推了幾次 */
