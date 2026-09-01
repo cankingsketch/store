@@ -1506,6 +1506,19 @@ margin-top: -2px;
         width: 180px !important;
         flex-shrink: 0;
       }
+      /* 以前這裡放的是 Weebly 相簿的巢狀結構，圖片是絕對定位撐出來的。
+         現在自己組節點，尺寸就要自己講清楚。 */
+      #ns-illusts-container #ns-content-wrap #ns-content-box .image-item img {
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        object-fit: cover;
+        display: block;
+        background: #f6f6f6;
+      }
+      #ns-illusts-container #ns-content-wrap #ns-content-box .image-item a {
+        display: block;
+        padding: 2px;
+      }
 
       #ns-illusts-container #ns-content-wrap #ns-content-box .image-item .galleryImageBorder {
         padding: 2px !important;
@@ -1560,12 +1573,18 @@ margin-top: -2px;
           });
         }
 
-        function fetchPage() {
-          try {
-            return fetch('./illusts.html').then(r => r.text());
-          } catch (e) {
-            return '';
-          }
+        /* 原本是抓 illusts.html 的 HTML 回來找 .imageGallery。數位賣場改成
+           從 Gumroad 自動抓之後那個元素就不存在了，跑馬燈整個空掉。
+           改成直接跟同一支 API 要資料，首頁就不必再依賴另一頁的 markup。 */
+        function fetchItems() {
+          return fetch('/api/gumroad', { headers: { accept: 'application/json' } })
+            .then(r => r.json())
+            .then(d => {
+              const all = [];
+              (d.groups || []).forEach(g => (g.products || []).forEach(p => all.push(p)));
+              return all.slice(0, 10);   // 最新的十件
+            })
+            .catch(() => []);
         }
 
         const lerp = (current, target, factor) => current * (1 - factor) + target * factor;
@@ -1609,33 +1628,38 @@ margin-top: -2px;
           dialogContainerEl.classList
         }
 
+        function esc(t) {
+          return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
         async function init() {
           const containerEl = document.getElementById('ns-illusts-container');
+          const contentBoxEl = document.querySelector('#ns-illusts-container #ns-content-box');
+          if (!containerEl || !contentBoxEl) return;
+
+          const items = await fetchItems();
+          // 抓不到就整區收起來，不要留一條空白的跑馬燈在首頁
+          if (!items.length) { containerEl.style.display = 'none'; return; }
           containerEl.style = '';
 
-          const htmlText = await fetchPage();
-          const sandboxEl = document.createElement('div');
-          sandboxEl.innerHTML = htmlText;
-          console.log()
-          const targeEl = sandboxEl.querySelector('.imageGallery').cloneNode(true);
-          const contentBoxEl = document.querySelector('#ns-illusts-container #ns-content-box');
-
-          const tmpChildren = [];
-          const childrenLen = targeEl.children.length;
-          for (let i = 0; i < 10; i++) {
-            const j = childrenLen - 2 - i;
-            targeEl.children[j].classList.add('image-item');
-            tmpChildren.push(targeEl.children[j].cloneNode(true));
+          function strip() {
+            const g = document.createElement('div');
+            g.className = 'imageGallery';
+            g.innerHTML = items.map(p =>
+              '<div class="image-item"><a href="' + esc(p.url) + '" target="_blank"'
+              + ' rel="noopener" data-track-label="' + esc(p.name) + '">'
+              + '<img src="' + esc(p.thumb) + '" alt="' + esc(p.name) + '" loading="lazy" />'
+              + '</a></div>').join('');
+            return g;
           }
-          targeEl.innerHTML = '';
-          for (let i = 0; i < tmpChildren.length; i++) {
-            targeEl.appendChild(tmpChildren[i]);
-          }
+          // 兩份才接得起來，捲到底時看不出接縫
+          contentBoxEl.appendChild(strip());
+          contentBoxEl.appendChild(strip());
 
-          contentBoxEl.append(targeEl.cloneNode(true));
-          contentBoxEl.append(targeEl.cloneNode(true));
           setTimeout(() => {
-            document.querySelectorAll('#ns-illusts-container .imageGallery').forEach(el => new LoopingText(el));
+            document.querySelectorAll('#ns-illusts-container .imageGallery')
+              .forEach(el => new LoopingText(el));
           });
         }
 
