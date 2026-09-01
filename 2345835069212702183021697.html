@@ -155,8 +155,9 @@ var STYLE_PREFIX = 'wsite';
   /* ── 客製化商品頁：與周邊一覽同一套設計語言 ──
      排法是「一段講一件事」：標題→價格→按鈕→提醒→作品→流程→開箱。
      原本商品圖被排在流程文字下面、IG 影片佔掉左半版，看不到東西長怎樣。 */
-  .wsite-header-section .ck-hero { display: block; width: 100%; max-width: 900px;
-    margin: 0 auto; border-radius: 10px; }
+  /* 這頁不要橫幅：一進來就看到標題。拿掉內建背景後會露出主題的
+     default_header.jpg，所以整個區塊收起來 */
+  #office-banner { display: none; }
   /* 上方留白已由版面本身的區塊內距（60px）提供，這裡不必再加 */
   .ck-cc { max-width: 640px; margin: 0 auto; padding: 0 20px; text-align: center; }
   .ck-cc-wide { max-width: 900px; margin: 0 auto; padding: 0 20px 40px; }
@@ -179,9 +180,17 @@ var STYLE_PREFIX = 'wsite';
     margin: 18px 0 0; text-align: left; }
   .ck-cc-h3 { font-size: 17px; font-weight: 800; color: #2a2a2a; margin: 34px 0 6px;
     padding-bottom: 7px; border-bottom: 2px solid #ffd9d6; }
-  .ck-cc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
-  .ck-cc-grid img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover;
-    border-radius: 8px; display: block; cursor: zoom-in; background: #f6f6f6; }
+  /* 首圖當最大的一張，下面 8 張剛好兩排 */
+  .ck-cc-lead-img { display: block; width: 100%; border-radius: 10px;
+    margin: 14px 0 10px; cursor: zoom-in; }
+  /* 大圖下面一條縮圖，想看細節自己點開 */
+  .ck-cc-grid { display: flex; gap: 8px; justify-content: center; }
+  /* 前面加 #wsite-content：Weebly 有一條 #wsite-content img 的規則，
+     ID 選擇器會壓過純 class，不提高層級的話圖片會撐成原尺寸 */
+  /* 不設 max-width，六張平分整列，左右邊界才會跟上面的大圖切齊 */
+  #wsite-content .ck-cc-grid img { flex: 1 1 0; min-width: 0;
+    width: auto; aspect-ratio: 1 / 1; object-fit: cover;
+    border-radius: 6px; display: block; cursor: zoom-in; background: #f6f6f6; }
   .ck-cc-steps { display: grid; gap: 12px; margin: 14px 0 0; }
   .ck-cc-step { display: flex; gap: 11px; align-items: flex-start;
     font-size: 14.5px; line-height: 1.7; color: #444; }
@@ -192,7 +201,8 @@ var STYLE_PREFIX = 'wsite';
   .ck-cc-ig { max-width: 540px; margin: 14px auto 0; }
   @media screen and (max-width: 600px) {
     .ck-cc-title { font-size: 23px; }
-    .ck-cc-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .ck-cc-grid { gap: 5px; }
+    .ck-cc-lead-img { margin-top: 12px; }
   }
   /* 點圖放大（這頁沒有載 Weebly 的 fancybox JS，用自己的） */
   #ck-lightbox { position: fixed; inset: 0; z-index: 9999; display: none;
@@ -219,11 +229,16 @@ var STYLE_PREFIX = 'wsite';
       document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape' && lb.classList.contains('on')) close();
       });
-      grid.addEventListener('click', function (e) {
-        if (e.target.tagName !== 'IMG') return;
-        img.src = e.target.currentSrc || e.target.src;
+      var lead = document.querySelector('.ck-cc-lead-img');
+      if (lead) lead.addEventListener('click', function () { open(lead); });
+      function open(el) {
+        img.src = el.currentSrc || el.src;
         lb.classList.add('on');
         document.body.style.overflow = 'hidden';
+      }
+      grid.addEventListener('click', function (e) {
+        if (e.target.tagName !== 'IMG') return;
+        open(e.target);
       });
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
@@ -388,7 +403,6 @@ var STYLE_PREFIX = 'wsite';
 						<div id="banner">
 							<div id="banner-container">
 				<div class="wsite-section-elements">
-					<img class="ck-hero" src="images/1964597902.jpg" alt="客製信用卡造型卡片" />
 				</div>
 			</div>
 						</div>
@@ -426,18 +440,14 @@ var STYLE_PREFIX = 'wsite';
 
 <div class="ck-cc-wide">
 <h3 class="ck-cc-h3">作品</h3>
+<img class="ck-cc-lead-img" src="images/cashcard-hero.jpg" alt="客製信用卡造型卡片" />
 <div class="ck-cc-grid">
-<img src="images/cashcard-1.png" alt="客製卡片作品 1" loading="lazy" />
 <img src="images/cashcard-2.png" alt="客製卡片作品 2" loading="lazy" />
 <img src="images/cashcard-3.png" alt="客製卡片作品 3" loading="lazy" />
-<img src="images/cashcard-4.png" alt="客製卡片作品 4" loading="lazy" />
 <img src="images/cashcard-5.png" alt="客製卡片作品 5" loading="lazy" />
 <img src="images/cashcard-6.png" alt="客製卡片作品 6" loading="lazy" />
 <img src="images/cashcard-7.png" alt="客製卡片作品 7" loading="lazy" />
 <img src="images/cashcard-8.png" alt="客製卡片作品 8" loading="lazy" />
-<img src="images/cashcard-9.png" alt="客製卡片作品 9" loading="lazy" />
-<img src="images/cashcard-10.png" alt="客製卡片作品 10" loading="lazy" />
-<img src="images/cashcard-11.png" alt="客製卡片作品 11" loading="lazy" />
 </div>
 
 <h3 class="ck-cc-h3">怎麼訂</h3>
@@ -454,10 +464,6 @@ var STYLE_PREFIX = 'wsite';
 <script async src="//www.instagram.com/embed.js"></script>
 </div>
 
-<div class="ck-cc-btns ck-cc-center">
-<a class="ck-cc-b1" href="https://myship.7-11.com.tw/general/detail/GM2511047746521" target="_blank" rel="noopener">711賣貨便下單</a>
-<a class="ck-cc-b2" href="https://docs.google.com/forms/d/e/1FAIpQLScSby_K4IcfKt6PzrkKCd8uPJuXqb5oay4hxZ-2bgY1BbzjHw/viewform?usp=send_form" target="_blank" rel="noopener">海外表單</a>
-</div>
 </div>
 			</div>
 		</div>
