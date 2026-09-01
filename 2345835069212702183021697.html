@@ -151,7 +151,86 @@ var STYLE_PREFIX = 'wsite';
                     c)})(window,document,'script', '//cdn-promote.weebly.com/js/dist/messenger.js','messenger');
             messenger({ preview: 0, asset_domain: 'cdn-promote.weebly.com', data_domain: 'promote.weebly.com', align: 'right', style: 'long_blue', size: 'medium', page_id: '494522277323748' });
         </script>
-	</head>
+	<style>
+  /* ── 客製化商品頁：與周邊一覽同一套設計語言 ──
+     排法是「一段講一件事」：標題→價格→按鈕→提醒→作品→流程→開箱。
+     原本商品圖被排在流程文字下面、IG 影片佔掉左半版，看不到東西長怎樣。 */
+  .wsite-header-section .ck-hero { display: block; width: 100%; max-width: 900px;
+    margin: 0 auto; border-radius: 10px; }
+  /* 上方留白已由版面本身的區塊內距（60px）提供，這裡不必再加 */
+  .ck-cc { max-width: 640px; margin: 0 auto; padding: 0 20px; text-align: center; }
+  .ck-cc-wide { max-width: 900px; margin: 0 auto; padding: 0 20px 40px; }
+  .ck-cc-title { font-size: 27px; font-weight: 800; line-height: 1.3; margin: 0 0 8px; color: #2a2a2a; }
+  .ck-cc-lead { font-size: 15px; line-height: 1.85; color: #444; margin: 0; }
+  .ck-cc-price { font-size: 15px; color: #666; margin: 18px 0 0; }
+  .ck-cc-price b { font-size: 30px; color: #ff2d2d; font-weight: 800; letter-spacing: -.5px; }
+  .ck-cc-price span { font-size: 13px; color: #999; }
+  .ck-cc-btns { display: flex; gap: 10px; flex-wrap: wrap; margin: 16px 0 0; justify-content: center; }
+  .ck-cc-center { margin-top: 30px; }
+  .ck-cc-btns a { text-decoration: none; font-size: 16px; border-radius: 999px;
+    padding: 11px 26px; display: inline-block; }
+  .ck-cc-b1 { background: #f64c3f; color: #fff !important; }
+  .ck-cc-b1:hover { background: #ff5b4f; }
+  .ck-cc-b2 { background: #fff; color: #666 !important; border: 1.5px solid #ddd; }
+  .ck-cc-b2:hover { border-color: #999; }
+  /* 出貨時間與排單月份講在最前面——這是客訴最常見的來源 */
+  .ck-cc-warn { background: #fff5f5; border: 1.5px solid #ffd9d6; border-radius: 10px;
+    padding: 12px 16px; font-size: 14px; color: #c0392b; line-height: 1.75;
+    margin: 18px 0 0; text-align: left; }
+  .ck-cc-h3 { font-size: 17px; font-weight: 800; color: #2a2a2a; margin: 34px 0 6px;
+    padding-bottom: 7px; border-bottom: 2px solid #ffd9d6; }
+  .ck-cc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+  .ck-cc-grid img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover;
+    border-radius: 8px; display: block; cursor: zoom-in; background: #f6f6f6; }
+  .ck-cc-steps { display: grid; gap: 12px; margin: 14px 0 0; }
+  .ck-cc-step { display: flex; gap: 11px; align-items: flex-start;
+    font-size: 14.5px; line-height: 1.7; color: #444; }
+  .ck-cc-n { flex: 0 0 22px; height: 22px; border-radius: 50%; background: #ff2d2d;
+    color: #fff; font-size: 12px; font-weight: 700; margin-top: 3px;
+    display: flex; align-items: center; justify-content: center; }
+  .ck-cc-fine { font-size: 13px; color: #a1a1a1; line-height: 1.75; margin: 16px 0 0; }
+  .ck-cc-ig { max-width: 540px; margin: 14px auto 0; }
+  @media screen and (max-width: 600px) {
+    .ck-cc-title { font-size: 23px; }
+    .ck-cc-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  }
+  /* 點圖放大（這頁沒有載 Weebly 的 fancybox JS，用自己的） */
+  #ck-lightbox { position: fixed; inset: 0; z-index: 9999; display: none;
+    align-items: center; justify-content: center; background: rgba(0, 0, 0, .88);
+    padding: 24px; box-sizing: border-box; cursor: zoom-out; }
+  #ck-lightbox.on { display: flex; }
+  #ck-lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; }
+  #ck-lightbox .ck-lb-close { position: absolute; top: 14px; right: 18px; width: 40px; height: 40px;
+    border: 0; border-radius: 50%; background: rgba(255, 255, 255, .15); color: #fff;
+    font-size: 22px; line-height: 1; cursor: pointer; }
+</style>
+<script>
+  (function () {
+    function init() {
+      var grid = document.querySelector('.ck-cc-grid');
+      if (!grid) return;
+      var lb = document.createElement('div');
+      lb.id = 'ck-lightbox';
+      lb.innerHTML = '<button type="button" class="ck-lb-close" aria-label="關閉">✕</button><img alt="" />';
+      document.body.appendChild(lb);
+      var img = lb.querySelector('img');
+      function close() { lb.classList.remove('on'); document.body.style.overflow = ''; img.src = ''; }
+      lb.addEventListener('click', close);
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && lb.classList.contains('on')) close();
+      });
+      grid.addEventListener('click', function (e) {
+        if (e.target.tagName !== 'IMG') return;
+        img.src = e.target.currentSrc || e.target.src;
+        lb.classList.add('on');
+        document.body.style.overflow = 'hidden';
+      });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+  })();
+</script>
+</head>
 	<body class="header-page  wsite-page-2345835069212702183021697  full-width-on  wsite-theme-light"><div class="body-wrap">
 		<div id="header">
 			<div class="nav-trigger hamburger">
@@ -303,13 +382,13 @@ var STYLE_PREFIX = 'wsite';
 				<div id="office-banner" class="banner-wrap">
 					<div class="wsite-elements wsite-not-footer wsite-header-elements">
 	<div class="wsite-section-wrap">
-	<div  class="wsite-section wsite-header-section wsite-section-bg-image" style="height: 239px;background-image: url(&quot;images/1964597902.jpg&quot;) ;background-repeat: no-repeat ;background-position: 50.00% 71.52% ;background-size: 100% ;background-color: transparent ;background-size: cover;" >
+	<div class="wsite-section wsite-header-section" >
 		<div class="wsite-section-content">
 			
 						<div id="banner">
 							<div id="banner-container">
 				<div class="wsite-section-elements">
-					
+					<img class="ck-hero" src="images/1964597902.jpg" alt="客製信用卡造型卡片" />
 				</div>
 			</div>
 						</div>
@@ -331,109 +410,55 @@ var STYLE_PREFIX = 'wsite';
 		<div class="wsite-section-content">
 						<div class="container">
 			<div class="wsite-section-elements">
-				<div><div class="wsite-multicol"><div class="wsite-multicol-table-wrap" style="margin:0 -15px;">
-	<table class="wsite-multicol-table">
-		<tbody class="wsite-multicol-tbody">
-			<tr class="wsite-multicol-tr">
-				<td class="wsite-multicol-col" style="width:77.475607382249%; padding:0 15px;">
-					
-						
-
-<h2 class="wsite-content-title">&#23458;&#35069;&#8203;&#20449;&#29992;&#21345;&#36896;&#22411;&#21345;&#29255;(&#23526;&#39636;+&#38651;&#23376;&#37666;&#21253;)</h2>
-
-
-					
-				</td>				<td class="wsite-multicol-col" style="width:9.4271018772807%; padding:0 15px;">
-					
-						
-
-<div style="text-align:left;"><div style="height: 10px; overflow: hidden;"></div>
-<a class="wsite-button wsite-button-large wsite-button-highlight" href="https://myship.7-11.com.tw/general/detail/GM2511047746521" target="_blank">
-<span class="wsite-button-inner">711賣貨便</span>
-</a>
-<div style="height: 10px; overflow: hidden;"></div></div>
-
-
-					
-				</td>				<td class="wsite-multicol-col" style="width:13.09729074047%; padding:0 15px;">
-					
-						
-
-<div style="text-align:left;"><div style="height: 10px; overflow: hidden;"></div>
-<a class="wsite-button wsite-button-large wsite-button-normal" href="https://docs.google.com/forms/d/e/1FAIpQLScSby_K4IcfKt6PzrkKCd8uPJuXqb5oay4hxZ-2bgY1BbzjHw/viewform?usp=send_form" target="_blank">
-<span class="wsite-button-inner">海外表單</span>
-</a>
-<div style="height: 10px; overflow: hidden;"></div></div>
-
-
-					
-				</td>			</tr>
-		</tbody>
-	</table>
-</div></div></div>
-
-<div class="paragraph">&#27599;&#24373;&#21345;&#29255;&#37117;&#26159;&#25163;&#24037;&#35069;&#20316;&#29544;&#19968;&#28961;&#20108;&#30340;&#65292;&#24478;&#20449;&#23553;&#21040;&#21345;&#29255;&#29978;&#33267;&#26159;&#25163;&#27231;&#37666;&#21253;&#19978;&#38754;&#30340;&#25991;&#23383;&#37117;&#33021;&#22816;&#23458;&#35069;&#21270;&#21908;&#65281;<br />&#29033;&#24817;&#36865;&#31150;&#35201;&#36865;&#20160;&#40636;&#21966;&#65311;&#36889;&#20221;&#31150;&#29289;&#32085;&#23565;&#35731;&#25910;&#31150;&#20154;&#24471;&#21040;&#28415;&#28415;&#30340;&#35488;&#24847;&#65374;<br /><font color="#a1a1a1">&#8251;&#27492;&#29256;&#26412;&#21487;&#25918;&#20837;Apple&#37666;&#21253;&#21450;Google&#37666;&#21253;&#65292;&#28961;&#25187;&#27454;&#21151;&#33021;&#12290;&#25187;&#27454;&#21151;&#33021;&#28858;&#24179;&#21488;&#31471;&#30340;&#25844;&#20805;&#21151;&#33021;&#65292;&#38656;&#38989;&#22806;&#20184;&#26376;&#36027;&#12290;</font></div>
-
-<div><div class="wsite-multicol"><div class="wsite-multicol-table-wrap" style="margin:0 -15px;">
-	<table class="wsite-multicol-table">
-		<tbody class="wsite-multicol-tbody">
-			<tr class="wsite-multicol-tr">
-				<td class="wsite-multicol-col" style="width:50%; padding:0 15px;">
-					
-						
-
-<div><div id="729631037478503530" align="left" style="width: 100%; overflow-y: hidden;" class="wcustomhtml"><blockquote class="instagram-media" data-instgrm-captioned data-instgrm-permalink="https://www.instagram.com/reel/DPv8sVtEm5O/?utm_source=ig_embed&amp;utm_campaign=loading" data-instgrm-version="14" style=" background:#FFF; border:0; border-radius:3px; box-shadow:0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15); margin: 1px; max-width:540px; min-width:326px; padding:0; width:99.375%; width:-webkit-calc(100% - 2px); width:calc(100% - 2px);"><div style="padding:16px;"> <a href="https://www.instagram.com/reel/DPv8sVtEm5O/?utm_source=ig_embed&amp;utm_campaign=loading" style=" background:#FFFFFF; line-height:0; padding:0 0; text-align:center; text-decoration:none; width:100%;" target="_blank"> <div style=" display: flex; flex-direction: row; align-items: center;"> <div style="background-color: #F4F4F4; border-radius: 50%; flex-grow: 0; height: 40px; margin-right: 14px; width: 40px;"></div> <div style="display: flex; flex-direction: column; flex-grow: 1; justify-content: center;"> <div style=" background-color: #F4F4F4; border-radius: 4px; flex-grow: 0; height: 14px; margin-bottom: 6px; width: 100px;"></div> <div style=" background-color: #F4F4F4; border-radius: 4px; flex-grow: 0; height: 14px; width: 60px;"></div></div></div><div style="padding: 19% 0;"></div> <div style="display:block; height:50px; margin:0 auto 12px; width:50px;"><svg width="50px" height="50px" viewBox="0 0 60 60" version="1.1" xmlns="https://www.w3.org/2000/svg" xmlns:xlink="https://www.w3.org/1999/xlink"><g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"><g transform="translate(-511.000000, -20.000000)" fill="#000000"><g><path d="M556.869,30.41 C554.814,30.41 553.148,32.076 553.148,34.131 C553.148,36.186 554.814,37.852 556.869,37.852 C558.924,37.852 560.59,36.186 560.59,34.131 C560.59,32.076 558.924,30.41 556.869,30.41 M541,60.657 C535.114,60.657 530.342,55.887 530.342,50 C530.342,44.114 535.114,39.342 541,39.342 C546.887,39.342 551.658,44.114 551.658,50 C551.658,55.887 546.887,60.657 541,60.657 M541,33.886 C532.1,33.886 524.886,41.1 524.886,50 C524.886,58.899 532.1,66.113 541,66.113 C549.9,66.113 557.115,58.899 557.115,50 C557.115,41.1 549.9,33.886 541,33.886 M565.378,62.101 C565.244,65.022 564.756,66.606 564.346,67.663 C563.803,69.06 563.154,70.057 562.106,71.106 C561.058,72.155 560.06,72.803 558.662,73.347 C557.607,73.757 556.021,74.244 553.102,74.378 C549.944,74.521 548.997,74.552 541,74.552 C533.003,74.552 532.056,74.521 528.898,74.378 C525.979,74.244 524.393,73.757 523.338,73.347 C521.94,72.803 520.942,72.155 519.894,71.106 C518.846,70.057 518.197,69.06 517.654,67.663 C517.244,66.606 516.755,65.022 516.623,62.101 C516.479,58.943 516.448,57.996 516.448,50 C516.448,42.003 516.479,41.056 516.623,37.899 C516.755,34.978 517.244,33.391 517.654,32.338 C518.197,30.938 518.846,29.942 519.894,28.894 C520.942,27.846 521.94,27.196 523.338,26.654 C524.393,26.244 525.979,25.756 528.898,25.623 C532.057,25.479 533.004,25.448 541,25.448 C548.997,25.448 549.943,25.479 553.102,25.623 C556.021,25.756 557.607,26.244 558.662,26.654 C560.06,27.196 561.058,27.846 562.106,28.894 C563.154,29.942 563.803,30.938 564.346,32.338 C564.756,33.391 565.244,34.978 565.378,37.899 C565.522,41.056 565.552,42.003 565.552,50 C565.552,57.996 565.522,58.943 565.378,62.101 M570.82,37.631 C570.674,34.438 570.167,32.258 569.425,30.349 C568.659,28.377 567.633,26.702 565.965,25.035 C564.297,23.368 562.623,22.342 560.652,21.575 C558.743,20.834 556.562,20.326 553.369,20.18 C550.169,20.033 549.148,20 541,20 C532.853,20 531.831,20.033 528.631,20.18 C525.438,20.326 523.257,20.834 521.349,21.575 C519.376,22.342 517.703,23.368 516.035,25.035 C514.368,26.702 513.342,28.377 512.574,30.349 C511.834,32.258 511.326,34.438 511.181,37.631 C511.035,40.831 511,41.851 511,50 C511,58.147 511.035,59.17 511.181,62.369 C511.326,65.562 511.834,67.743 512.574,69.651 C513.342,71.625 514.368,73.296 516.035,74.965 C517.703,76.634 519.376,77.658 521.349,78.425 C523.257,79.167 525.438,79.673 528.631,79.82 C531.831,79.965 532.853,80.001 541,80.001 C549.148,80.001 550.169,79.965 553.369,79.82 C556.562,79.673 558.743,79.167 560.652,78.425 C562.623,77.658 564.297,76.634 565.965,74.965 C567.633,73.296 568.659,71.625 569.425,69.651 C570.167,67.743 570.674,65.562 570.82,62.369 C570.966,59.17 571,58.147 571,50 C571,41.851 570.966,40.831 570.82,37.631"></path></g></g></g></svg></div><div style="padding-top: 8px;"> <div style=" color:#3897f0; font-family:Arial,sans-serif; font-size:14px; font-style:normal; font-weight:550; line-height:18px;">在 Instagram 查看這則貼文</div></div><div style="padding: 12.5% 0;"></div> <div style="display: flex; flex-direction: row; margin-bottom: 14px; align-items: center;"><div> <div style="background-color: #F4F4F4; border-radius: 50%; height: 12.5px; width: 12.5px; transform: translateX(0px) translateY(7px);"></div> <div style="background-color: #F4F4F4; height: 12.5px; transform: rotate(-45deg) translateX(3px) translateY(1px); width: 12.5px; flex-grow: 0; margin-right: 14px; margin-left: 2px;"></div> <div style="background-color: #F4F4F4; border-radius: 50%; height: 12.5px; width: 12.5px; transform: translateX(9px) translateY(-18px);"></div></div><div style="margin-left: 8px;"> <div style=" background-color: #F4F4F4; border-radius: 50%; flex-grow: 0; height: 20px; width: 20px;"></div> <div style=" width: 0; height: 0; border-top: 2px solid transparent; border-left: 6px solid #f4f4f4; border-bottom: 2px solid transparent; transform: translateX(16px) translateY(-4px) rotate(30deg)"></div></div><div style="margin-left: auto;"> <div style=" width: 0px; border-top: 8px solid #F4F4F4; border-right: 8px solid transparent; transform: translateY(16px);"></div> <div style=" background-color: #F4F4F4; flex-grow: 0; height: 12px; width: 16px; transform: translateY(-4px);"></div> <div style=" width: 0; height: 0; border-top: 8px solid #F4F4F4; border-left: 8px solid transparent; transform: translateY(-4px) translateX(8px);"></div></div></div> <div style="display: flex; flex-direction: column; flex-grow: 1; justify-content: center; margin-bottom: 24px;"> <div style=" background-color: #F4F4F4; border-radius: 4px; flex-grow: 0; height: 14px; margin-bottom: 6px; width: 224px;"></div> <div style=" background-color: #F4F4F4; border-radius: 4px; flex-grow: 0; height: 14px; width: 144px;"></div></div></a><p style=" color:#c9c8cd; font-family:Arial,sans-serif; font-size:14px; line-height:17px; margin-bottom:0; margin-top:8px; overflow:hidden; padding:8px 0 7px; text-align:center; text-overflow:ellipsis; white-space:nowrap;"><a href="https://www.instagram.com/reel/DPv8sVtEm5O/?utm_source=ig_embed&amp;utm_campaign=loading" style=" color:#c9c8cd; font-family:Arial,sans-serif; font-size:14px; font-style:normal; font-weight:normal; line-height:17px; text-decoration:none;" target="_blank">空罐王（@canking_liu）分享的貼文</a></p></div></blockquote>
-<script async src="//www.instagram.com/embed.js"></script></div>
-
-
-
+<div class="ck-cc">
+<h1 class="ck-cc-title">客製信用卡造型卡片</h1>
+<p class="ck-cc-lead">實體卡片 ＋ 電子錢包<br />信封、卡片、手機錢包上的文字全部可以客製</p>
+<p class="ck-cc-price">NT$ <b>2,000</b> <span>＋運費 38</span></p>
+<div class="ck-cc-btns">
+<a class="ck-cc-b1" href="https://myship.7-11.com.tw/general/detail/GM2511047746521" target="_blank" rel="noopener">711賣貨便下單</a>
+<a class="ck-cc-b2" href="https://docs.google.com/forms/d/e/1FAIpQLScSby_K4IcfKt6PzrkKCd8uPJuXqb5oay4hxZ-2bgY1BbzjHw/viewform?usp=send_form" target="_blank" rel="noopener">海外表單</a>
+</div>
+<div class="ck-cc-warn">
+手工製作，每月只在賣貨便開放少量預購，<b>目前開放 10 月份排單</b>。<br />
+製作約 7–10 個工作天，送禮請抓好日期。
+</div>
 </div>
 
-
-					
-				</td>				<td class="wsite-multicol-col" style="width:50%; padding:0 15px;">
-					
-						
-
-<div class="paragraph"><font size="3">&#30001;&#26044;&#27599;&#20221;&#37117;&#26159;&#25163;&#24037;&#35069;&#20316;&#30340;&#65292;&#27599;&#22825;&#33021;&#35069;&#20316;&#30340;&#26178;&#38291;&#26377;&#38480;&#12290;<br />&#22240;&#27492;&#20677;&#26371;&#22312;&#36067;&#36008;&#20415;&#19978;&#27599;&#26376;&#38283;&#25918;&#23569;&#37327;&#38928;&#36092;&#65292;<br />&#36996;&#35531;&#24515;&#21205;&#30340;&#26379;&#21451;&#20497;&#27880;&#24847;&#19968;&#19979;&#36865;&#31150;&#30340;&#26085;&#26399;&#21908;&#65281;<br />-<br />&#20197;&#19979;&#26159;&#25490;&#21934;&#30340;&#27969;&#31243;<br />1. &#36067;&#36008;&#20415;&#19979;&#21934;20&#20803;+&#36939;&#36027;38&#20803;<br />2. &#22635;&#23458;&#35069;&#21270;&#20839;&#23481;&#34920;&#21934;(email&#36890;&#30693;)<br />3. &#21295;&#20840;&#27454;1980&#20803;<span style="color:rgb(123, 140, 137)">(email&#36890;&#30693;)</span><br />4. &#30906;&#35469;&#38651;&#23376;&#27171;&#21697;&#22294;(&#21487;&#20462;&#25913;1&#27425;)<br />5. &#35069;&#20316;&#26178;&#38291;&#32004;7-10&#20491;&#24037;&#20316;&#26085;<br />6. &#20986;&#36008;Email&#36890;&#30693;<br />7. &#38283;&#24515;&#21462;&#36008;</font></div>
-
-<div><div style="height:20px;overflow:hidden"></div>
-<div id="ck-cashcard-gallery" style="max-width:600px;margin:0 auto;">
-  <div style="width:100%;text-align:center;">
-    <img id="ck-cc-main" src="images/cashcard-1.png" alt="客製信用卡造型卡片" style="width:100%;max-width:600px;border-radius:8px;" />
-  </div>
-  <div id="ck-cc-thumbs" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px;"></div>
+<div class="ck-cc-wide">
+<h3 class="ck-cc-h3">作品</h3>
+<div class="ck-cc-grid">
+<img src="images/cashcard-1.png" alt="客製卡片作品 1" loading="lazy" />
+<img src="images/cashcard-2.png" alt="客製卡片作品 2" loading="lazy" />
+<img src="images/cashcard-3.png" alt="客製卡片作品 3" loading="lazy" />
+<img src="images/cashcard-4.png" alt="客製卡片作品 4" loading="lazy" />
+<img src="images/cashcard-5.png" alt="客製卡片作品 5" loading="lazy" />
+<img src="images/cashcard-6.png" alt="客製卡片作品 6" loading="lazy" />
+<img src="images/cashcard-7.png" alt="客製卡片作品 7" loading="lazy" />
+<img src="images/cashcard-8.png" alt="客製卡片作品 8" loading="lazy" />
+<img src="images/cashcard-9.png" alt="客製卡片作品 9" loading="lazy" />
+<img src="images/cashcard-10.png" alt="客製卡片作品 10" loading="lazy" />
+<img src="images/cashcard-11.png" alt="客製卡片作品 11" loading="lazy" />
 </div>
-<script>
-(function(){
-  var main = document.getElementById('ck-cc-main');
-  var thumbs = document.getElementById('ck-cc-thumbs');
-  for (var i=1;i<=11;i++){
-    (function(src){
-      var t = document.createElement('img');
-      t.src = src;
-      t.alt = '卡片圖';
-      t.style.cssText = 'width:64px;height:64px;object-fit:cover;border-radius:6px;cursor:pointer;border:2px solid transparent;';
-      t.addEventListener('click', function(){
-        main.src = src;
-        for (var j=0;j<thumbs.children.length;j++){ thumbs.children[j].style.borderColor='transparent'; }
-        t.style.borderColor='#ff1f1f';
-      });
-      if (i===1) t.style.borderColor='#ff1f1f';
-      thumbs.appendChild(t);
-    })('images/cashcard-'+i+'.png');
-  }
-})();
-</script>
 
-<div style="height:20px;overflow:hidden"></div></div>
+<h3 class="ck-cc-h3">怎麼訂</h3>
+<div class="ck-cc-steps">
+<div class="ck-cc-step"><div class="ck-cc-n">1</div><div><b>下單</b>　賣貨便付排單費 20 元＋運費 38 元，接著填客製化內容表單（Email 通知）。</div></div>
+<div class="ck-cc-step"><div class="ck-cc-n">2</div><div><b>確認</b>　匯款 1,980 元，我做好電子樣品圖給你確認，可修改一次。</div></div>
+<div class="ck-cc-step"><div class="ck-cc-n">3</div><div><b>製作出貨</b>　約 7–10 個工作日，出貨後 Email 通知，開心取貨。</div></div>
+</div>
+<p class="ck-cc-fine">※ 可放入 Apple 錢包及 Google 錢包，無扣款功能。扣款功能為平台端的擴充功能，需額外付月費。</p>
 
+<h3 class="ck-cc-h3">實際開箱</h3>
+<div class="ck-cc-ig">
+<blockquote class="instagram-media" data-instgrm-captioned data-instgrm-permalink="https://www.instagram.com/reel/DPv8sVtEm5O/?utm_source=ig_embed&amp;utm_campaign=loading" data-instgrm-version="14" style=" background:#FFF; border:0; border-radius:3px; box-shadow:0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15); margin: 1px; max-width:540px; min-width:326px; padding:0; width:99.375%; width:-webkit-calc(100% - 2px); width:calc(100% - 2px);"><div style="padding:16px;"> <a href="https://www.instagram.com/reel/DPv8sVtEm5O/?utm_source=ig_embed&amp;utm_campaign=loading" style=" background:#FFFFFF; line-height:0; padding:0 0; text-align:center; text-decoration:none; width:100%;" target="_blank"> <div style=" display: flex; flex-direction: row; align-items: center;"> <div style="background-color: #F4F4F4; border-radius: 50%; flex-grow: 0; height: 40px; margin-right: 14px; width: 40px;"></div> <div style="display: flex; flex-direction: column; flex-grow: 1; justify-content: center;"> <div style=" background-color: #F4F4F4; border-radius: 4px; flex-grow: 0; height: 14px; margin-bottom: 6px; width: 100px;"></div> <div style=" background-color: #F4F4F4; border-radius: 4px; flex-grow: 0; height: 14px; width: 60px;"></div></div></div><div style="padding: 19% 0;"></div> <div style="display:block; height:50px; margin:0 auto 12px; width:50px;"><svg width="50px" height="50px" viewBox="0 0 60 60" version="1.1" xmlns="https://www.w3.org/2000/svg" xmlns:xlink="https://www.w3.org/1999/xlink"><g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"><g transform="translate(-511.000000, -20.000000)" fill="#000000"><g><path d="M556.869,30.41 C554.814,30.41 553.148,32.076 553.148,34.131 C553.148,36.186 554.814,37.852 556.869,37.852 C558.924,37.852 560.59,36.186 560.59,34.131 C560.59,32.076 558.924,30.41 556.869,30.41 M541,60.657 C535.114,60.657 530.342,55.887 530.342,50 C530.342,44.114 535.114,39.342 541,39.342 C546.887,39.342 551.658,44.114 551.658,50 C551.658,55.887 546.887,60.657 541,60.657 M541,33.886 C532.1,33.886 524.886,41.1 524.886,50 C524.886,58.899 532.1,66.113 541,66.113 C549.9,66.113 557.115,58.899 557.115,50 C557.115,41.1 549.9,33.886 541,33.886 M565.378,62.101 C565.244,65.022 564.756,66.606 564.346,67.663 C563.803,69.06 563.154,70.057 562.106,71.106 C561.058,72.155 560.06,72.803 558.662,73.347 C557.607,73.757 556.021,74.244 553.102,74.378 C549.944,74.521 548.997,74.552 541,74.552 C533.003,74.552 532.056,74.521 528.898,74.378 C525.979,74.244 524.393,73.757 523.338,73.347 C521.94,72.803 520.942,72.155 519.894,71.106 C518.846,70.057 518.197,69.06 517.654,67.663 C517.244,66.606 516.755,65.022 516.623,62.101 C516.479,58.943 516.448,57.996 516.448,50 C516.448,42.003 516.479,41.056 516.623,37.899 C516.755,34.978 517.244,33.391 517.654,32.338 C518.197,30.938 518.846,29.942 519.894,28.894 C520.942,27.846 521.94,27.196 523.338,26.654 C524.393,26.244 525.979,25.756 528.898,25.623 C532.057,25.479 533.004,25.448 541,25.448 C548.997,25.448 549.943,25.479 553.102,25.623 C556.021,25.756 557.607,26.244 558.662,26.654 C560.06,27.196 561.058,27.846 562.106,28.894 C563.154,29.942 563.803,30.938 564.346,32.338 C564.756,33.391 565.244,34.978 565.378,37.899 C565.522,41.056 565.552,42.003 565.552,50 C565.552,57.996 565.522,58.943 565.378,62.101 M570.82,37.631 C570.674,34.438 570.167,32.258 569.425,30.349 C568.659,28.377 567.633,26.702 565.965,25.035 C564.297,23.368 562.623,22.342 560.652,21.575 C558.743,20.834 556.562,20.326 553.369,20.18 C550.169,20.033 549.148,20 541,20 C532.853,20 531.831,20.033 528.631,20.18 C525.438,20.326 523.257,20.834 521.349,21.575 C519.376,22.342 517.703,23.368 516.035,25.035 C514.368,26.702 513.342,28.377 512.574,30.349 C511.834,32.258 511.326,34.438 511.181,37.631 C511.035,40.831 511,41.851 511,50 C511,58.147 511.035,59.17 511.181,62.369 C511.326,65.562 511.834,67.743 512.574,69.651 C513.342,71.625 514.368,73.296 516.035,74.965 C517.703,76.634 519.376,77.658 521.349,78.425 C523.257,79.167 525.438,79.673 528.631,79.82 C531.831,79.965 532.853,80.001 541,80.001 C549.148,80.001 550.169,79.965 553.369,79.82 C556.562,79.673 558.743,79.167 560.652,78.425 C562.623,77.658 564.297,76.634 565.965,74.965 C567.633,73.296 568.659,71.625 569.425,69.651 C570.167,67.743 570.674,65.562 570.82,62.369 C570.966,59.17 571,58.147 571,50 C571,41.851 570.966,40.831 570.82,37.631"></path></g></g></g></svg></div><div style="padding-top: 8px;"> <div style=" color:#3897f0; font-family:Arial,sans-serif; font-size:14px; font-style:normal; font-weight:550; line-height:18px;">在 Instagram 查看這則貼文</div></div><div style="padding: 12.5% 0;"></div> <div style="display: flex; flex-direction: row; margin-bottom: 14px; align-items: center;"><div> <div style="background-color: #F4F4F4; border-radius: 50%; height: 12.5px; width: 12.5px; transform: translateX(0px) translateY(7px);"></div> <div style="background-color: #F4F4F4; height: 12.5px; transform: rotate(-45deg) translateX(3px) translateY(1px); width: 12.5px; flex-grow: 0; margin-right: 14px; margin-left: 2px;"></div> <div style="background-color: #F4F4F4; border-radius: 50%; height: 12.5px; width: 12.5px; transform: translateX(9px) translateY(-18px);"></div></div><div style="margin-left: 8px;"> <div style=" background-color: #F4F4F4; border-radius: 50%; flex-grow: 0; height: 20px; width: 20px;"></div> <div style=" width: 0; height: 0; border-top: 2px solid transparent; border-left: 6px solid #f4f4f4; border-bottom: 2px solid transparent; transform: translateX(16px) translateY(-4px) rotate(30deg)"></div></div><div style="margin-left: auto;"> <div style=" width: 0px; border-top: 8px solid #F4F4F4; border-right: 8px solid transparent; transform: translateY(16px);"></div> <div style=" background-color: #F4F4F4; flex-grow: 0; height: 12px; width: 16px; transform: translateY(-4px);"></div> <div style=" width: 0; height: 0; border-top: 8px solid #F4F4F4; border-left: 8px solid transparent; transform: translateY(-4px) translateX(8px);"></div></div></div> <div style="display: flex; flex-direction: column; flex-grow: 1; justify-content: center; margin-bottom: 24px;"> <div style=" background-color: #F4F4F4; border-radius: 4px; flex-grow: 0; height: 14px; margin-bottom: 6px; width: 224px;"></div> <div style=" background-color: #F4F4F4; border-radius: 4px; flex-grow: 0; height: 14px; width: 144px;"></div></div></a><p style=" color:#c9c8cd; font-family:Arial,sans-serif; font-size:14px; line-height:17px; margin-bottom:0; margin-top:8px; overflow:hidden; padding:8px 0 7px; text-align:center; text-overflow:ellipsis; white-space:nowrap;"><a href="https://www.instagram.com/reel/DPv8sVtEm5O/?utm_source=ig_embed&amp;utm_campaign=loading" style=" color:#c9c8cd; font-family:Arial,sans-serif; font-size:14px; font-style:normal; font-weight:normal; line-height:17px; text-decoration:none;" target="_blank">空罐王（@canking_liu）分享的貼文</a></p></div></blockquote>
+<script async src="//www.instagram.com/embed.js"></script>
+</div>
 
-					
-				</td>			</tr>
-		</tbody>
-	</table>
-</div></div></div>
+<div class="ck-cc-btns ck-cc-center">
+<a class="ck-cc-b1" href="https://myship.7-11.com.tw/general/detail/GM2511047746521" target="_blank" rel="noopener">711賣貨便下單</a>
+<a class="ck-cc-b2" href="https://docs.google.com/forms/d/e/1FAIpQLScSby_K4IcfKt6PzrkKCd8uPJuXqb5oay4hxZ-2bgY1BbzjHw/viewform?usp=send_form" target="_blank" rel="noopener">海外表單</a>
+</div>
+</div>
 			</div>
 		</div>
 					</div>
