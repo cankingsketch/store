@@ -102,6 +102,24 @@
   .tag.new { background:#ffe9e9; color:var(--red); }
   .tag.shop { background:#eaf3ff; color:#2b5f9e; }
   .tag.hot { background:#ff2d2d; color:#fff; }
+  /* 數位賣場銷售 */
+  .gs-months { display:grid; gap:7px; }
+  .gs-row { display:grid; grid-template-columns:64px 1fr 62px 76px; align-items:center; gap:10px; font-size:13px; }
+  .gs-m { color:#666; }
+  .gs-bar { background:#f2f2f2; border-radius:999px; height:9px; overflow:hidden; }
+  .gs-bar i { display:block; height:100%; background:#f64c3f; border-radius:999px; }
+  .gs-n { text-align:right; font-weight:700; color:#333; }
+  .gs-u { text-align:right; color:#888; }
+  .gs-h { font-size:14px; font-weight:800; margin:20px 0 8px; color:#333; }
+  .gs-list { display:grid; gap:5px; }
+  .gs-item { display:grid; grid-template-columns:24px 1fr 62px; align-items:center; gap:10px; font-size:13px; }
+  .gs-rank { width:20px; height:20px; border-radius:50%; background:#ffe9e9; color:var(--red);
+    font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+  .gs-name { color:#444; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  @media screen and (max-width:600px) {
+    .gs-row { grid-template-columns:56px 1fr 50px; }
+    .gs-u { display:none; }
+  }
   .hotbar-row { display:flex; flex-wrap:wrap; gap:12px; }
   .hotcard { width:140px; border:2px solid #ffd9d6; border-radius:10px; overflow:hidden; background:#fff; }
   .hotcard img { width:100%; height:100px; object-fit:cover; display:block; background:#f6f6f6; }
@@ -258,6 +276,15 @@
       <div class="cardhead"><h2>購買連結點擊</h2></div>
       <p class="hint" id="st-period">載入中…</p>
       <div id="st-body"></div>
+    </div>
+
+    <div class="card" style="margin-top:18px;">
+      <div class="cardhead">
+        <h2>數位賣場銷售</h2>
+        <span class="hint">Gumroad</span>
+      </div>
+      <p class="hint" id="gs-period">載入中…</p>
+      <div id="gs-body"></div>
     </div>
   </div>
 </div>
@@ -931,6 +958,60 @@
       .then(function () { tfBusy = false; });
   }
 
+  /* 數位賣場銷售（Gumroad）。跟流量、點擊並排，因為這三件事要一起看才有意義：
+     多少人來 → 多少人點了 Gumroad → 多少人真的買。實體商品做不到這串，
+     因為賣貨便沒有 API；數位的可以。 */
+  var salesLoadedFor = null, salesBusy = false;
+
+  function renderSales(d) {
+    var months = d.byMonth || [], items = d.byProduct || [];
+    $('gs-period').textContent = '過去 ' + d.months + ' 個月，共 ' + d.total + ' 筆，US$ ' + d.usd;
+    if (!months.length) {
+      $('gs-body').innerHTML = '<p class="empty">這段期間沒有銷售紀錄。</p>';
+      return;
+    }
+    var max = Math.max.apply(null, months.map(function (m) { return m.count; }));
+    var html = '<div class="gs-months">';
+    months.forEach(function (m) {
+      var pct = max ? Math.round(m.count / max * 100) : 0;
+      html += '<div class="gs-row"><span class="gs-m">' + esc(m.month) + '</span>'
+        + '<span class="gs-bar"><i style="width:' + pct + '%"></i></span>'
+        + '<span class="gs-n">' + m.count + ' 筆</span>'
+        + '<span class="gs-u">US$ ' + m.usd + '</span></div>';
+    });
+    html += '</div>';
+    if (items.length) {
+      html += '<h3 class="gs-h">賣最好的獎勵</h3><div class="gs-list">';
+      items.slice(0, 10).forEach(function (p, i) {
+        html += '<div class="gs-item"><span class="gs-rank">' + (i + 1) + '</span>'
+          + '<span class="gs-name">' + esc(p.name) + '</span>'
+          + '<span class="gs-n">' + p.count + ' 筆</span></div>';
+      });
+      html += '</div>';
+    }
+    if (d.truncated) html += '<p class="hint">資料太多，只統計到前面幾頁。</p>';
+    $('gs-body').innerHTML = html;
+  }
+
+  function loadSales(force) {
+    var m = days <= 30 ? 6 : 12;   // 看 7/30 天時給半年，看 90 天時給一年
+    if (salesBusy || (!force && salesLoadedFor === m)) return;
+    salesBusy = true;
+    $('gs-period').textContent = '載入中…';
+    fetch('/api/gumroad-sales?months=' + m, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.error) throw new Error(d.error + (d.reason ? '（' + d.reason + '）' : ''));
+        salesLoadedFor = m;
+        renderSales(d);
+      })
+      .catch(function (e) {
+        $('gs-period').textContent = '';
+        $('gs-body').innerHTML = '<p class="empty">讀取失敗：' + esc(e.message || e) + '</p>';
+      })
+      .then(function () { salesBusy = false; });
+  }
+
   function load(force) {
     if (busy || (!force && loadedFor === days)) return;
     busy = true;
@@ -959,7 +1040,7 @@
     // 統計頁用不到這兩顆，藏起來免得誤按
     $('btn-new').style.display = stats ? 'none' : '';
     $('btn-save').style.display = stats ? 'none' : '';
-    if (stats) { loadTraffic(); load(); }
+    if (stats) { loadTraffic(); load(); loadSales(); }
   }
   $('tab-goods').addEventListener('click', function () { show('goods'); });
   $('tab-stats').addEventListener('click', function () { show('stats'); });
