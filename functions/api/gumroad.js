@@ -62,6 +62,16 @@ async function callApi(token) {
 async function fetchProducts(token) {
   const raw = await callApi(token);
 
+  // 診斷用計數：只有數量，不含任何商品內容或營收
+  const diag = {
+    raw: raw.length,
+    unpublished: raw.filter((p) => p && !p.published).length,
+    notWanted: raw.filter((p) => p && p.published && !WANT.test(p.name || '')).length,
+    noThumb: raw.filter((p) => p && p.published && WANT.test(p.name || '')
+      && !(p.thumbnail_url || p.preview_url)).length,
+    noUrl: raw.filter((p) => p && p.published && WANT.test(p.name || '') && !p.short_url).length,
+  };
+
   const items = raw
     .filter((p) => p && p.published && WANT.test(p.name || ''))
     // ★ 只挑這三個欄位出來，銷售數字不會經過這裡
@@ -88,7 +98,7 @@ async function fetchProducts(token) {
       products: products.sort((a, b) => b.ym - a.ym).map(({ ym, ...rest }) => rest),
     }));
 
-  return { groups, count: items.length, fetchedAt: new Date().toISOString() };
+  return { groups, count: items.length, diag, fetchedAt: new Date().toISOString() };
 }
 
 /* ---------- 快取（D1，綁定名 STATS） ---------- */
