@@ -108,7 +108,9 @@
         kind: SHOP.indexOf(ch) >= 0 ? 'shop' : 'other',
         url: u.href.slice(0, 300),
         label: labelFor(a),
-        page: (location.pathname + location.search).slice(0, 200)
+        // 只記路徑，不記查詢字串。Facebook 會在網址後面掛 ?fbclid=<每人不同>，
+        // 一起記下去的話同一頁會被拆成幾十列，統計就沒得看了。
+        page: location.pathname.slice(0, 200)
       });
     } catch (err) {
       /* 追蹤失敗絕不影響跳轉 */

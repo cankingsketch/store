@@ -102,6 +102,22 @@
   .tag.new { background:#ffe9e9; color:var(--red); }
   .tag.shop { background:#eaf3ff; color:#2b5f9e; }
   .tag.hot { background:#ff2d2d; color:#fff; }
+  /* 各頁面轉換率 */
+  .pc-head, .pc-row { display:grid; grid-template-columns:1fr 58px 68px 90px 60px; gap:8px;
+    align-items:center; font-size:13px; padding:5px 0; }
+  .pc-head { color:#999; font-size:12px; border-bottom:1px solid #eee; margin-bottom:4px; }
+  .pc-head span:nth-child(2), .pc-head span:nth-child(3) { text-align:right; }
+  .pc-head span:nth-child(4) { grid-column:4 / span 2; text-align:right; }
+  .pc-nm { color:#333; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pc-v, .pc-c { text-align:right; color:#666; }
+  .pc-bar { background:#f2f2f2; border-radius:999px; height:8px; overflow:hidden; }
+  .pc-bar i { display:block; height:100%; background:#f64c3f; border-radius:999px; }
+  .pc-r { text-align:right; font-weight:700; color:#333; }
+  @media screen and (max-width:600px) {
+    .pc-head, .pc-row { grid-template-columns:1fr 46px 46px 56px; }
+    .pc-bar { display:none; }
+    .pc-head span:nth-child(4) { grid-column:4; }
+  }
   /* 數位賣場銷售 */
   .gs-months { display:grid; gap:7px; }
   .gs-row { display:grid; grid-template-columns:64px 1fr 62px 76px; align-items:center; gap:10px; font-size:13px; }
@@ -276,6 +292,12 @@
       <div class="cardhead"><h2>購買連結點擊</h2></div>
       <p class="hint" id="st-period">載入中…</p>
       <div id="st-body"></div>
+    </div>
+
+    <div class="card" style="margin-top:18px;">
+      <div class="cardhead"><h2>各頁面轉換率</h2></div>
+      <p class="hint">每一頁有多少人看、有多少人點了購買連結</p>
+      <div id="pc-body"><p class="empty">載入中…</p></div>
     </div>
 
     <div class="card" style="margin-top:18px;">
@@ -795,6 +817,80 @@
       '<span>' + out[out.length - 1].day + '</span></div>';
   }
 
+  var lastTraffic = null, lastStats = null;
+  /* 頁面代號對照。Weebly 匯出的舊頁面路徑是一串數字，報表上看不出是什麼。 */
+  var PAGE_NAMES = {
+    '/': '首頁',
+    '/goods': '周邊',
+    '/lessons': '課程',
+    '/illusts': '數位賣場',
+    '/t24676': 'T恤',
+    '/3005920874': '畫冊',
+    '/2345835069212702183021697': '客製化商品',
+    '/3287921517251632723127580': '聯名手機殼',
+    '/2550940845t24676': '接龍T恤',
+    '/penker-3287921517': 'PENKER 聯名',
+    '/events-883299': '實體店寄售',
+    '/events': '活動'
+  };
+  function pageName(p) {
+    var k = String(p || '/').split('?')[0].replace(/\.html$/, '');
+    if (k.length > 1) k = k.replace(/\/$/, '');
+    return PAGE_NAMES[k] || k;
+  }
+  function pageKey(p) {
+    var k = String(p || '/').split('?')[0].replace(/\.html$/, '');
+    if (k.length > 1) k = k.replace(/\/$/, '');
+    return k;
+  }
+
+  /* 「每一頁有多少人看 → 有多少人點了購買」。
+     造訪數來自 Cloudflare（/api/traffic），點擊數來自我們自己的紀錄（/api/stats），
+     兩邊都以路徑為鍵合起來算。原本這裡是「從哪一頁點出去」——它只會告訴你
+     「大部分點擊來自周邊頁」，但那是因為商品都在那一頁，等於沒講什麼。 */
+  function renderPageConv() {
+    var box = document.getElementById('pc-body');
+    if (!box) return;
+    if (!lastTraffic || !lastStats) { box.innerHTML = '<p class="empty">載入中…</p>'; return; }
+
+    var visits = {};
+    (lastTraffic.paths || []).forEach(function (r) {
+      var k = pageKey(r.name);
+      visits[k] = (visits[k] || 0) + (r.visits || 0);
+    });
+    var clicks = {};
+    (lastStats.byPage || []).forEach(function (r) {
+      var k = pageKey(r.page);
+      clicks[k] = (clicks[k] || 0) + (r.n || 0);
+    });
+
+    var keys = Object.keys(visits);
+    Object.keys(clicks).forEach(function (k) { if (keys.indexOf(k) < 0) keys.push(k); });
+    var list = keys.map(function (k) {
+      var v = visits[k] || 0, c = clicks[k] || 0;
+      return { k: k, nm: pageName(k), v: v, c: c, rate: v ? c / v * 100 : null };
+    }).filter(function (r) { return r.v > 0 || r.c > 0; })
+      .sort(function (a, b) { return b.v - a.v; })
+      .slice(0, 10);
+
+    if (!list.length) { box.innerHTML = '<p class="empty">還沒有資料。</p>'; return; }
+    var maxRate = Math.max.apply(null, list.map(function (r) { return r.rate || 0; })) || 1;
+
+    var html = '<div class="pc-head"><span>頁面</span><span>造訪</span><span>點了購買</span>'
+      + '<span class="pc-r">轉換率</span></div>';
+    list.forEach(function (r) {
+      var pct = r.rate === null ? 0 : Math.round(r.rate / maxRate * 100);
+      html += '<div class="pc-row"><span class="pc-nm">' + esc(r.nm) + '</span>'
+        + '<span class="pc-v">' + r.v + '</span>'
+        + '<span class="pc-c">' + r.c + '</span>'
+        + '<span class="pc-bar"><i style="width:' + pct + '%"></i></span>'
+        + '<span class="pc-r">' + (r.rate === null ? '—' : r.rate.toFixed(1) + '%') + '</span></div>';
+    });
+    html += '<p class="hint">造訪數來自 Cloudflare、點擊數來自本站紀錄，兩邊統計方式不同，'
+      + '比率看趨勢就好，別當成精確值。</p>';
+    box.innerHTML = html;
+  }
+
   function render(d) {
     if (d.ready === false) {
       $('st-period').textContent = '';
@@ -829,8 +925,6 @@
     html += section('哪個商品的購買鍵被按最多',
       barList((d.byLabel || []).map(function (r) { return { nm: r.label, n: r.n }; })));
 
-    html += section('從哪一頁點出去',
-      barList((d.byPage || []).map(function (r) { return { nm: r.page || '（首頁）', n: r.n }; })));
 
     var dev = d.byDevice || [], ctry = d.byCountry || [];
     html += '<div class="cols" style="margin-top:4px;"><div>' +
@@ -949,7 +1043,9 @@
       .then(function (d) {
         if (d.error) throw new Error(d.error);
         tfLoadedFor = key;
+        lastTraffic = d;
         renderTraffic(d);
+        renderPageConv();
       })
       .catch(function (e) {
         $('tf-period').textContent = '';
@@ -1021,7 +1117,9 @@
       .then(function (d) {
         if (d.error) throw new Error(d.error);
         loadedFor = days;
+        lastStats = d;
         render(d);
+        renderPageConv();
       })
       .catch(function (e) {
         $('st-period').textContent = '';

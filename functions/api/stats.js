@@ -64,9 +64,15 @@ export async function onRequestGet({ request, env }) {
          WHERE day >= ? GROUP BY day ORDER BY day`,
         from
       ),
+      // 舊資料裡的 page 帶著 ?fbclid=... 之類的查詢字串（前端已修，但存下來的還在），
+      // 所以這裡先切掉問號後面再分組，同一頁才併得起來
       rows(
-        `SELECT page, COUNT(*) AS n FROM clicks WHERE day >= ?
-         GROUP BY page ORDER BY n DESC LIMIT ?`,
+        `SELECT CASE WHEN instr(page, '?') > 0
+                     THEN substr(page, 1, instr(page, '?') - 1)
+                     ELSE page END AS page,
+                COUNT(*) AS n
+         FROM clicks WHERE day >= ?
+         GROUP BY 1 ORDER BY n DESC LIMIT ?`,
         from, TOP_N
       ),
       rows(`SELECT device, COUNT(*) AS n FROM clicks WHERE day >= ? GROUP BY device`, from),
