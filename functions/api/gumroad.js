@@ -20,7 +20,7 @@
 const API = 'https://api.gumroad.com/v2/products';
 const WANT = /會員獎勵/;     // 使用者要的只有會員獎勵，電子畫冊等不列入
 // 回傳格式改版時把這個加一，舊格式的快取會自動失效重抓
-const VERSION = 3;
+const VERSION = 4;
 const MAX_PAGES = 30;   // 防呆：真有這麼多頁就先停
 
 function json(data, status = 200) {
@@ -48,23 +48,22 @@ function ymOf(name) {
 /* 文件上的範例用 query string 帶 token，但那會讓金鑰出現在網址裡
  * （代理、記錄檔都可能留下）。先試標準的 Authorization 標頭，
  * 真的不吃再退回 query string。 */
-async function callPage(token, page) {
-  const qs = page > 1 ? '?page=' + page : '';
-  let res = await fetch(API + qs, {
+async function callPage(token, params) {
+  const qs = params.toString();
+  let res = await fetch(API + (qs ? '?' + qs : ''), {
     headers: { authorization: 'Bearer ' + token, accept: 'application/json' },
   });
   if (res.status === 401 || res.status === 403) {
-    const sep = qs ? '&' : '?';
-    res = await fetch(API + qs + sep + 'access_token=' + encodeURIComponent(token), {
-      headers: { accept: 'application/json' },
-    });
+    const p2 = new URLSearchParams(params);
+    p2.set('access_token', token);
+    res = await fetch(API + '?' + p2.toString(), { headers: { accept: 'application/json' } });
   }
   if (!res.ok) throw new Error('Gumroad API 回應 ' + res.status);
   const data = await res.json();
   if (!data || data.success === false) {
     throw new Error(data && data.message ? data.message : 'Gumroad API 回報失敗');
   }
-  return data.products || [];
+  return data;
 }
 
 /* 文件說 /products 會給「所有」商品，實際上只給最新的 10 個——
@@ -74,10 +73,21 @@ async function callPage(token, page) {
 async function callApi(token) {
   const seen = new Set();
   const all = [];
-  let pages = 0;
-  for (let page = 1; page <= MAX_PAGES; page++) {
-    const batch = await callPage(token, page);
+  let pages = 0, pageKey = null, page = 1;
+  let keys = null;   // 第一頁回應有哪些欄位，用來查分頁到底叫什麼名字
+
+  for (; pages < MAX_PAGES; page++) {
+    const params = new URLSearchParams();
+    // 兩種分頁寫法都送：/sales 用 page_key 游標，page 則是常見的頁碼。
+    // 送了不支援的參數會被忽略，不會出錯。
+    if (pageKey) params.set('page_key', pageKey);
+    else if (page > 1) params.set('page', String(page));
+
+    const data = await callPage(token, params);
+    if (!keys) keys = Object.keys(data);
     pages++;
+
+    const batch = data.products || [];
     let added = 0;
     for (const p of batch) {
       const key = p && (p.id || p.short_url || p.name);
@@ -86,17 +96,22 @@ async function callApi(token) {
       all.push(p);
       added++;
     }
-    if (!batch.length || !added) break;   // 空頁、或整頁都是看過的 → 到底了
+
+    pageKey = data.next_page_key || null;
+    // 空頁、整頁都看過、而且也沒有游標可以往下走 → 到底了
+    if ((!batch.length || !added) && !pageKey) break;
+    if (!pageKey && !added) break;
   }
-  return { products: all, pages };
+  return { products: all, pages, keys };
 }
 
 async function fetchProducts(token) {
-  const { products: raw, pages } = await callApi(token);
+  const { products: raw, pages, keys } = await callApi(token);
 
   // 診斷用計數：只有數量，不含任何商品內容或營收
   const diag = {
     pages,
+    apiKeys: keys,        // Gumroad 回應有哪些欄位，用來確認分頁參數叫什麼
     raw: raw.length,
     unpublished: raw.filter((p) => p && !p.published).length,
     notWanted: raw.filter((p) => p && p.published && !WANT.test(p.name || '')).length,
