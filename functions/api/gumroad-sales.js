@@ -8,6 +8,8 @@
  * 資料來源：官方 GET /v2/sales，需要 token 有 view_sales scope。
  * 回傳的是每月彙總與每個商品的排名，不含買家個資（姓名、email 一律不取）。
  */
+import { requireAccess } from '../../lib/access.js';
+
 
 const API = 'https://api.gumroad.com/v2/sales';
 const MAX_PAGES = 40;        // 防呆：真的有這麼多頁就先停，不要無限打
@@ -54,10 +56,11 @@ async function fetchPage(token, params) {
 }
 
 export async function onRequestGet({ request, env }) {
-  // 沒有設 Access 就一律擋掉——寧可看不到，也不要把營收攤在網路上
-  if (!request.headers.get('Cf-Access-Authenticated-User-Email')) {
-    return json({ error: '需要登入後台' }, 403);
-  }
+  // 驗 Cloudflare Access 的簽章。不能只看 Cf-Access-Authenticated-User-Email：
+  // 那個標頭只有被 Access 應用程式涵蓋的路徑才會被注入，這支沒有涵蓋，
+  // 只認標頭的話永遠不會通過。
+  const auth = await requireAccess(request, json);
+  if (auth.error) return auth.error;
   if (!env.GUMROAD_TOKEN) return json({ error: '尚未設定 GUMROAD_TOKEN' }, 500);
 
   const url = new URL(request.url);

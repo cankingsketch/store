@@ -8,6 +8,8 @@
  * 做的事只有一件：把 D1 裡的快取清掉。下一次有人打開賣場頁面就會重抓。
  * 這樣這支不必碰 GUMROAD_TOKEN，也不會回傳任何商品資料。
  */
+import { requireAccess } from '../../lib/access.js';
+
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -31,9 +33,8 @@ async function clear(env) {
 }
 
 export async function onRequestPost({ request, env }) {
-  if (!request.headers.get('Cf-Access-Authenticated-User-Email')) {
-    return json({ error: '需要登入後台' }, 403);
-  }
+  const auth = await requireAccess(request, json);
+  if (auth.error) return auth.error;
   const r = await clear(env);
   return json(Object.assign({ cleared: r.ok }, r.note ? { note: r.note } : {},
     r.error ? { error: r.error } : {}), r.ok ? 200 : 500);
