@@ -381,10 +381,10 @@ pointer-events: all !important;
 	 z-index: 3;
 }
  .ns-banner2 .img-main {
-	 width: 45%;
+	 width: 56%;
 	 position: absolute;
-	 left: 47.5%;
-	 top: 51%;
+	 left: 46%;
+	 top: 52%;
 	 transform: translate(-50%, -50%);
 	 z-index: 2;
 	 animation: main-ani 1s 1 var(--ns-banner2-ani-curve);
@@ -400,15 +400,15 @@ pointer-events: all !important;
  .ns-banner2 .img-smoke {
 	 z-index: 3;
 	 position: absolute;
-	 top: 13%;
-	 left: 22%;
-	 width: 24%;
+	 top: 4.71%;
+	 left: 14.27%;
+	 width: 29.87%;
 }
  .ns-banner2 .img-twinkle {
 	 width: 32%;
 	 position: absolute;
 	 left: 48%;
-	 top: -23.5%;
+	 top: -30.2%;
 	 transform: translateX(-50%);
 	 animation: twinkle-ani 1s 1 var(--ns-banner2-ani-curve);
 }
@@ -417,14 +417,14 @@ pointer-events: all !important;
 		 top: 0;
 	}
 	 100% {
-		 top: -23.5%;
+		 top: -30.2%;
 	}
 }
  .ns-banner2 .img-title {
 	 position: absolute;
 	 left: 6%;
 	 top: 6%;
-	 width: 27%;
+	 width: 24.3%;
 	 animation: title-ani 1s 1 var(--ns-banner2-ani-curve);
 }
  @media screen and (max-width: 431px) {
@@ -456,18 +456,18 @@ pointer-events: all !important;
 }
  .ns-banner2 .img-rank {
 	 position: absolute;
-	 right: 11%;
-	 bottom: -22%;
+	 right: 9%;
+	 bottom: -25.3%;
 	 width: 16%;
 	 animation: rank-ani 1s 1 var(--ns-banner2-ani-curve);
 }
  @keyframes rank-ani {
 	 0% {
-		 right: 25%;
+		 right: 23%;
 		 opacity: 0;
 	}
 	 100% {
-		 right: 11%;
+		 right: 9%;
 		 opacity: 1;
 	}
 }
@@ -538,11 +538,11 @@ margin-top: -2px;
 	}
 }
  .ns-banner2 .main-click-area-container {
-	 width: 14.5%;
-	 padding-top: 14.5%;
+	 width: 18.04%;
+	 padding-top: 18.04%;
 	 position: absolute;
-	 top: 4%;
-	 left: 54.5%;
+	 top: -6.49%;
+	 left: 54.71%;
 	 z-index: 6;
 	 cursor: none;
 }
@@ -630,128 +630,130 @@ margin-top: -2px;
 	}
 }
  */
- .ns-banner2 .coupon-container {
-	 position: absolute;
-	 color: #f00;
-	 z-index: 5;
-	 text-align: center;
-	 top: 49%;
-	 left: 30.5%;
-	 font-size: 12px;
-	 width: 7%;
-	 font-weight: bold;
+ @media screen and (max-width: 431px) {
+	}
+ /* ── 首圖改版（放大人物、拿掉計數器）新增的規則 ────────────────
+    new_index_twinkle.png 裡有 7 個獨立形狀。人物放大後，最左邊那顆星星
+    底下的小點點會被頭髮蓋掉，所以把那顆星星＋小點點拆成 _a.png，
+    其餘 5 個留在 _b.png，兩張畫布尺寸相同，疊回去位置不變。
+    a 層再往左 20px（20 ÷ 999 = 2%），小點點就完整露出來。 */
+ .ns-banner2 .img-twinkle-a {
+	 left: 46%;
 }
- .ns-banner2 .coupon-container .coupon-label {
-	 margin-bottom: 5px;
+ /* 「今日敲擊次數」拿掉。用 display:none 而不是刪節點——
+    上面的 JS 會直接對 .click-counter-value 寫 innerText，
+    節點不在就整段拋錯，敲擊的玩法會跟著死掉。
+    count_limit.gif 是計數器的一部分，一起收起來，
+    不然數字沒了卻單獨冒出一個上限提示會看不懂。 */
+ .ns-banner2 .click-counter,
+ .ns-banner2 .img-exceed-limit {
+	 display: none !important;
 }
  @media screen and (max-width: 431px) {
-	 .ns-banner2 .coupon-container {
-		 top: 39%;
-		 left: 25%;
-		 font-size: 12px;
-		 transform: scale(0.45);
-		 width: 18%;
+	 /* 手機的外距原本是 0，人物放大後星星跟腳會被 overflow:hidden 切掉 */
+	 .ns-banner2 {
+		 padding: 28px 0;
 	}
-}
- .ns-banner2 .coupon-container .coupon-code {
-	 user-select: all !important;
-   -webkit-user-select: all !important;
-   pointer-events: all !important;
-}
+	 /* 標題在桌機縮了 10%，手機同步 */
+	 .ns-banner2 .img-title {
+		 width: 22.5%;
+	}
+	 /* 折價碼文字貼在人物身上，要跟著同一個倍率移動 */
+	}
  .ns-banner2 .img-dialog-1 {
 	 position: absolute;
-	 left: 15%;
-	 top: 24%;
-	 width: 12.5%;
+	 left: 10.5%;
+	 top: 19%;
+	 width: 15.5%;
 	 z-index: 2;
 	 animation: dialog-1-ani 1s 1 var(--ns-banner2-ani-curve);
 }
  @keyframes dialog-1-ani {
 	 0% {
-		 left: 20%;
+		 left: 15.5%;
 	}
 	 100% {
-		 left: 15%;
+		 left: 10.5%;
 	}
 }
  .ns-banner2 .img-dialog-2 {
 	 position: absolute;
-	 left: 7.5%;
-	 top: 47%;
-	 width: 18%;
+	 left: 2.5%;
+	 top: 45%;
+	 width: 22%;
 	 z-index: 1;
 	 animation: dialog-2-ani 1s 1 var(--ns-banner2-ani-curve);
 }
  @keyframes dialog-2-ani {
 	 0% {
-		 left: 17%;
+		 left: 12%;
 	}
 	 100% {
-		 left: 7.5%;
+		 left: 2.5%;
 	}
 }
  .ns-banner2 .img-dialog-3 {
 	 position: absolute;
-	 left: 16%;
-	 top: 77%;
-	 width: 12%;
+	 left: 13%;
+	 top: 74%;
+	 width: 15%;
 	 z-index: 2;
 	 animation: dialog-3-ani 1s 1 var(--ns-banner2-ani-curve);
 }
  @keyframes dialog-3-ani {
 	 0% {
-		 left: 24%;
+		 left: 21%;
 	}
 	 100% {
-		 left: 16%;
+		 left: 13%;
 	}
 }
  .ns-banner2 .img-dialog-4 {
 	 position: absolute;
-	 right: 15%;
-	 top: 13%;
-	 width: 14%;
+	 right: 12%;
+	 top: 9%;
+	 width: 14.9%;
 	 z-index: 2;
 	 animation: dialog-4-ani 1s 1 var(--ns-banner2-ani-curve);
 }
  @keyframes dialog-4-ani {
 	 0% {
-		 right: 19%;
+		 right: 16%;
 	}
 	 100% {
-		 right: 15%;
+		 right: 12%;
 	}
 }
  .ns-banner2 .img-dialog-5 {
 	 position: absolute;
-	 right: 7%;
-	 top: 40%;
-	 width: 17%;
+	 right: 3.5%;
+	 top: 33%;
+	 width: 17.9%;
 	 z-index: 1;
 	 animation: dialog-5-ani 1s 1 var(--ns-banner2-ani-curve);
 }
  @keyframes dialog-5-ani {
 	 0% {
-		 right: 17%;
+		 right: 13.5%;
 	}
 	 100% {
-		 right: 7%;
+		 right: 3.5%;
 	}
 }
  .ns-banner2 .img-dialog-6 {
 	 position: absolute;
-	 right: 14%;
-	 top: 67%;
-	 width: 12%;
+	 right: 9%;
+	 top: 64.3%;
+	 width: 15.4%;
 	 z-index: 1;
 	 animation: dialog-6-ani 1s 1 var(--ns-banner2-ani-curve);
 }
  @keyframes dialog-6-ani {
 	 0% {
-		 right: 21%;
+		 right: 16%;
 	}
 	 100% {
-		 right: 14%;
+		 right: 9%;
 	}
 }
  
@@ -769,11 +771,6 @@ margin-top: -2px;
             <img class="img-main-4 hidden" src="images/new_index_main_4.png">
           </div>
 
-          <div class="coupon-container hidden">
-            <div class="coupon-label"></div>
-            <div class="coupon-code"></div>
-          </div>
-
           <div class="img-box img-smoke hidden">
             <img src="images/smoke.gif">
           </div>
@@ -786,8 +783,11 @@ margin-top: -2px;
             </div>
           </div>
 
-          <div class="img-box img-twinkle">
-            <img src="images/new_index_twinkle.png">
+          <div class="img-box img-twinkle img-twinkle-b">
+            <img src="images/new_index_twinkle_b.png">
+          </div>
+          <div class="img-box img-twinkle img-twinkle-a">
+            <img src="images/new_index_twinkle_a.png">
           </div>
 
           <div class="img-box img-title">
@@ -886,22 +886,6 @@ margin-top: -2px;
           y: 0,
         };
 
-        /* 你知道的太多了 */
-        const coupons = [
-          {
-            label: '賣便貨1元',
-            code: 'AJSKUYH6',
-          },
-          {
-            label: '賣便貨5元',
-            code: 'H7JDDPER',
-          },
-          {
-            label: '賣便貨10元',
-            code: 'RYLSGP3R',
-          },          
-        ];
-
         let couponCount = +sessionStorage.getItem(STORE_KEY.BANNER_DOLL_COUNT) || 0;
         // let couponCount = 0;
         let isExceedCouponCountThreshold = false;
@@ -920,10 +904,6 @@ margin-top: -2px;
         const mainImg3El = document.querySelector('.ns-banner2 .img-main .img-main-3');
         const mainImg4El = document.querySelector('.ns-banner2 .img-main .img-main-4');
         const smokeEl = document.querySelector('.ns-banner2 .img-smoke');
-
-        const couponContainerEl = document.querySelector('.ns-banner2 .coupon-container');
-        const couponLabelEl = document.querySelector('.ns-banner2 .coupon-label');
-        const couponCodeEl = document.querySelector('.ns-banner2 .coupon-code');
 
         const clickAreaEl = document.querySelector('.ns-banner2 .main-click-area');
         
@@ -1022,17 +1002,10 @@ margin-top: -2px;
             setTimeout(() => {
               smokeEl.classList.add('hidden');
             }, 300);
-            chooseCoupon();
+            /* 原本這裡會跳出賣貨便折價碼。拿掉的原因是碼得定期換，
+               而且寫在原始碼裡等於公開。音效、煙霧、換表情都保留，
+               敲下去還是有反應——之後要換別的玩法就接在這裡。 */
           }
-        }
-
-        function chooseCoupon() {
-          couponContainerEl.classList.remove('hidden');
-
-          const randomIndex = Math.floor(Math.random() * coupons.length);
-          const coupon = coupons[randomIndex];
-          couponLabelEl.innerText = coupon.label;
-          couponCodeEl.innerText = coupon.code;
         }
 
         function showPlusAni({ x, y }) {
@@ -1857,9 +1830,15 @@ margin-top: -2px;
           const targeEl = sandboxEl.querySelector('.wsite-multicol-tr').cloneNode(true);
           const contentBoxEl = document.querySelector('#ns-lessons-container #ns-content-box');
 
+          /* 首頁這區只放課程圖，不放課程頁上的購買按鈕——課程頁上有 95 折
+             優惠碼，直接從首頁按按鈕走的人會錯過它，等於在懲罰照按鈕走的人。
+             所以把圖片以外的東西全部清掉，只留圖，統一走「查看更多」。
+             （原本是盲刪 children[1]，課程頁結構一改就會刪錯東西。） */
           for (let i = 0; i < targeEl.children.length; i++) {
-            console.log(targeEl.children[i]);
-            targeEl.children[i].removeChild(targeEl.children[i].children[1]);
+            const col = targeEl.children[i];
+            const keep = col.querySelector('.wsite-image');
+            col.innerHTML = '';
+            if (keep) col.appendChild(keep);
           }
 
           contentBoxEl.append(targeEl.cloneNode(true));
