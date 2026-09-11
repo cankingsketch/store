@@ -866,9 +866,6 @@ margin-top: -2px;
       setTimeout(() => {
         var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-        const STORE_KEY = {
-          BANNER_DOLL_COUNT: 'BANNER_DOLL_COUNT',
-        };
         // const COUNT_THRESHELD = 100;
         // const COUNT_LIMIT = 9999999;
         const COUNT_THRESHELD = 100;
@@ -889,8 +886,7 @@ margin-top: -2px;
           y: 0,
         };
 
-        let couponCount = +sessionStorage.getItem(STORE_KEY.BANNER_DOLL_COUNT) || 0;
-        // let couponCount = 0;
+        let couponCount = 0;
         let isExceedCouponCountThreshold = false;
 
         const clickAreaCursorEl = document.querySelector('.ns-banner2 .ns-banner2-click-area-cursor');
@@ -909,13 +905,6 @@ margin-top: -2px;
         const smokeEl = document.querySelector('.ns-banner2 .img-smoke');
         const noPrizeMessageEl = document.querySelector('.ns-banner2 .no-prize-message');
 
-        // Restore the unlocked illustration together with its message on reload.
-        if (couponCount >= COUNT_THRESHELD) {
-          isExceedCouponCountThreshold = true;
-          mainImg1El.classList.add('hidden');
-          mainImg3El.classList.remove('hidden');
-          noPrizeMessageEl.classList.remove('hidden');
-        }
 
         const clickAreaEl = document.querySelector('.ns-banner2 .main-click-area');
         
@@ -1000,7 +989,6 @@ margin-top: -2px;
             return;
           }
           couponCount++;
-          sessionStorage.setItem(STORE_KEY.BANNER_DOLL_COUNT, couponCount);
           counterValueEl.innerText = couponCount;
           if (couponCount % COUNT_THRESHELD === 0) {
             new Audio('images/on_coupon_shown.m4a').play();
