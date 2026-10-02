@@ -168,6 +168,7 @@ window.CK_SHOP = {
     mq.addEventListener('pointerenter', function (e) { if (e.pointerType === 'mouse') hover = true; });
     mq.addEventListener('pointerleave', function () { hover = false; });
     mq.addEventListener('pointerdown', function (e) {
+      if (e.pointerType !== 'mouse') return;        // 手指交給下面的觸控事件
       moved = false; poke();
       down = { x: e.clientX, base: off() - idx * step(), id: e.pointerId, from: idx };
     });
@@ -191,6 +192,36 @@ window.CK_SHOP = {
       down = null; poke();
     }
     window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+    // 手指：用觸控事件自己處理（他反映快速一撥常常抓不到、要壓久一點）。
+    // 原本用 pointer 事件，手指滑得快時瀏覽器會判定成捲動頁面、中途送 pointercancel，拖曳就斷掉。
+    // 這裡一開始動就判斷方向：偏左右 → 輪播接手、擋掉頁面捲動；偏上下 → 讓頁面捲。
+    // 放開時：滑超過 30px，或 0.3 秒內快速一撥超過 12px，就換一張
+    var tch = null;
+    mq.addEventListener('touchstart', function (e) {
+      var t = e.touches[0]; moved = false; poke();
+      tch = { x: t.clientX, y: t.clientY, lx: t.clientX, t: performance.now(), base: off() - idx * step(), from: idx, dir: '' };
+    }, { passive: true });
+    mq.addEventListener('touchmove', function (e) {
+      if (!tch) return;
+      var t = e.touches[0], dx = t.clientX - tch.x, dy = t.clientY - tch.y;
+      if (!tch.dir) { if (Math.abs(dx) < 3 && Math.abs(dy) < 3) return; tch.dir = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v'; }
+      if (tch.dir !== 'h') return;
+      e.preventDefault();
+      moved = true; mq.classList.add('dragging'); tch.lx = t.clientX;
+      track.style.transition = 'none'; track.style.transform = 'translateX(' + (tch.base + dx) + 'px)';
+    }, { passive: false });
+    function tend(e) {
+      if (!tch) return;
+      if (tch.dir === 'h') {
+        var c = e.changedTouches && e.changedTouches[0], dx = (c ? c.clientX : tch.lx) - tch.x, quick = performance.now() - tch.t < 300;
+        mq.classList.remove('dragging');
+        var to = Math.round((off() - tch.base - dx) / step());
+        if (to === tch.from && (Math.abs(dx) > Math.min(30, step() * 0.15) || (quick && Math.abs(dx) > 12))) to = tch.from + (dx < 0 ? 1 : -1);
+        go(to, true);
+      }
+      tch = null; poke();
+    }
+    mq.addEventListener('touchend', tend); mq.addEventListener('touchcancel', tend);
     mq.addEventListener('click', function (e) { if (moved) { moved = false; e.stopPropagation(); e.preventDefault(); } }, true);
     window.addEventListener('resize', function () { go(idx, false); });
     go(N, false);
