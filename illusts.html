@@ -54,7 +54,7 @@
   }
   function fail() { document.getElementById('list').innerHTML = '<p class="empty"><a href="' + STORE + '" target="_blank" rel="noopener">到 Gumroad 看全部 →</a></p>'; }
   fetch('/api/gumroad').then(function (r) { return r.json(); })
-    .then(function (d) { if (!d || !d.groups) throw 0; show(d); })
+    .then(function (d) { if (!d || !d.groups || !d.groups.length) throw 0; show(d); })   // 空的也算失敗：給「到 Gumroad 看全部」
     .catch(fail);
 })();
 </script>
