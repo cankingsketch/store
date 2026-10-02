@@ -126,6 +126,11 @@
 .mq.dragging .mq-card { pointer-events:none; }
 
 @media (orientation:portrait) { .mq-card { border-radius:10px; border-width:2px; } }
+/* .mq.fit（周邊頁頂端的熱銷）：卡片高度統一、寬度跟著圖自己的比例，整張圖不裁（他要的）。
+   直式的洗沐包窄一點、正方形的寬一點 */
+.mq.fit .mq-card { width:auto; min-width:60px; height:var(--fh, 320px); aspect-ratio:auto; }
+.mq.fit .mq-card img { width:auto; height:100%; object-fit:contain; }
+@media (max-width:760px) { .mq.fit { --fh:300px; } }
 /* 輪播的圓點：手機才顯示 */
 .mq-dots { display:none; }
 /* 手機（照ちいかわ的橫幅）：一次一張大的置中，左右露一點點上一張／下一張；不要箭頭，改用圓點 */

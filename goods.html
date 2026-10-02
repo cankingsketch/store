@@ -312,7 +312,7 @@
   document.getElementById('app').innerHTML = CK.header('周邊', ['貼紙'], LINKS) + '<main class="page bands">' +
     // 「周邊一覽」大圖拿掉了（他要的），只留賣場按鈕
     '<section class="band b-dots b-hero"><div class="wrap">' + CK.hero().replace(/<img class="hero"[^>]*>/, '') + '</div>' +
-    '<div class="mq-wrap"><button class="mq-arrow prev" aria-label="上一張">‹</button><div class="mq"><div class="mq-track">' + hot + '</div></div>' +
+    '<div class="mq-wrap"><button class="mq-arrow prev" aria-label="上一張">‹</button><div class="mq fit"><div class="mq-track">' + hot + '</div></div>' +
     '<button class="mq-arrow next" aria-label="下一張">›</button></div></section>' +
     // 盲盒：放在最上面、貼紙上方（他要的）；跟服飾一樣的一整條白框，左右滑
     (BLINDS.length ? '<section class="band b-stripe b-blind"><div class="wrap"><div class="sect-title">盲盒</div>' : '<div hidden>') +

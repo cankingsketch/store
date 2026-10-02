@@ -145,13 +145,27 @@ window.CK_SHOP = {
     var dots = document.createElement('div'); dots.className = 'mq-dots' + (N > 10 ? ' many' : '');   // 太多張（首頁周邊 18 張）就不放圓點
     dots.innerHTML = new Array(N + 1).join('<i></i>');
     wrap.appendChild(dots);
-    function step() { var c = track.querySelector('.mq-card'); return c.getBoundingClientRect().width + parseFloat(getComputedStyle(c).marginRight); }
-    // 一次只看得到一張大的（手機）：那張置中，左右各露出一點點上一張／下一張
-    function off() { var c = track.querySelector('.mq-card'), w = c.getBoundingClientRect().width; return w > mq.clientWidth * 0.6 ? (mq.clientWidth - w) / 2 : 0; }
+    var cards = track.children;
+    // 第 j 張到定位時 track 要移到哪：照每一張實際的位置算（.mq.fit 的卡片寬度不一樣，不能用「張數 × 寬度」）。
+    // 手機一次只看得到一張大的：那張置中，左右各露出一點點上一張／下一張；電腦靠左對齊
+    function pos(j) {
+      var c = cards[j], x = c.offsetLeft - cards[0].offsetLeft;
+      return (matchMedia('(max-width:760px)').matches ? (mq.clientWidth - c.offsetWidth) / 2 : 0) - x;
+    }
+    // 拖到 t 放開時，離哪一張的定位最近
+    function nearest(t) {
+      var best = idx, d = Infinity;
+      for (var j = 0; j < cards.length; j++) { var e = Math.abs(pos(j) - t); if (e < d) { d = e; best = j; } }
+      return best;
+    }
+    // 卡片寬度跟著圖（.mq.fit）：圖載完寬度才確定，載完重新對位
+    Array.prototype.forEach.call(track.querySelectorAll('img'), function (im) {
+      if (!im.complete) im.addEventListener('load', function () { if (!down && !mq.classList.contains('dragging')) go(idx, false); });
+    });
     function go(i, anim) {
       idx = i;
       track.style.transition = anim ? EASE : 'none';
-      track.style.transform = 'translateX(' + (off() - idx * step()) + 'px)';
+      track.style.transform = 'translateX(' + pos(idx) + 'px)';
       var k = ((idx % N) + N) % N;
       Array.prototype.forEach.call(dots.children, function (d, j) { d.classList.toggle('on', j === k); });
     }
@@ -170,7 +184,7 @@ window.CK_SHOP = {
     mq.addEventListener('pointerdown', function (e) {
       if (e.pointerType !== 'mouse') return;        // 手指交給下面的觸控事件
       moved = false; poke();
-      down = { x: e.clientX, base: off() - idx * step(), id: e.pointerId, from: idx };
+      down = { x: e.clientX, base: pos(idx), id: e.pointerId, from: idx };
     });
     window.addEventListener('pointermove', function (e) {
       if (!down || e.pointerId !== down.id) return;
@@ -185,8 +199,8 @@ window.CK_SHOP = {
         mq.classList.remove('dragging');
         // 放開時對齊最近的一張；但只要往左／右滑超過一小段（30px）就算要換張——
         // 手機上一張卡有 280px 寬，原本要拖過半張才會換，輕輕一撥都會彈回原位（他反映的）
-        var to = Math.round((off() - down.base - dx) / step());
-        if (to === down.from && Math.abs(dx) > Math.min(30, step() * 0.15)) to = down.from + (dx < 0 ? 1 : -1);
+        var to = nearest(down.base + dx);
+        if (to === down.from && Math.abs(dx) > 30) to = down.from + (dx < 0 ? 1 : -1);
         go(to, true);
       }
       down = null; poke();
@@ -199,7 +213,7 @@ window.CK_SHOP = {
     var tch = null;
     mq.addEventListener('touchstart', function (e) {
       var t = e.touches[0]; moved = false; poke();
-      tch = { x: t.clientX, y: t.clientY, lx: t.clientX, t: performance.now(), base: off() - idx * step(), from: idx, dir: '' };
+      tch = { x: t.clientX, y: t.clientY, lx: t.clientX, t: performance.now(), base: pos(idx), from: idx, dir: '' };
     }, { passive: true });
     mq.addEventListener('touchmove', function (e) {
       if (!tch) return;
@@ -215,8 +229,8 @@ window.CK_SHOP = {
       if (tch.dir === 'h') {
         var c = e.changedTouches && e.changedTouches[0], dx = (c ? c.clientX : tch.lx) - tch.x, quick = performance.now() - tch.t < 300;
         mq.classList.remove('dragging');
-        var to = Math.round((off() - tch.base - dx) / step());
-        if (to === tch.from && (Math.abs(dx) > Math.min(30, step() * 0.15) || (quick && Math.abs(dx) > 12))) to = tch.from + (dx < 0 ? 1 : -1);
+        var to = nearest(tch.base + dx);
+        if (to === tch.from && (Math.abs(dx) > 30 || (quick && Math.abs(dx) > 12))) to = tch.from + (dx < 0 ? 1 : -1);
         go(to, true);
       }
       tch = null; poke();
