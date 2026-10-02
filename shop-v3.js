@@ -169,7 +169,7 @@ window.CK_SHOP = {
     mq.addEventListener('pointerleave', function () { hover = false; });
     mq.addEventListener('pointerdown', function (e) {
       moved = false; poke();
-      down = { x: e.clientX, base: off() - idx * step(), id: e.pointerId };
+      down = { x: e.clientX, base: off() - idx * step(), id: e.pointerId, from: idx };
     });
     window.addEventListener('pointermove', function (e) {
       if (!down || e.pointerId !== down.id) return;
@@ -180,7 +180,14 @@ window.CK_SHOP = {
     function up(e) {
       if (!down || (e.pointerId != null && e.pointerId !== down.id)) return;
       var dx = (e.clientX || down.x) - down.x;
-      if (moved) { mq.classList.remove('dragging'); go(Math.round((off() - down.base - dx) / step()), true); }
+      if (moved) {
+        mq.classList.remove('dragging');
+        // 放開時對齊最近的一張；但只要往左／右滑超過一小段（30px）就算要換張——
+        // 手機上一張卡有 280px 寬，原本要拖過半張才會換，輕輕一撥都會彈回原位（他反映的）
+        var to = Math.round((off() - down.base - dx) / step());
+        if (to === down.from && Math.abs(dx) > Math.min(30, step() * 0.15)) to = down.from + (dx < 0 ? 1 : -1);
+        go(to, true);
+      }
       down = null; poke();
     }
     window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
