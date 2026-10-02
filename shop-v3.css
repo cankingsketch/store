@@ -5,14 +5,24 @@
 .site-head .logo.new, .head-contact { display:none; }
 .back { top:12px; bottom:auto; }
 
-/* 頁首：最上面一條淡紅白條紋門楣（下緣一個個半圓，像爆米花車的遮雨棚）；Logo 壓在門楣下緣，白色描邊讓它不黏在一起 */
-.site-head { position:relative; padding-top:0; }
-.site-head::before { content:""; display:block; height:46px;
-  background:repeating-linear-gradient(90deg, #f8cfcb 0 34px, #fffaf9 34px 68px);
-  -webkit-mask:linear-gradient(#000 0 0) top / 100% 34px no-repeat, radial-gradient(circle 17px at 17px 0, #000 96%, transparent 100%) 0 34px / 34px 12px repeat-x;
-          mask:linear-gradient(#000 0 0) top / 100% 34px no-repeat, radial-gradient(circle 17px at 17px 0, #000 96%, transparent 100%) 0 34px / 34px 12px repeat-x; }
-.site-head .logo { position:relative; margin-top:-30px;
+/* 頁首：整條淡紅白直條門楣（像爆米花車的遮雨棚），下緣一排圓角鋸齒垂到下面的點點底上（他要電腦版也跟手機一樣）。
+   鋸齒用兩層 radial-gradient 畫（紅、白各一層），不用 mask——Safari 上 mask 的位置算式不支援，半圓會整排不見。
+   Logo 有白色描邊，放在直條上不會糊在一起 */
+.site-head { position:relative; z-index:20; padding:16px 0 12px; display:flow-root; background:repeating-linear-gradient(90deg, #f8cfcb 0 34px, #fffaf9 34px 68px); }
+.site-head::before { content:none; }
+.site-head::after { content:""; position:absolute; left:0; right:0; top:100%; height:17px; pointer-events:none;
+  background:radial-gradient(circle at 17px 0, #f8cfcb 16.4px, transparent 17px) 0 0 / 68px 17px repeat-x,
+             radial-gradient(circle at 17px 0, #fffaf9 16.4px, transparent 17px) 34px 0 / 68px 17px repeat-x;
+  filter:drop-shadow(0 2px 2px rgba(150,40,30,.2)); }
+.site-head .logo { position:relative; margin-top:0;
   filter:drop-shadow(2.5px 0 0 #fff) drop-shadow(-2.5px 0 0 #fff) drop-shadow(0 2.5px 0 #fff) drop-shadow(0 -2.5px 0 #fff) drop-shadow(0 2px 4px rgba(0,0,0,.08)); }
+/* 選單放在直條上字會花：墊一條半透明白色圓角底 */
+@media (min-width:761px) {
+  .nav ul { background:rgba(255,250,249,.94); border-radius:999px; padding:3px 14px; box-shadow:0 1px 5px rgba(190,60,50,.14); }
+  .nav a.on { background:#fde3df; border-radius:999px; }
+}
+/* 頁首正下方一律一條點點底，讓鋸齒蓋在點點上（44px＝點點花紋 22px 的兩倍，接下面的點點帶子不會有接縫） */
+main.page.bands { padding-top:44px; background:#fff8e6 radial-gradient(rgba(255,45,45,.10) 4.2px, transparent 5px) 0 0 / 22px 22px; }
 
 /* 選單左右兩端外側的兩隻（附屬看板的購物空罐妹妹、購物罐罐）；shop-v3.js 會放進頁首 */
 .hd-ch { position:absolute; z-index:3; top:36px; height:132px; width:auto; pointer-events:none; }
@@ -32,8 +42,6 @@
     background:radial-gradient(circle at 14px 0, #f8cfcb 13.4px, transparent 14px) 0 0 / 56px 14px repeat-x,
                radial-gradient(circle at 14px 0, #fffaf9 13.4px, transparent 14px) 28px 0 / 56px 14px repeat-x;
     filter:drop-shadow(0 2px 2px rgba(150,40,30,.2)); }
-  /* 手機的點點底：偏一點點黃、點點放大 3 倍（他要的）。頁首正下方那條也是同一種，接起來看不出接縫 */
-  .band.b-dots { background:#fff8e6 radial-gradient(rgba(255,45,45,.10) 4.2px, transparent 5px) 0 0 / 22px 22px; }
   /* 左 ≡、中 Logo（放大）、右一張小插畫（購物罐罐）；左邊那隻是電腦版橫向排才放 */
   .site-head .logo { height:74px; margin:3px auto 0; }   /* 再放大 20%（他要的） */
   .hd-ch.l { display:none; }
@@ -70,7 +78,7 @@
 .page.bands { padding:0; background:#fff; }
 .band { padding:26px 16px 42px; }
 .band .sect-title { margin-top:6px; }
-.b-dots { background:#fff7f5 radial-gradient(rgba(255,45,45,.09) 1.4px, transparent 1.8px) 0 0 / 22px 22px; }
+.b-dots { background:#fff8e6 radial-gradient(rgba(255,45,45,.10) 4.2px, transparent 5px) 0 0 / 22px 22px; }   /* 淺黃底、大粉紅點（他要的，原本是淡粉底小點） */
 .b-stripe { background:repeating-linear-gradient(90deg, #f6cdc7 0 26px, #fbe0dc 26px 52px); }
 .b-stripe .white-box { border-color:#fff; box-shadow:0 2px 10px rgba(190,60,50,.10); }
 /* 點點底很淡，白框放在上面邊界不明顯 → 細粉紅框線＋淡紅影子 */
