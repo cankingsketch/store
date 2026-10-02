@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-Hant" class="orig">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>貼紙｜空罐王的商店</title>
+<link rel="stylesheet" href="shared.css">
+<link rel="stylesheet" href="shop-v3.css">
+<style>
+  /* 區塊標題：粗體大字＋小字英文（他要的） */
+  .stk-head { text-align:center; margin:4px 0 20px; }
+  .stk-head h2 { font-size:30px; margin:0; font-weight:900; letter-spacing:.06em; color:var(--ink); }
+  .stk-head p.en { margin:4px 0 0; color:var(--mute); font-size:12px; font-weight:700; letter-spacing:.18em; }
+  /* 卡片只放名稱和價格：不要 NEW、不要說明那行、不要「組合・N 枚」 */
+  .wall .tile .nt, .wall .tile .tag.new, .wall .tile .tag.setc { display:none; }
+  /* 組合：磚大一點，旁邊說明裡面有什麼 */
+  .wall.sets { grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; background:none; padding:0; }
+  /* 跟周邊頁同一套（shop-v3.css）：單張放在白色內框裡、組合是一張張白卡 */
+  .wall.white-box { background:#fff; max-width:960px; margin:0 auto; }
+  /* 點點底很淡，白卡邊界不明顯 → 加一圈細粉紅框線＋稍明顯的淡紅影子 */
+  .b-sets .wall.sets .tile { border:1.5px solid #f1cfca; box-shadow:0 3px 12px rgba(190,60,50,.12); }
+  .wall.sets .tile { background:#fff; border-radius:18px; padding:14px 10px 14px; box-shadow:0 1px 2px rgba(0,0,0,.05); }
+  .wall.sets .tile .pic { height:200px; }
+  .wall.sets .tile .stk.bxwrap, .wall.sets .tile .stk.fan { zoom:1.4; }
+  .wall.sets .tile .nm { font-size:17px; }
+  .wall.sets .tile .go { display:inline-block; margin-top:6px; font-size:13px; color:#555; border-bottom:1px solid #bbb; }
+  .empty { text-align:center; color:var(--mute); padding:40px 0; }
+  @media (max-width:640px) {
+    .stk-head h2 { font-size:25px; }
+    .chips { flex-wrap:nowrap; overflow-x:auto; justify-content:flex-start; scrollbar-width:none; }
+    .chip { flex:none; }
+    .wall.sets { grid-template-columns:1fr; }
+  }
+</style>
+<link rel="stylesheet" href="refine.css">
+<meta name="description" content="空罐王的防水貼紙：單張與組合。">
+<link rel="canonical" href="https://cankingstore.com/stickers">
+<meta property="og:site_name" content="空罐王的商店">
+<meta property="og:title" content="貼紙">
+<meta property="og:description" content="空罐王的防水貼紙：單張與組合。">
+<meta property="og:url" content="https://cankingstore.com/stickers">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://cankingstore.com/images/og_share.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+<div id="app"></div>
+<script src="stickers.js"></script>
+<script src="shared.js"></script>
+<script src="shop-v3.js"></script>
+<script>
+(function () {
+  var S = CK.STICKERS, SETS = CK.SETS, f = 'all';
+  var LINKS = CK_SHOP.LINKS;
+  function singles() { return S; }
+
+  // 照ちいかわマーケット的做法（他定的）：標題幾個字＋小英文，不寫數量、不教操作，卡片只放名稱和價格。
+  // 只有單張、組合兩區，區塊標題就是分類，所以不放「全部／組合」籤。單張都是 NT$50（賣貨便「防水貼紙」）
+  function render() {
+    var one = singles().map(function (s) { return Object.assign({}, s, { price: s.price || 50 }); });
+    // 跟周邊頁同一套帶子：單張（粉紅直條＋白框）→ 組合（點點），頁尾門楣花紋。已經是貼紙頁，不另外寫一個「貼紙」大標
+    document.getElementById('app').innerHTML = CK.header('貼紙', ['貼紙'], LINKS) + '<main class="page bands">' +
+      '<section class="band b-stripe"><div class="wrap"><div class="stk-head"><h2>單張貼紙</h2><p class="en">SINGLE STICKERS</p></div><div class="wall white-box">' + CK.tiles(one) + '</div></div></section>' +
+      '<section class="band b-dots b-sets"><div class="wrap"><div class="stk-head"><h2>組合貼紙</h2><p class="en">STICKER SETS</p></div><div class="wall sets">' + CK.setTiles() + '</div></div></section>' +
+      '</main>' + CK.footer();
+    CK_SHOP.chars();
+  }
+  render();
+})();
+</script>
+<script defer src="/track.js"></script>
+</body>
+</html>

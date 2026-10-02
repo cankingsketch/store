@@ -1,272 +1,150 @@
+/* 商品資料測試：data/products.json 本身合不合格，以及後端的檢查規則。
+ *
+ * 周邊頁直接讀這份 JSON 畫出所有商品，格式錯一個字就是整頁空白，
+ * 所以每次手動改它、或改了 functions/api/products.js 的檢查規則，都要跑一次。
+ */
+
 import fs from 'fs';
 import { loadFunction } from './_load.mjs';
 
 const REPO_DIR = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
-// 線上 Function 讀的是 GitHub 上的檔案（純 LF）。Windows 的 git core.autocrlf
-// 會把工作目錄轉成 CRLF，若不正規化，buildBlock 產生的 LF 會被誤判成「檔案被改了」。
-const CR = String.fromCharCode(13);
-const src = fs.readFileSync(REPO_DIR + '/goods.html', 'utf8').split(CR).join('');
+const mod = await loadFunction(REPO_DIR, 'functions/api/products.js',
+  ['normalize', 'normalizeAll', 'checkUploads', 'serialize']);
 
-const M = await loadFunction(REPO_DIR, '/functions/api/products.js',
-  ['splitDoc', 'parseBlock', 'buildBlock', 'renameLegacy', 'b64FromText', 'textFromB64',
-   'stripBuy', 'parseBuy', 'buildBuy', 'withBuy', 'findMyshipUrl']);
+const SRC = fs.readFileSync(REPO_DIR + 'data/products.json', 'utf8');
+const DATA = JSON.parse(SRC);
 
 let pass = 0, fail = 0;
 const ok = (name, cond, extra) => {
   if (cond) { console.log('  ✅ ' + name); pass++; }
-  else { console.log('  ❌ ' + name + (extra ? '  → ' + extra : '')); fail++; }
+  else { console.log('  ❌ ' + name + (extra !== undefined ? '  → ' + JSON.stringify(extra) : '')); fail++; }
 };
+const throws = (fn, re) => { try { fn(); return false; } catch (e) { return e.bad === true && (!re || re.test(e.message)); } };
+const clone = o => JSON.parse(JSON.stringify(o));
 
-const { head, blocks, tail } = M.splitDoc(src);
-const parsed = blocks.map((b, i) => M.parseBlock(b, i));
+/* ---------------------------------------------------------------- */
+console.log('\n[1] 檔案本身');
+{
+  ok('是合法 JSON，有商品', Array.isArray(DATA.products) && DATA.products.length > 0, DATA.products?.length);
+  console.log('     目前 ' + DATA.products.length + ' 個商品');
+  ok('★ 檔案已經是標準格式（照原樣存回去不會產生變更）', mod.serialize(mod.normalizeAll(DATA, DATA)) === SRC);
+  ok('沒有 BOM', SRC.charCodeAt(0) !== 0xFEFF);
+  ok('換行是 LF', SRC.indexOf('\r') < 0);
+  const ids = DATA.products.map(p => p.id);
+  ok('商品代號不重複', new Set(ids).size === ids.length);
+  ok('熱銷推薦都指到存在的商品', DATA.hot.every(id => ids.includes(id)), DATA.hot);
+  ok('明信片牆、卡冊都在', ['postcards', 'album'].every(s => DATA.products.some(p => p.special === s)));
+  ok('四個分區都有商品', ['blind', 'postcard', 'apparel', 'other'].every(s => DATA.products.some(p => p.section === s)));
+}
 
-// 模擬後端 onRequestPost 的重組流程
-const MYSHIP = M.findMyshipUrl(src);
-function rebuild(items) {
-  const out = items.map(item => {
-    // 賣貨便沒有單品網址，勾選就是共用店舖網址——跟後端一樣
-    const buy = { myship: item.myship ? MYSHIP : '', shopee: (item.shopee || '').trim(),
-                  video: (item.video || '').trim(), hot: (item.hot || '').trim(),
-                  hotOrder: item.hotOrder || 0 };
-    if (item.new) return M.buildBlock(Object.assign({}, item, buy));
-    const raw = blocks[item.idx];
-    if (/<h2[^>]*data-ck="1"/.test(raw)) return M.buildBlock(Object.assign({}, item, buy));
-    // 一律先剝乾淨再改名，最後才貼回按鈕列
-    const clean = M.stripBuy(raw);
-    const renamed = M.parseBlock(clean, item.idx).title === item.title
-      ? clean : M.renameLegacy(clean, item.title);
-    return M.withBuy(renamed, buy);
+console.log('\n[2] 圖片檔');
+{
+  // 商品圖在 img/opt/（瘦身過的 WebP），-l 大圖、-s 小圖兩個都要有
+  const all = DATA.products.flatMap(p => p.imgs);
+  if (fs.existsSync(REPO_DIR + 'img/opt')) {
+    const miss = all.flatMap(s => [s, s.replace(/-l\.webp$/, '-s.webp')]).filter(s => !fs.existsSync(REPO_DIR + s));
+    ok('★ 每張圖的大圖、小圖都存在', miss.length === 0, miss);
+  } else {
+    console.log('     （repo 裡還沒有 img/opt/，先跳過檔案存在檢查）');
+  }
+  ok('圖片路徑全部是 img/opt/…-l.webp', all.every(s => /^img\/opt\/[A-Za-z0-9._-]+-l\.webp$/.test(s)));
+}
+
+console.log('\n[3] 欄位整理');
+{
+  const prev = DATA.products.find(p => p.view3d);
+  const sent = Object.assign(clone(prev), {
+    name: '  有空白  ', price: '220', from: 0, soldout: '', hidden: 1, junk: '<script>',
+    view3d: { module: 'https://evil.example/x.js' }, special: 'postcards',
   });
-  return head + out.join('') + tail;
-}
-// 要跟 admin.html 實際送出的內容一致：新結構商品會連圖片、說明、對齊一起送，
-// 只送 {idx,title} 會把它們清空，那不是「什麼都不改」。
-const keepAll = parsed.map(p => Object.assign(
-  // 賣場按鈕與影片對新舊結構都適用，不帶上就等於把它們清空
-  { idx: p.idx, title: p.title, myship: !!p.myship, shopee: p.shopee, video: p.video, hot: p.hot, hotOrder: p.hotOrder },
-  p.editable ? { desc: p.desc, images: p.images, descAlign: p.descAlign } : {}));
+  const o = mod.normalize(sent, prev);
+  ok('名稱前後空白會去掉', o.name === '有空白', o.name);
+  ok('價格轉成數字', o.price === 220);
+  ok('false 的開關不寫進檔案', !('from' in o) && !('soldout' in o));
+  ok('hidden 寫進去', o.hidden === true);
+  ok('不認識的欄位丟掉', !('junk' in o));
+  ok('★ view3d 一律沿用檔案原本的值（前端不能指定要 import 什麼）', o.view3d === prev.view3d);
+  ok('★ special 不能由前端加上', !('special' in o));
 
-console.log('\n[1] 解析與無損性');
-ok('切得出商品（數量隨後台增減，不寫死）', blocks.length > 0, '實際 ' + blocks.length);
-console.log('     目前 ' + blocks.length + ' 個商品');
-ok('原樣重組 = 原檔', head + blocks.join('') + tail === src);
-
-console.log('\n[2] 標題解碼（舊商品是 HTML 實體）');
-const legacy = parsed.filter(p => p.kind === 'legacy');
-const fresh = parsed.filter(p => p.kind === 'new');
-ok('新舊兩種結構都解析得到', legacy.length > 0 && fresh.length > 0,
-  '舊 ' + legacy.length + ' / 新 ' + fresh.length);
-ok('舊商品標題解出中文（不是實體碼）',
-  legacy.every(p => p.title && !/&#/.test(p.title)),
-  legacy.map(p => p.title).join(' / '));
-ok('沒有殘留實體碼', !parsed.some(p => /&#\d+;/.test(p.title)));
-console.log('     清單預覽：' + parsed.slice(0, 5).map(p => p.title).join(' / '));
-
-console.log('\n[3] 什麼都不改 → 檔案必須完全不變');
-ok('重組結果 = 原檔', rebuild(keepAll) === src);
-
-console.log('\n[4] 新增商品到最上面');
-const item = { new: true, title: '測試杯子', desc: '陶瓷｜NT$300',
-  images: [{ file: 'prod-a.jpg', size: 'lg' }, { file: 'prod-b.jpg', size: 'md' }] };
-const next = rebuild([item].concat(keepAll));
-const after = M.splitDoc(next);
-const np = M.parseBlock(after.blocks[0], 0);
-ok('商品數 +1', after.blocks.length === blocks.length + 1, after.blocks.length);
-ok('新商品在第一個', np.title === '測試杯子');
-ok('可完整編輯', np.editable === true);
-ok('圖片數與檔名正確', np.images.length === 2 && np.images[0].file === 'prod-a.jpg');
-ok('版型正確 (lg/md)', np.images[0].size === 'lg' && np.images[1].size === 'md');
-ok('說明文字正確', np.desc === '陶瓷｜NT$300', np.desc);
-ok('其餘商品原封不動', after.blocks.slice(1).join('') === blocks.join(''));
-
-console.log('\n[5] 改舊商品名稱：只動那一個');
-// 這條在驗「舊版商品改名時，除了標題什麼都不碰」，所以要挑一個真的舊版商品，
-// 不能寫死索引——後台新增的商品會把順序推移。
-const T = parsed.findIndex(p => p.kind === 'legacy');
-ok('找得到舊版商品可測', T >= 0, T);
-// 只改標題，其餘設定（含賣場按鈕）照送——否則就不只是「改名」了
-const renamedDoc = rebuild(keepAll.map((it, i) =>
-  i === T ? Object.assign({}, it, { title: '新名字' }) : it));
-const rb = M.splitDoc(renamedDoc).blocks;
-ok('目標商品已改名', M.parseBlock(rb[T], T).title === '新名字');
-ok('其他商品一字未動', rb.filter((_, i) => i !== T).join('') === blocks.filter((_, i) => i !== T).join(''));
-const reH2 = /<h2[^>]*>[\s\S]*?<\/h2>/;
-ok('該商品 h2 以外也沒動', rb[T].replace(reH2, '') === blocks[T].replace(reH2, ''));
-
-console.log('\n[6] 下架');
-const delDoc = rebuild(keepAll.filter((_, i) => i !== 2));
-ok('商品數 -1', M.splitDoc(delDoc).blocks.length === blocks.length - 1);
-ok('該商品確實消失', !M.splitDoc(delDoc).blocks.some(b => M.parseBlock(b, 0).title === parsed[2].title));
-
-console.log('\n[7] 排序');
-const sw = keepAll.slice(); sw[0] = keepAll[1]; sw[1] = keepAll[0];
-const swapped = M.splitDoc(rebuild(sw)).blocks.map((b, i) => M.parseBlock(b, i).title);
-ok('前兩個對調成功', swapped[0] === parsed[1].title && swapped[1] === parsed[0].title);
-
-console.log('\n[8] 特殊字元安全');
-const evil = M.buildBlock({ title: 'A<b>"&x', desc: '<script>alert(1)</script>', images: [{ file: 'a.jpg', size: 'sm' }] });
-ok('標題已跳脫', evil.includes('A&lt;b&gt;&quot;&amp;x'));
-ok('說明已跳脫（不會執行）', evil.includes('&lt;script&gt;') && !evil.includes('<script>'));
-ok('解析可還原原字串', M.parseBlock(evil, 0).title === 'A<b>"&x', M.parseBlock(evil, 0).title);
-
-console.log('\n[9] 編碼');
-ok('UTF-8 base64 往返', M.textFromB64(M.b64FromText('空罐王的商店 🎉')) === '空罐王的商店 🎉');
-
-console.log('');
-console.log('[10] 說明文字對齊（單張大圖置中／並排圖靠左）');
-const dLg = M.buildBlock({ title: '單圖', desc: '說明', images: [{ file: 'a.jpg', size: 'lg' }] });
-const dMd = M.buildBlock({ title: '雙圖', desc: '說明', images: [{ file: 'a.jpg', size: 'md' }, { file: 'b.jpg', size: 'md' }] });
-const dSm = M.buildBlock({ title: '三圖', desc: '說明', images: [{ file: 'a.jpg', size: 'sm' }] });
-const dMix = M.buildBlock({ title: '混合', desc: '說明', images: [{ file: 'a.jpg', size: 'lg' }, { file: 'b.jpg', size: 'sm' }] });
-ok('單張大圖 -> 置中', !/ck-desc-left/.test(dLg));
-ok('兩張並排 -> 靠左', /ck-desc-left/.test(dMd));
-ok('三張並排 -> 靠左', /ck-desc-left/.test(dSm));
-ok('大圖+並排 -> 靠左', /ck-desc-left/.test(dMix));
-ok('靠左時說明仍解析得回來', M.parseBlock(dMd, 0).desc === '說明', M.parseBlock(dMd, 0).desc);
-
-console.log('');
-console.log('[11] 後台明講的對齊優先於自動規則');
-const mkA = (align, sizes) => M.buildBlock({ title: 'T', desc: '說明',
-  images: sizes.map((sz, k) => ({ file: 'i' + k + '.jpg', size: sz })), descAlign: align });
-ok('並排圖但指定置中 -> 置中', !/ck-desc-left/.test(mkA('center', ['md', 'md'])));
-ok('單張大圖但指定靠左 -> 靠左', /ck-desc-left/.test(mkA('left', ['lg'])));
-ok('沒指定時仍走自動規則(並排->靠左)', /ck-desc-left/.test(mkA(null, ['md', 'md'])));
-ok('沒指定時仍走自動規則(單大圖->置中)', !/ck-desc-left/.test(mkA(undefined, ['lg'])));
-ok('亂給的值當成沒指定', /ck-desc-left/.test(mkA('bogus', ['sm'])));
-ok('解析得回 left', M.parseBlock(mkA('left', ['lg']), 0).descAlign === 'left');
-ok('解析得回 center', M.parseBlock(mkA('center', ['md', 'md']), 0).descAlign === 'center');
-
-// 讀出來的對齊原封不動存回去，檔案必須一字不差
-const reSaved = rebuild(keepAll);
-ok('帶著解析出的對齊重存 = 原檔', reSaved === src);
-
-console.log('');
-console.log('[12] 賣場按鈕：解析／生成／剝離');
-{
-  const clean = M.stripBuy(blocks[parsed.findIndex(p => p.kind === 'legacy')]);
-  const MY = 'https://myship.7-11.com.tw/general/detail/GM123';
-  const SP = 'https://shopee.tw/canking?itemId=999';
-
-  ok('沒設定就不產生任何東西', M.buildBuy({ myship: '', shopee: '' }) === '');
-  ok('賣貨便是主要鈕（小紅膠囊）',
-    /class="ck-buy-main"[\s\S]*賣貨便/.test(M.buildBuy({ myship: MY })));
-  ok('蝦皮是次要連結', /class="ck-buy-sub"[\s\S]*蝦皮/.test(M.buildBuy({ shopee: SP })));
-  ok('主次分明：兩者類別不同', (function () {
-    const both = M.buildBuy({ myship: MY, shopee: SP });
-    return both.includes('ck-buy-main') && both.includes('ck-buy-sub');
-  })());
-  ok('外連要開新分頁且加 noopener',
-    /target="_blank" rel="noopener"/.test(M.buildBuy({ myship: MY })));
-
-  const withBoth = M.withBuy(clean, { myship: MY, shopee: SP });
-  ok('按鈕插在 </h2> 之後（不在標題裡面）',
-    /<\/h2>\s*<div class="ck-buy"/.test(withBoth), withBoth.slice(0, 200));
-  ok('讀得回賣貨便網址', M.parseBuy(withBoth).myship === MY, M.parseBuy(withBoth));
-  ok('讀得回蝦皮網址', M.parseBuy(withBoth).shopee === SP, M.parseBuy(withBoth));
-
-  ok('★ 剝掉按鈕後與原區塊一字不差', M.stripBuy(withBoth) === clean);
-  ok('剝離可重複執行（不會愈剝愈少）', M.stripBuy(M.stripBuy(withBoth)) === clean);
-  ok('沒有按鈕的區塊剝了也不變', M.stripBuy(clean) === clean);
+  const fresh = mod.normalize({ id: 'p-new', section: 'other', name: '新', imgs: ['img/opt/up-20261003-120000-1-l.webp'],
+    view3d: { module: 'x.js' } }, undefined);
+  ok('★ 新商品不能自帶 3D', !('view3d' in fresh));
+  ok('欄位順序固定', Object.keys(fresh).join() === 'id,section,name,price,note,imgs,video,shopee,date', Object.keys(fresh).join());
 }
 
-console.log('');
-console.log('[13] 按鈕不能污染商品名稱與改名');
+console.log('\n[4] 擋掉不合格的資料');
 {
-  const li = parsed.findIndex(p => p.kind === 'legacy');
-  const clean = M.stripBuy(blocks[li]);
-  const origTitle = parsed[li].title;
-  const withBtn = M.withBuy(clean, {
-    myship: 'https://myship.7-11.com.tw/x', shopee: 'https://shopee.tw/y',
-  });
-
-  ok('★ 商品名稱不會變成「原名+賣貨便+蝦皮」',
-    M.parseBlock(withBtn, li).title === origTitle, M.parseBlock(withBtn, li).title);
-
-  const renamed = M.withBuy(M.renameLegacy(M.stripBuy(withBtn), '新名字'), M.parseBuy(withBtn));
-  ok('改名後標題正確', M.parseBlock(renamed, li).title === '新名字');
-  ok('★ 改名後按鈕文字仍是「賣貨便」「蝦皮」', /賣貨便/.test(renamed) && /蝦皮/.test(renamed));
-  ok('改名後網址沒被動到', M.parseBuy(renamed).shopee === 'https://shopee.tw/y', M.parseBuy(renamed));
-  ok('剝掉按鈕後只有標題不同',
-    M.stripBuy(renamed).replace(/<h2[^>]*>[\s\S]*?<\/h2>/, '') === clean.replace(/<h2[^>]*>[\s\S]*?<\/h2>/, ''));
+  const base = { id: 'p-x', section: 'other', name: '測試', price: 100, imgs: ['img/opt/a-l.webp'] };
+  const n = (patch) => () => mod.normalize(Object.assign({}, base, patch));
+  ok('沒有名稱', throws(n({ name: '  ' })));
+  ok('沒有圖', throws(n({ imgs: [] })));
+  ok('★ 圖片路徑跳出資料夾', throws(n({ imgs: ['img/opt/../../functions/x-l.webp'] })));
+  ok('★ 圖片路徑是外部網址', throws(n({ imgs: ['https://evil.example/a-l.webp'] })));
+  ok('圖片不是 WebP', throws(n({ imgs: ['img/opt/a-l.png'] })));
+  ok('★ 影片是 javascript:', throws(n({ video: 'javascript:alert(1)' })));
+  ok('影片是 http（不是 https）', throws(n({ video: 'http://youtube.com/x' })));
+  ok('影片網址可以放', !throws(n({ video: 'https://www.instagram.com/reel/abc/' })));
+  ok('★ 蝦皮網址不是蝦皮', throws(n({ shopee: 'https://evil.example/shopee.tw/' })));
+  ok('蝦皮網址可以放', !throws(n({ shopee: 'https://shopee.tw/product/12223072/1' })));
+  ok('價格是負數', throws(n({ price: -1 })));
+  ok('價格有小數', throws(n({ price: 1.5 })));
+  ok('分區不存在', throws(n({ section: 'xxx' })));
+  ok('★ 一般商品不能放進明信片區', throws(n({ section: 'postcard' }), /明信片/));
+  ok('代號有大寫或空白', throws(n({ id: 'A b' })));
+  ok('日期格式不對', throws(n({ date: '2026/10/03' })));
+  ok('名稱太長', throws(n({ name: 'x'.repeat(81) })));
 }
 
-console.log('');
-console.log('[14] 加了再拿掉，要能完美復原');
+console.log('\n[5] 整份資料的規則');
 {
-  const li = parsed.findIndex(p => p.kind === 'legacy');
-  const clean = M.stripBuy(blocks[li]);
-  const on = M.withBuy(clean, { myship: 'https://myship.7-11.com.tw/x', shopee: '' });
-  const off = M.withBuy(M.stripBuy(on), { myship: '', shopee: '' });
-  ok('★ 取消按鈕後與原檔一字不差', off === clean);
+  const d = clone(DATA);
+  d.products.push(clone(d.products[0]));
+  ok('代號重複', throws(() => mod.normalizeAll(d, DATA), /重複/));
+
+  const d2 = clone(DATA);
+  d2.products = d2.products.filter(p => p.special !== 'album');
+  ok('★ 特殊版面不能刪（要改成隱藏）', throws(() => mod.normalizeAll(d2, DATA), /隱藏/));
+
+  const d3 = clone(DATA);
+  d3.products = d3.products.filter(p => p.id !== 'tote');
+  const r3 = mod.normalizeAll(d3, DATA);
+  ok('一般商品可以刪', r3.products.length === DATA.products.length - 1);
+
+  const d4 = clone(DATA);
+  d4.hot = ['nope'];
+  ok('熱銷推薦指到不存在的商品', throws(() => mod.normalizeAll(d4, DATA), /不存在/));
+
+  const d5 = clone(DATA);
+  d5.hot = DATA.products.slice(0, 9).map(p => p.id);
+  ok('熱銷推薦超過 8 個', throws(() => mod.normalizeAll(d5, DATA), /最多/));
+
+  const d6 = clone(DATA);
+  d6.hot = [DATA.hot[0], DATA.hot[0]];
+  ok('熱銷推薦重複的會合併', mod.normalizeAll(d6, DATA).hot.length === 1);
+
+  const d7 = clone(DATA);
+  d7.products.reverse();
+  ok('排序照前端送來的順序', mod.normalizeAll(d7, DATA).products[0].id === DATA.products.at(-1).id);
+
+  const d8 = clone(DATA);
+  const post = d8.products.find(p => p.special === 'postcards');
+  post.section = 'other';
+  ok('特殊版面的分區固定在明信片區', mod.normalizeAll(d8, DATA).products.find(p => p.special === 'postcards').section === 'postcard');
 }
 
-console.log('');
-console.log('[15] 共用的賣貨便網址');
+console.log('\n[6] 上傳的圖');
 {
-  const url = M.findMyshipUrl(src);
-  ok('從頁面上抓得到賣貨便網址', /^https:\/\/myship\.7-11\.com\.tw\//.test(url), url);
-  ok('找不到時回空字串（不會壞掉）', M.findMyshipUrl('<html>沒有賣貨便</html>') === '');
-}
-
-console.log('');
-console.log('[16] 新結構商品也能有按鈕');
-{
-  const b = M.buildBlock({
-    title: '測試', desc: '說明', images: [{ file: 'a.jpg', size: 'lg' }],
-    myship: 'https://myship.7-11.com.tw/x', shopee: 'https://shopee.tw/y',
-  });
-  ok('產生的區塊含按鈕列', /<div class="ck-buy"/.test(b));
-  ok('標題仍解析正確', M.parseBlock(b, 0).title === '測試', M.parseBlock(b, 0).title);
-  ok('說明仍解析正確', M.parseBlock(b, 0).desc === '說明');
-  ok('圖片仍解析正確', M.parseBlock(b, 0).images.length === 1);
-  ok('按鈕網址解析正確', M.parseBlock(b, 0).shopee === 'https://shopee.tw/y');
-
-  const noBtn = M.buildBlock({ title: '測試', desc: '說明', images: [{ file: 'a.jpg', size: 'lg' }] });
-  ok('沒設定按鈕時不留空 div', !/ck-buy/.test(noBtn));
-}
-
-console.log('');
-console.log('[17] 認得出商品本來就有的按鈕（避免重複）');
-{
-  const own = parsed.filter(p => p.ownButtons).map(p => p.title);
-  ok('抓得到既有按鈕的商品', own.length >= 1, own);
-  ok('沒有按鈕的商品不會被誤判', parsed.filter(p => !p.ownButtons).length > 0);
-  console.log('     本來就有按鈕的：' + own.join(' / '));
-}
-
-console.log('');
-console.log('[18] 熱銷推薦標記');
-{
-  const img = 'images/star.jpg';
-  // 只設熱銷、沒有任何賣場按鈕，也要留得住標記
-  const onlyHot = M.buildBuy({ hot: img });
-  ok('只有熱銷也會產生標記列', /data-hot="images\/star\.jpg"/.test(onlyHot), onlyHot);
-  ok('沒按鈕時列裡不會有連結', !/<a /.test(onlyHot));
-  ok('沒設熱銷也沒按鈕就什麼都不產生', M.buildBuy({}) === '');
-
-  const withBoth = M.buildBuy({ hot: img, myship: 'https://myship.7-11.com.tw/x' });
-  ok('熱銷與按鈕可以同時存在',
-    /data-hot=/.test(withBoth) && /data-buy="myship"/.test(withBoth));
-
-  // 舊結構：貼上去、讀回來、剝掉，三件事要對得起來
-  const hli = parsed.findIndex(p => p.kind === 'legacy');
-  const hclean = M.stripBuy(blocks[hli]);
-  const hotted = M.withBuy(hclean, { hot: img });
-  ok('讀得回熱銷圖片', M.parseBuy(hotted).hot === img, M.parseBuy(hotted).hot);
-  ok('parseBlock 也讀得回', M.parseBlock(hotted, hli).hot === img);
-  ok('★ 剝掉熱銷標記後與乾淨區塊一字不差', M.stripBuy(hotted) === hclean);
-  ok('標題沒被標記污染', M.parseBlock(hotted, hli).title === M.parseBlock(hclean, hli).title);
-
-  // 新結構走 buildBlock 那條路
-  const nb = M.buildBlock({ title: '測試', images: [{ file: 'a.jpg', size: 'lg' }], hot: img });
-  ok('新結構也帶得動熱銷', M.parseBlock(nb, 0).hot === img);
-  ok('不是熱銷時讀回空字串',
-    M.parseBlock(M.buildBlock({ title: '測試', images: [] }), 0).hot === '');
-
-  // 引號要跳脫，否則屬性會被打斷
-  const q = M.buildBuy({ hot: 'images/a"b.jpg' });
-  ok('圖片路徑裡的引號有跳脫', /data-hot="images\/a&quot;b\.jpg"/.test(q), q);
-  ok('跳脫後仍讀得回原值', M.parseBuy(q).hot === 'images/a"b.jpg', M.parseBuy(q).hot);
+  const webp = Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from('WEBPVP8 ')]).toString('base64');
+  const L = 'img/opt/up-20261003-120000-1-l.webp', Sm = 'img/opt/up-20261003-120000-1-s.webp';
+  const d = { hot: [], products: [{ id: 'p', section: 'other', name: 'x', price: 0, imgs: [L] }] };
+  const r = mod.checkUploads({ [L]: webp, [Sm]: webp }, d);
+  ok('大圖、小圖都收', r.length === 2);
+  ok('沒被商品用到的圖不寫', mod.checkUploads({ 'img/opt/up-20261003-120000-2-l.webp': webp }, d).length === 0);
+  ok('★ 檔名不是 up- 開頭（可能蓋掉既有的圖）', throws(() => mod.checkUploads({ 'img/opt/bag-l.webp': webp }, d)));
+  ok('★ 路徑跳出資料夾', throws(() => mod.checkUploads({ '../functions/api/x.js': webp }, d)));
+  ok('★ 內容不是 WebP', throws(() => mod.checkUploads({ [L]: Buffer.from('<html>').toString('base64') }, d), /WebP/));
+  const huge = Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from('WEBP'), Buffer.alloc(2 * 1024 * 1024)]).toString('base64');
+  ok('太大', throws(() => mod.checkUploads({ [L]: huge }, d), /太大/));
 }
 
 console.log('\n=== ' + pass + ' 通過 / ' + fail + ' 失敗 ===');

@@ -1,6 +1,9 @@
 /* 商品後台 API（Cloudflare Pages Function）
- * GET  /api/products  -> 讀出 goods.html 目前的商品清單
- * POST /api/products  -> 依前端送來的最終狀態重組 goods.html 並寫回 GitHub
+ * GET  /api/products  -> 讀出 data/products.json（周邊頁的商品資料）
+ * POST /api/products  -> 檢查前端送來的最終狀態，連同新圖片一起寫回 GitHub
+ *
+ * 原本是去解析、改寫 Weebly 的 goods.html；新版周邊頁改成讀 data/products.json，
+ * 後台只要讀寫這一份 JSON，不再碰 HTML。
  *
  * 安全：必須經過 Cloudflare Access（會帶 Cf-Access-Authenticated-User-Email）
  * 金鑰：Cloudflare 環境變數 GITHUB_TOKEN（Contents: Read and write）
@@ -10,14 +13,22 @@ import { requireAccess } from '../../lib/access.js';
 
 const REPO = 'cankingsketch/store';
 const BRANCH = 'main';
-const FILE = 'goods.html';
-const H2 = '<h2 class="wsite-content-title"';
-// 商品區結尾：容許 LF 或 CRLF，避免換行格式改變就整個解析失敗
-const REGION_END_RE = /\r?\n\t\t\t<\/div>\r?\n\t\t<\/div>/;
+const FILE = 'data/products.json';
+
+// 周邊頁的分區。明信片區是特殊版面（明信片牆、卡冊 3D），只放 special 商品，後台不能把別的商品移進去
+const SECTIONS = ['blind', 'postcard', 'apparel', 'other'];
+const HOT_MAX = 8;
+const IMG_MAX = 12;
+// 商品圖一律是瘦身過的 WebP：-l 是點開看的大圖，-s 是卡片用的小圖（同名）
+const IMG_RE = /^img\/opt\/[A-Za-z0-9._-]+-l\.webp$/;
+// 後台上傳的檔名固定是 up-日期-時間-序號，不會蓋到既有的圖
+const UPLOAD_RE = /^img\/opt\/up-\d{8}-\d{6}-\d{1,2}-[ls]\.webp$/;
+const UPLOAD_MAX_BYTES = 2 * 1024 * 1024;
+const ID_RE = /^[a-z0-9][a-z0-9-]{0,39}$/;
 
 /* ---------- 工具 ---------- */
 const enc = new TextEncoder();
-const dec = new TextDecoder('utf-8', { ignoreBOM: true }); // 保留 BOM，存檔不動到無關內容
+const dec = new TextDecoder('utf-8');
 
 function b64FromText(str) {
   const bytes = enc.encode(str);
@@ -25,25 +36,13 @@ function b64FromText(str) {
   for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
   return btoa(bin);
 }
-function textFromB64(b64) {
+function bytesFromB64(b64) {
   const bin = atob(String(b64).replace(/\s/g, ''));
   const bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return dec.decode(bytes);
+  return bytes;
 }
-function esc(s) {
-  return String(s == null ? '' : s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-/* 舊商品標題在 HTML 中是數字實體（&#30332;…），要解碼才能正確顯示 */
-function unesc(s) {
-  return String(s == null ? '' : s)
-    .replace(/&#(\d+);/g, function (_, d) { return String.fromCodePoint(parseInt(d, 10)); })
-    .replace(/&#x([0-9a-fA-F]+);/g, function (_, h) { return String.fromCodePoint(parseInt(h, 16)); })
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&quot;/g, '"').replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
-}
+function textFromB64(b64) { return dec.decode(bytesFromB64(b64)); }
 function json(data, status) {
   return new Response(JSON.stringify(data), {
     status: status || 200,
@@ -139,169 +138,110 @@ async function commitAll(env, files, message, parentSha) {
   return commit.sha;
 }
 
-/* ---------- goods.html 解析 ---------- */
-function splitDoc(src) {
-  const first = src.indexOf(H2);
-  if (first < 0) throw new Error('goods.html 結構無法辨識：找不到商品標題。');
-  const m = REGION_END_RE.exec(src.slice(first));
-  if (!m) throw new Error('goods.html 結構無法辨識：找不到商品區結尾。');
-  const end = first + m.index;
-  const region = src.slice(first, end);
-  const idxs = [];
-  let p = region.indexOf(H2);
-  while (p >= 0) { idxs.push(p); p = region.indexOf(H2, p + 1); }
-  const blocks = idxs.map((s, i) => region.slice(s, i + 1 < idxs.length ? idxs[i + 1] : region.length));
-  return { head: src.slice(0, first), blocks, tail: src.slice(end) };
+/* ---------- 商品資料檢查 ---------- */
+function bad(msg) { return Object.assign(new Error(msg), { bad: true }); }
+
+function str(v, max, what) {
+  const s = String(v == null ? '' : v).trim();
+  if (s.length > max) throw bad(`${what}太長了（最多 ${max} 字）。`);
+  return s;
 }
 
-/* 全站共用的賣貨便網址：取頁面上第一個賣貨便連結。
- * 賣貨便是單頁式賣場（實測：點商品只開彈窗、網址不變、無分享功能），
- * 做不到個別商品網址，所以每個商品都指向同一個賣場。 */
-function findMyshipUrl(src) {
-  const m = src.match(/href="(https:\/\/myship\.7-11\.com\.tw\/[^"]+)"/);
-  return m ? m[1] : '';
-}
+/* 把前端送來的一個商品整理成固定格式。
+ * 欄位順序固定，檔案內容才會穩定：照原樣存回去 = 一字不差 = 不推送。
+ * view3d（3D 模型設定）與 special（明信片牆、卡冊）是程式碼層級的東西，
+ * view3d.module 會被頁面 import，絕對不能讓前端決定——一律沿用檔案裡原本的值。 */
+function normalize(p, prev) {
+  if (!p || typeof p !== 'object') throw bad('商品資料格式不對。');
+  const id = String(p.id || '');
+  if (!ID_RE.test(id)) throw bad(`商品代號「${id}」不合格式。`);
+  const name = str(p.name, 80, '商品名稱');
+  if (!name) throw bad('有商品沒有名稱。');
+  const label = `「${name}」`;
 
-/* ---------- 賣場按鈕 ----------
- * 主要通路做成小紅膠囊、次要通路做成文字連結，刻意比頁面頂端的大按鈕安靜——
- * 21 個商品一路滑下來，如果每個都是兩塊實心色塊會非常吵。
- * 這個主次之分也反映真實使用比例（賣貨便約佔購買點擊 62%、蝦皮 34%）。
- *
- * 這排按鈕放在 </h2> 之後、自成一行——刻意不塞進標題裡面：
- * 一來塞進去按鈕的左右位置會隨標題長短跳動，滑起來參差；
- * 二來 parseBlock 會把按鈕文字當成商品名稱、renameLegacy 也會改到按鈕文字。
- * 放在外面就完全碰不到舊商品的標題結構，左緣也跟標題切齊。
- *
- * 樣式在 goods.html 的 <style> 裡，換風格只要改 CSS，不用動任何商品資料。
- */
-const BUY_RE = /\n?<div class="ck-buy" data-ck="1"[^>]*>[\s\S]*?<\/div>\n?/;
+  const special = prev && prev.special;
+  const section = special ? 'postcard' : String(p.section || '');
+  if (SECTIONS.indexOf(section) < 0) throw bad(`${label}的分區不對。`);
+  if (section === 'postcard' && !special) throw bad(`明信片區是特殊版面，${label}請放到其他分區。`);
 
-/* 把生成的按鈕列拿掉，還原成「乾淨區塊」。
- * 所有解析與改名都在乾淨區塊上做，無損保證才守得住。 */
-function stripBuy(block) {
-  return block.replace(BUY_RE, '\n');
-}
+  const price = Number(p.price || 0);
+  if (!Number.isInteger(price) || price < 0 || price > 100000) throw bad(`${label}的價格要是 0～100000 的整數。`);
 
-function parseBuy(block) {
-  const row = block.match(BUY_RE);
-  if (!row) return { myship: '', shopee: '', video: '', hot: '', hotOrder: 0 };
-  const get = (cls) => {
-    const m = row[0].match(new RegExp('<a class="[^"]*" href="([^"]+)"[^>]*data-buy="' + cls + '"'));
-    return m ? unesc(m[1]) : '';
-  };
-  // 熱銷推薦：值就是要放在卡片上的圖片路徑，空的就不是熱銷
-  const hot = row[0].match(/<div class="ck-buy" data-ck="1" data-hot="([^"]*)"/);
-  const hotN = row[0].match(/ data-hot-n="([0-9]+)"/);
-  return { myship: get('myship'), shopee: get('shopee'), video: get('video'),
-           hot: hot ? unesc(hot[1]) : '', hotOrder: hotN ? Number(hotN[1]) : 0 };
-}
+  if (!Array.isArray(p.imgs) || !p.imgs.length) throw bad(`${label}至少要有一張圖。`);
+  if (p.imgs.length > IMG_MAX) throw bad(`${label}的圖最多 ${IMG_MAX} 張。`);
+  const imgs = p.imgs.map(String);
+  imgs.forEach(function (s) { if (!IMG_RE.test(s)) throw bad(`${label}有一張圖的路徑不對：${s}`); });
 
-function buildBuy(item) {
-  const btn = (kind, url, label, cls) => url
-    ? `<a class="${cls}" href="${esc(url)}" target="_blank" rel="noopener"` +
-      ` data-buy="${kind}">${label}</a>`
-    : '';
-  const parts = [
-    btn('myship', item.myship, '賣貨便', 'ck-buy-main'),
-    btn('shopee', item.shopee, '蝦皮', 'ck-buy-sub'),
-    // 影片用另一種顏色，明講「這不是賣場」；只有 1% 的人會點，不該跟購買搶注意力
-    btn('video', item.video, '▶ 影片', 'ck-buy-video'),
-  ].filter(Boolean);
-  // 熱銷標記掛在同一列上：一個商品的所有設定集中在一個地方，
-  // 排序、改名、剝離都沿用既有那條路徑，不必再多一種標記
-  const hot = (item.hot || '').trim();
-  if (!parts.length && !hot) return '';
-  // 順序一併寫進標記，前台才不必再維護一份名單
-  const n = Number(item.hotOrder);
-  const attr = hot
-    ? ` data-hot="${esc(hot)}"` + (n > 0 ? ` data-hot-n="${n}"` : '')
-    : '';
-  return `\n<div class="ck-buy" data-ck="1"${attr}>\n${parts.join('\n')}\n</div>\n`;
-}
-
-/* 這個舊商品本來就有自己的 Weebly 按鈕嗎？（例如「合作蝦皮賣場」「貼圖」）
- * 有的話後台會提醒，避免再加一組變成重複。 */
-function hasOwnButtons(block) {
-  return /wsite-button/.test(stripBuy(block));
-}
-
-function parseBlock(rawBlock, idx) {
-  const block = stripBuy(rawBlock);
-  const m = block.match(/<h2[^>]*>([\s\S]*?)<\/h2>/);
-  const rawTitle = m ? m[1] : '';
-  const title = unesc(rawTitle.replace(/<[^>]+>/g, '')).replace(/\s+/g, ' ').trim();
-  const isNew = /<h2[^>]*data-ck="1"/.test(block);
-  const buy = parseBuy(rawBlock);
-  const out = {
-    idx, title, editable: isNew, kind: isNew ? 'new' : 'legacy',
-    myship: buy.myship, shopee: buy.shopee, video: buy.video,
-    hot: buy.hot, hotOrder: buy.hotOrder,
-    ownButtons: hasOwnButtons(rawBlock),
-  };
-  if (isNew) {
-    out.images = [];
-    const re = /<figure class="ck-img ck-(lg|md|sm)"><img src="images\/([^"]+)"/g;
-    let g;
-    while ((g = re.exec(block))) out.images.push({ size: g[1], file: g[2] });
-    const d = block.match(/<div class="ck-prod-desc[^"]*">([\s\S]*?)<\/div>/);
-    out.desc = d ? unesc(d[1]).trim() : '';
-    out.descAlign = /class="ck-prod-desc[^"]*\bck-desc-left\b/.test(block) ? 'left' : 'center';
-  } else {
-    const imgs = block.match(/<img[^>]+src="images\/[^"]+"/g) || [];
-    out.imageCount = imgs.length;
-    out.hasVideo = /youtube|iframe|wSlideshow|imageGallery/i.test(block);
-    // 清單縮圖用：舊商品取第一張圖（含可能的 ?timestamp）
-    const firstImg = block.match(/<img[^>]+src=["'](images\/[^"']+)["']/);
-    if (firstImg) out.thumb = firstImg[1];
-    // 熱銷推薦要讓我挑用哪一張圖，所以舊商品也要回傳完整圖片清單
-    out.allImages = [];
-    const ire = /<img[^>]+src=["'](images\/[^"']+)["']/g;
-    let ig;
-    while ((ig = ire.exec(block))) if (out.allImages.indexOf(ig[1]) < 0) out.allImages.push(ig[1]);
+  const video = str(p.video, 300, '影片網址');
+  if (video && !/^https:\/\/[^\s"'<>]+$/.test(video)) throw bad(`${label}的影片網址要是 https:// 開頭。`);
+  const shopee = str(p.shopee, 500, '蝦皮網址');
+  if (shopee && !/^https:\/\/([a-z0-9-]+\.)*shopee\.tw\/[^\s"'<>]*$/.test(shopee)) {
+    throw bad(`${label}的蝦皮網址要是 https://shopee.tw/ 開頭。`);
   }
-  return out;
+  const date = String(p.date || '');
+  if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) throw bad(`${label}的上架日期格式要是 2026-10-03。`);
+
+  const o = { id, section, name };
+  const findName = str(p.findName, 80, '賣貨便名稱');
+  if (findName) o.findName = findName;
+  o.price = price;
+  if (p.from) o.from = true;
+  o.note = str(p.note, 200, '說明');
+  o.imgs = imgs;
+  o.video = video;
+  o.shopee = shopee;
+  if (p.soldout) o.soldout = true;
+  if (p.hidden) o.hidden = true;
+  o.date = date;
+  if (prev && prev.view3d) o.view3d = prev.view3d;
+  if (special) o.special = special;
+  return o;
 }
 
-function buildBlock(item) {
-  const title = esc(item.title || '未命名商品');
-  const imgs = (item.images || []).map(function (im, i) {
-    const size = ['lg', 'md', 'sm'].indexOf(im.size) >= 0 ? im.size : 'lg';
-    // 第一張是主圖、通常一進頁面就看得到，不延遲載入；其餘才延遲以節省流量
-    const lazy = i === 0 ? '' : ' loading="lazy"';
-    return `<figure class="ck-img ck-${size}"><img src="images/${esc(im.file)}" alt="${title}"${lazy} /></figure>`;
-  }).join('\n');
-  // 說明文字對齊：後台有明講就照做；沒講就沿用自動規則
-  //（有並排圖時靠左，與舊商品多圖排版一致；單張大圖置中）
-  const sideBySide = (item.images || []).some(function (im) { return im.size === 'md' || im.size === 'sm'; });
-  const left = item.descAlign === 'left' || (item.descAlign !== 'center' && sideBySide);
-  const descCls = 'ck-prod-desc' + (left ? ' ck-desc-left' : '');
-  const desc = item.desc && item.desc.trim()
-    ? `\n<div class="${descCls}">${esc(item.desc.trim())}</div>` : '';
-  // buildBuy 前後各帶一個換行，h2 那行已自帶結尾換行，所以要去掉開頭那個；
-  // 否則存檔結果會比 withBuy 多一行空白（兩條路徑必須產生一模一樣的位元組）
-  const buyRow = buildBuy(item).replace(/^\n/, '');
-  return `<h2 class="wsite-content-title" data-ck="1"><strong><font size="7">${title}</font></strong></h2>\n` +
-    buyRow + '\n' +
-    `<div class="ck-prod" data-ck="1">\n<div class="ck-prod-imgs">\n${imgs}\n</div>${desc}\n</div>\n\n`;
+function normalizeAll(data, current) {
+  if (!data || !Array.isArray(data.products) || !data.products.length) throw bad('沒有收到商品資料。');
+  const prevById = new Map((current.products || []).map(function (p) { return [p.id, p]; }));
+  const seen = new Set();
+  const products = data.products.map(function (p) {
+    const o = normalize(p, prevById.get(String(p && p.id)));
+    if (seen.has(o.id)) throw bad(`商品代號「${o.id}」重複了。`);
+    seen.add(o.id);
+    return o;
+  });
+  // 明信片牆、卡冊是頁面上的固定版面，刪掉版面會壞——不想賣請改成「隱藏」
+  (current.products || []).forEach(function (p) {
+    if (p.special && !seen.has(p.id)) throw bad(`「${p.name}」是特殊版面，不能刪除，可以改成隱藏。`);
+  });
+  const hot = [];
+  (Array.isArray(data.hot) ? data.hot : []).forEach(function (id) {
+    id = String(id);
+    if (!seen.has(id)) throw bad(`熱銷推薦裡的商品「${id}」不存在。`);
+    if (hot.indexOf(id) < 0) hot.push(id);
+  });
+  if (hot.length > HOT_MAX) throw bad(`熱銷推薦最多 ${HOT_MAX} 個。`);
+  return { hot, products };
 }
 
-/* 只換掉舊商品 h2 內的文字，其餘結構原封不動。
- * 一定要傳入乾淨區塊（stripBuy 過的），否則會把按鈕文字也一起改名。 */
-function renameLegacy(block, newTitle) {
-  return block.replace(/(<h2[^>]*>)([\s\S]*?)(<\/h2>)/, function (_, open, inner, close) {
-    const replaced = inner.replace(/>([^<>]+)</g, function (seg, text) {
-      return text.trim() ? '>' + esc(newTitle) + '<' : seg;
-    });
-    return open + replaced + close;
+/* 上傳的圖：路徑要合格、要真的有商品用到、要真的是 WebP、不能太大 */
+function checkUploads(uploads, data) {
+  const used = new Set();
+  data.products.forEach(function (p) {
+    p.imgs.forEach(function (s) { used.add(s); used.add(s.replace(/-l\.webp$/, '-s.webp')); });
+  });
+  return Object.keys(uploads).filter(function (path) {
+    if (!UPLOAD_RE.test(path)) throw bad(`上傳的檔名不對：${path}`);
+    return used.has(path);         // 沒被用到的（上傳後又刪掉的圖）就不寫進網站
+  }).map(function (path) {
+    let bytes;
+    try { bytes = bytesFromB64(uploads[path]); } catch (e) { throw bad(`圖片資料壞掉了：${path}`); }
+    if (bytes.length > UPLOAD_MAX_BYTES) throw bad(`圖片太大了：${path}`);
+    const tag = String.fromCharCode.apply(null, bytes.subarray(0, 4)) + String.fromCharCode.apply(null, bytes.subarray(8, 12));
+    if (tag !== 'RIFFWEBP') throw bad(`不是 WebP 圖片：${path}`);
+    return { path, contentB64: uploads[path] };
   });
 }
 
-/* 舊商品：在 </h2> 之後插入按鈕列（先確保區塊是乾淨的） */
-function withBuy(cleanBlock, item) {
-  const row = buildBuy(item);
-  if (!row) return cleanBlock;
-  return cleanBlock.replace('</h2>', '</h2>' + row.replace(/\n$/, ''));
-}
+function serialize(data) { return JSON.stringify(data, null, 2) + '\n'; }
 
 /* ---------- 路由 ---------- */
 export async function onRequestGet({ request, env }) {
@@ -309,10 +249,9 @@ export async function onRequestGet({ request, env }) {
   if (auth.error) return auth.error;
   try {
     const file = await ghGet(env, FILE);
-    const src = textFromB64(file.content);
-    const { blocks } = splitDoc(src);
-    return json({ sha: file.sha, products: blocks.map(parseBlock),
-      myshipUrl: findMyshipUrl(src), user: auth.email });
+    if (!file) return json({ error: `網站上找不到 ${FILE}。` }, 500);
+    const data = JSON.parse(textFromB64(file.content));
+    return json({ sha: file.sha, data, user: auth.email });
   } catch (e) {
     return json({ error: String(e.message || e) }, 500);
   }
@@ -323,80 +262,35 @@ export async function onRequestPost({ request, env }) {
   if (auth.error) return auth.error;
   try {
     const payload = await request.json();
-    const items = payload.items;
-    if (!Array.isArray(items) || !items.length) return json({ error: '沒有收到商品資料。' }, 400);
 
     // 先鎖定分支目前的位置，再從同一個位置讀檔案，最後以它為 parent 推送。
     // 這樣「讀到的內容」與「推送的基準」一定是同一個狀態。
     const parent = await headSha(env);
     const file = await ghGet(env, FILE, parent);
-    if (payload.sha && payload.sha !== file.sha) {
+    if (!file) return json({ error: `網站上找不到 ${FILE}。` }, 500);
+    if (payload.sha !== file.sha) {
       return json({ error: '網站內容在你編輯期間有異動，請重新整理後再試一次。' }, 409);
     }
     const src = textFromB64(file.content);
-    const { head, blocks, tail } = splitDoc(src);
+    const data = normalizeAll(payload.data, JSON.parse(src));
+    const images = checkUploads(payload.uploads || {}, data);
 
-    const uploads = payload.uploads || {};
-    const names = Object.keys(uploads);
+    const next = serialize(data);
+    if (next === src && !images.length) return json({ ok: true, changed: false, message: '沒有變更。' });
 
-    // 賣貨便沒有個別商品網址（實測過：整個賣場只有一個網址），
-    // 所以全站共用一個，從頁面頂端原本那顆按鈕帶入。
-    const myshipUrl = findMyshipUrl(src);
-
-    /* 熱銷推薦最多三個，順序由後台決定，跟商品在頁面上的排序無關。
-       後台會擋，這裡再擋一次——超過就只留排序最前面的三個。 */
-    const HOT_MAX = 3;
-    const hotRank = new Map();
-    items
-      .map((it, i) => ({ i, n: Number(it.hotOrder) }))
-      .filter((x) => (items[x.i].hot || '').trim())
-      .sort((a, b) => (isFinite(a.n) ? a.n : 1e9) - (isFinite(b.n) ? b.n : 1e9) || a.i - b.i)
-      .slice(0, HOT_MAX)
-      .forEach((x, k) => hotRank.set(x.i, k + 1));
-
-    // 依前端送來的最終狀態重組
-    const out = [];
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      const hot = hotRank.has(i) ? (item.hot || '').trim() : '';
-      // 前端只送「有沒有要放賣貨便」，網址一律用共用的那個
-      const buy = { myship: item.myship ? myshipUrl : '', shopee: (item.shopee || '').trim(),
-                     video: (item.video || '').trim(), hot, hotOrder: hotRank.get(i) || 0 };
-      if (item.new) {
-        out.push(buildBlock(Object.assign({}, item, buy)));
-      } else {
-        const raw = blocks[item.idx];
-        if (raw == null) return json({ error: `找不到商品 #${item.idx}，請重新整理。` }, 400);
-        if (/<h2[^>]*data-ck="1"/.test(raw)) {
-          out.push(buildBlock(Object.assign({}, item, buy)));  // 新結構：整塊重建
-        } else {
-          // 舊結構：一律先還原成乾淨區塊，改完再把按鈕列放回去。
-          // 這樣「沒設定按鈕」時產出的內容與原檔一字不差。
-          const clean = stripBuy(raw);
-          const renamed = parseBlock(clean, item.idx).title === item.title
-            ? clean
-            : renameLegacy(clean, item.title);
-          out.push(withBuy(renamed, buy));
-        }
-      }
-    }
-
-    const next = head + out.join('') + tail;
-    if (next === src && !names.length) return json({ ok: true, changed: false, message: '沒有變更。' });
-
-    // 圖片與 goods.html 一起送，打包成單一 commit ＝ 只觸發一次部署
-    const files = names.map(function (name) {
-      return { path: `images/${name}`, contentB64: uploads[name] };
-    });
+    // 圖片與 products.json 一起送，打包成單一 commit ＝ 只觸發一次部署
+    const files = images.slice();
     if (next !== src) files.push({ path: FILE, contentB64: b64FromText(next) });
 
+    const big = images.filter(function (f) { return /-l\.webp$/.test(f.path); });
     const message = `Update products via admin (${auth.email})` +
-      (names.length ? `\n\n新增圖片 ${names.length} 張：\n${names.join('\n')}` : '');
+      (big.length ? `\n\n新增圖片 ${big.length} 張：\n${big.map(function (f) { return f.path; }).join('\n')}` : '');
     const sha = await commitAll(env, files, message, parent);
 
-    return json({ ok: true, changed: true, count: items.length, images: names.length, commit: sha });
+    return json({ ok: true, changed: true, count: data.products.length, images: big.length, commit: sha });
   } catch (e) {
     if (e && e.conflict) return json({ error: e.message }, 409);
+    if (e && e.bad) return json({ error: e.message }, 400);
     return json({ error: String(e.message || e) }, 500);
   }
 }

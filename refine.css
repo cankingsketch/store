@@ -1,0 +1,168 @@
+/* 細修版（html.v2）：參考日本雜貨品牌網站的做法重新調整字、留白、分隔和按鈕。
+   配色在檔案最後面「雙色」那段：Logo 是深青綠＋紅，所以綠當主色、紅當點綴。
+   原則：
+   - 字小一點、細一點、不要純黑：內文 15px、行高 1.75、字距 0.04em、顏色 #333
+   - 標題靠左，上面加一行小小的英文眉標，不再用兩側的裝飾線
+   - 區塊之間靠大量留白分開（約 88px），不用線、不用框
+   - 商品卡不要外框和陰影：圖片小圓角放在淺灰底上，名稱和價格直接排在圖片下面、靠左
+   - 價格用深灰不用紅；紅色只留給品牌和「賣貨便下單」
+   - 圓角收斂：圖片 6px、方塊 8px、購買按鈕 6px；只有「看全部」這種次要連結用膠囊形 */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+
+html.v2 body { font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif; font-size:15px; line-height:1.75; letter-spacing:.04em; color:#333; }
+html.v2 .page { background:#fff; padding-top:10px; }
+html.v2 .wrap { max-width:1040px; }
+html:not(.notes) .memo { display:none; }
+
+/* 紅色（參考日清台灣官網）：全站只用一個紅，就是 Logo 的紅；
+   同一個紅有「實心」和「外框線」兩種用法，其他地方是白底和淺灰，紅色才會顯眼 */
+html.v2 { --brand:#e8000f; --red:var(--brand); --red2:var(--brand); --pink:#f3d6d8; --paper:#f4f4f4; }
+html.v2 .nav::before, html.v2 .nav::after { background:var(--brand); height:5px; }
+
+/* 標題：置中（跟頁首的 Logo、選單同一條中軸）＋英文眉標；裝飾線拿掉。卡片裡的文字維持靠左 */
+/* 日清的標題是紅字、置中、字距拉開；英文眉標改淺灰，紅色留給中文標題 */
+html.v2 .sect-title { display:block; text-align:center; color:var(--brand); font-size:20px; font-weight:700; letter-spacing:.14em; margin:88px 0 22px; }
+html.v2 .sect-title::before { content:attr(data-en); display:block; flex:none; max-width:none; height:auto; background:none; border-radius:0;
+  font-size:10.5px; font-weight:700; letter-spacing:.28em; color:#9a9a9a; margin-bottom:2px; line-height:1.4; }
+html.v2 .sect-title::after { display:none; }
+html.v2 .hero { margin-top:0; }
+html.v2 .shoprow { gap:8px; }
+html.v2 .pill { border-radius:6px; font-size:14px; font-weight:500; padding:10px 22px; letter-spacing:.06em; }
+html.v2 .pill.ghost { border:1px solid #d9d9d9; color:#555; }
+
+/* 熱銷：去掉外框，加名次 */
+html.v2 .hot { gap:28px 16px; counter-reset:rank; max-width:none; }
+html.v2 .hot a { border:0; border-radius:0; background:none; overflow:visible; position:relative; counter-increment:rank; }
+html.v2 .hot a:hover { transform:none; box-shadow:none; }
+html.v2 .hot a::before { content:counter(rank, decimal-leading-zero); position:absolute; left:0; top:0; z-index:1; background:var(--brand); color:#fff;
+  font:700 12px/1 "Noto Sans TC",sans-serif; letter-spacing:.06em; padding:7px 8px; border-radius:6px 0 6px 0; }
+html.v2 .hot img { border-radius:6px; background:#f3f3f3; transition:opacity .2s; }
+html.v2 .hot a:hover img { opacity:.86; }
+html.v2 .hot span { text-align:left; padding:10px 0 0; font-size:14px; font-weight:500; color:#333; }
+html.v2 .hot span em { color:#333; font-weight:500; font-size:13px; margin-top:1px; }
+
+/* 商品卡 */
+html.v2 .cards { gap:36px 16px; }
+html.v2 .card { border:0; border-radius:0; background:none; padding:0; text-align:left; }
+html.v2 .card:hover { transform:none; box-shadow:none; }
+html.v2 .card img.ph { border-radius:6px; background:#f3f3f3; transition:opacity .2s; }
+html.v2 .card:hover img.ph { opacity:.86; }
+html.v2 .card b { margin:10px 0 0; font-size:14px; font-weight:500; line-height:1.55; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+html.v2 .card small { margin:2px 0 0; font-size:12px; color:#8a8a8a; }
+html.v2 .card .pr { margin:4px 0 0; font-size:14px; font-weight:500; color:#333; }
+html.v2 .card .cnt { border-radius:3px; font-size:11px; background:rgba(0,0,0,.55); }
+
+/* 分類方塊 */
+html.v2 .catbar { margin:0 0 28px; }
+html.v2 .cats { justify-content:center; gap:8px; }
+/* 圖示先拿掉（一排一樣的頭太亂），分類入口改成純文字籤，跟貼紙頁的「全部／組合」同一種樣子 */
+.cat .ic { display:none !important; }
+html.v2 .cat { width:auto; flex:none; flex-direction:row; align-items:baseline; gap:5px; border:1px solid #d9d9d9; border-radius:999px; padding:6px 18px; background:#fff; }
+html.v2 .cat:hover { transform:none; border-color:#999; }
+html.v2 .cat.on { border-color:var(--brand); background:var(--brand); }
+html.v2 .cat.on span { color:#fff; }
+html.v2 .cat.on b { color:#bbb; }
+html.v2 .cat span { font-size:13px; font-weight:500; }
+html.v2 .cat b { font-size:11.5px; font-weight:400; color:#999; }
+
+/* 貼紙 */
+html.v2 .wall { border-radius:10px; background-color:#f6f5f2; background-image:none; }
+html.v2 .tile .nm { font-size:13.5px; font-weight:500; }
+html.v2 .tile .nt { font-size:11.5px; color:#999; }
+html.v2 .tile .pr { font-size:13px; font-weight:500; color:#333; }
+html.v2 .tag { border-radius:2px; font-size:10px; padding:3px 5px; letter-spacing:.1em; }
+html.v2 .zone-sub { text-align:center; margin:-14px 0 16px; font-size:13px; color:#8a8a8a; }
+/* 貼紙入口：日清首頁那種「淺灰底＋紅色外框」的方塊 */
+html.v2 .banner { border-radius:4px; background-image:none; background-color:var(--paper); border:2px solid var(--brand); margin-top:88px; }
+html.v2 .bn-txt h2 { color:var(--brand); font-size:20px; letter-spacing:.14em; }
+html.v2 .bn-txt h2::before { content:"STICKERS"; display:block; font-size:10.5px; letter-spacing:.28em; color:#9a9a9a; line-height:1.4; }
+/* 次要連結：紅色外框，滑過變實心（同一個紅的兩種用法） */
+html.v2 .bn-go { background:#fff; color:var(--brand); border:1.5px solid var(--brand); font-size:13px; font-weight:700; letter-spacing:.08em; transition:background .15s, color .15s; }
+html.v2 .bn-go:hover { background:var(--brand); color:#fff; }
+
+/* 頁尾：整條實心紅，白字（日清的收尾方式），把整頁收住 */
+.site-foot { display:none; }
+html.v2 .site-foot { display:block; background:var(--brand); color:#fff; text-align:center; padding:34px 16px 30px; margin-top:0; }
+html.v2 .site-foot .sns { display:flex; justify-content:center; gap:20px; }
+html.v2 .site-foot .sns a { width:44px; height:44px; border-radius:50%; background:#fff; color:var(--brand); display:grid; place-items:center; cursor:pointer; transition:transform .15s; }
+html.v2 .site-foot .sns a:hover { transform:translateY(-2px); }
+html.v2 .site-foot .sns svg { width:22px; height:22px; }
+html.v2 .site-foot small { display:block; margin-top:18px; font-size:13px; letter-spacing:.06em; }
+html.v2 .page { padding-bottom:96px; }
+
+/* 貼紙頁 */
+html.v2 .stk-head { text-align:center; margin:36px 0 22px; }
+html.v2 .stk-head h1 { font-size:28px; color:#222; letter-spacing:.1em; }
+html.v2 .stk-head h1::before { content:"STICKERS"; display:block; font-size:11px; letter-spacing:.24em; color:var(--red2); line-height:1.4; }
+html.v2 .stk-head p { font-size:13.5px; }
+html.v2 .stk-head .price { border:0; background:none; padding:0; margin-top:2px; color:#555; }
+html.v2 .chips { justify-content:center; gap:6px; background:rgba(255,255,255,.94); }
+html.v2 .chips + .sect-title { margin-top:32px; }
+html.v2 .chip { border:1px solid #d9d9d9; font-size:13px; padding:6px 18px; }
+html.v2 .chip.on { background:var(--brand); border-color:var(--brand); }
+html.v2 .chip.on b { color:rgba(255,255,255,.75); }
+html.v2 .wall.sets .tile { border-radius:10px; box-shadow:none; border:1px solid #ebebeb; }
+
+/* 燈箱與購買 */
+html.v2 .lb-panel { border-radius:12px; }
+html.v2 .lb-foot h3 { font-size:17px; letter-spacing:.06em; }
+html.v2 .buybox .main { border-radius:6px; padding:12px 22px; font-size:14px; font-weight:700; letter-spacing:.08em; }
+html.v2 .buybox .sub { font-size:13px; }
+html.v2 .sl-hint { border-radius:6px; font-size:14px; letter-spacing:.08em; }
+
+@media (max-width:640px) {
+  html.v2 .sect-title { margin-top:64px; font-size:18px; }
+  html.v2 .banner { margin-top:64px; }
+  html.v2 .cards { gap:28px 12px; }
+  html.v2 .cats { flex-wrap:nowrap; justify-content:flex-start; }   /* 手機上要左右滑，置中會把最左邊那個切掉 */
+}
+
+/* 設計稿用的切換鈕（不是版面的一部分） */
+.ck-toggles { position:fixed; right:12px; top:12px; z-index:70; display:flex; gap:6px; }
+.ck-toggles button { border:0; border-radius:999px; padding:7px 12px; font-size:12px; cursor:pointer; background:#2a2a2a; color:#fff; opacity:.9; letter-spacing:0; }
+.ck-toggles button b { color:#ffd84a; font-weight:700; }
+
+/* 頁首右上角的「聯絡我們」：小字＋信封圖示，不擠進主選單 */
+.site-head { position:relative; }
+.head-contact { display:none; }
+html.v2 .head-contact { display:inline-flex; align-items:center; gap:5px; position:absolute; right:max(16px, calc(50% - 520px)); top:30px;
+  color:var(--brand); font-size:13px; font-weight:700; letter-spacing:.08em; text-decoration:none; cursor:pointer; }
+html.v2 .head-contact svg { width:17px; height:17px; }
+html.v2 .head-contact:hover { opacity:.75; }
+@media (max-width:640px) { html.v2 .head-contact { top:18px; right:14px; font-size:0; gap:0; } html.v2 .head-contact svg { width:22px; height:22px; } }
+/* 設計稿的切換鈕移到右下，讓出右上角 */
+.ck-toggles { top:auto; bottom:14px; }
+
+/* ======== 雙色：Logo 是深青綠＋紅 ========
+   綠（#15464D，Logo 字的顏色）＝主色：Logo、選單、標題、名次、選中的籤、框線、頁尾。
+   紅（Logo 小旗子和臉頰的紅）＝點綴：英文眉標、NEW、「賣貨便下單」這種要客人行動的按鈕。
+   比例大約 白 60／綠 30／紅 10，紅色少，所以一出現就是重點。 */
+html.v2 { --green:#15464d; --green-soft:#e7eeee; --brand:#e8000f; }
+html.v2 body { color:#2e3a3c; }
+.site-head .logo.new { display:none; }
+html.v2 .site-head .logo.old { display:none; }
+html.v2 .site-head .logo.new { display:block; height:78px; margin:0 auto 14px; }
+html.v2 .nav::before, html.v2 .nav::after { background:var(--green); height:4px; }
+html.v2 .nav a { color:var(--green); font-weight:500; }
+html.v2 .nav a.on { background:var(--green-soft); }
+html.v2 .nav a .dot { background:var(--brand); }
+html.v2 .head-contact { color:var(--green); }
+
+/* 標題：中文綠、英文眉標紅（像 Logo 上那面小紅旗） */
+html.v2 .sect-title, html.v2 .stk-head h1, html.v2 .bn-txt h2 { color:var(--green); }
+html.v2 .sect-title::before, html.v2 .stk-head h1::before, html.v2 .bn-txt h2::before { color:var(--brand); }
+
+/* 綠色的實心和框線 */
+html.v2 .hot a::before { background:var(--green); }
+html.v2 .cat.on, html.v2 .chip.on { background:var(--green); border-color:var(--green); }
+html.v2 .banner { border-color:var(--green); }
+html.v2 .bn-go { color:var(--green); border-color:var(--green); }
+html.v2 .bn-go:hover { background:var(--green); color:#fff; }
+html.v2 .tag.setc { background:var(--green); }
+html.v2 .site-foot { background:var(--green); }
+html.v2 .site-foot .sns a { color:var(--green); }
+
+/* 紅色只留給「要客人做事」的地方：賣場按鈕、下單、NEW */
+html.v2 .pill:not(.ghost) { background:var(--brand); border-color:var(--brand); }
+html.v2 .buybox .main { background:var(--brand); }
+html.v2 .tag.new { background:var(--brand); }

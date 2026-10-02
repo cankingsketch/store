@@ -51,27 +51,32 @@
   /* 轉換率那張卡片要跳出來，那是兩份資料合起來才算得出的數字 */
   .num.hero { border-color:var(--red); background:#fff6f6; }
   .num.hero b { color:var(--red); }
-  /* 說明文字對齊切換 */
-  .align { display:flex; align-items:center; gap:6px; margin-top:7px; font-size:13px; color:var(--muted); }
-  .align button { padding:4px 12px; font-size:13px; border-color:var(--line); color:#666; }
-  .align button.on { border-color:var(--red); color:var(--red); font-weight:700; }
-  .align .hint { margin:0; }
-  /* 賣場按鈕設定 */
-  .buyrow { display:flex; align-items:center; gap:10px; margin:6px 0 8px; flex-wrap:wrap; }
-  .chk { display:inline-flex; align-items:center; gap:6px; font-size:14px; font-weight:400;
-         margin:0; cursor:pointer; }
+  /* 商品清單：分區標題、價格 */
+  .sec { font-size:14px; margin:18px 0 8px; color:#555; }
+  .sec:first-child { margin-top:0; }
+  .row .name small { margin-left:8px; font-size:12px; color:var(--muted); }
+  .two { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .chk { display:flex; align-items:center; gap:6px; font-size:14px; font-weight:400;
+         margin:6px 0 0; cursor:pointer; }
   .chk input { width:16px; height:16px; cursor:pointer; }
-  .buyrow .hint { margin:0; word-break:break-all; }
-  .legacy-note { background:#fff8e6; border:1px solid #ffe2a8; color:#8a6a1a;
-                 border-radius:8px; padding:8px 10px; margin:0 0 4px; }
-  /* 預覽裡的賣場按鈕——要跟 goods.html 的 .ck-buy 長得一樣，改了那邊記得同步 */
-  .pv-buy { display:flex; align-items:center; gap:14px; margin:0 0 12px; flex-wrap:wrap; }
-  .pv-buy a { text-decoration:none; }
-  .pv-buy .pv-myship { display:inline-block; background:#f64c3f; color:#fff; font-size:13px;
-                       line-height:1; padding:7px 16px; border-radius:999px; }
-  .pv-buy .pv-shopee { font-size:14px; color:#555; border-bottom:1px solid #ccc; padding-bottom:1px; }
-  .pv-buy .pv-video { display:inline-flex; align-items:center; gap:5px; font-size:13px; line-height:1;
-                      color:#c4302b; border:1.5px solid #f0c3c1; border-radius:999px; padding:5px 13px; }
+  .two .chk { margin-top:8px; }
+  select, input[type=number], input[type=date] { width:100%; padding:8px 10px; font-size:15px; font-family:inherit;
+                     border:1.5px solid var(--line); border-radius:8px; background:#fff; }
+  .thumb { position:relative; }
+  .thumb .first { position:absolute; left:10px; top:10px; font-size:11px; background:var(--red); color:#fff; border-radius:4px; padding:1px 6px; }
+  .note3d { background:#eef4ff; border:1px solid #c7d9f7; color:#1a4fa0; border-radius:8px; padding:8px 10px; margin-top:14px; }
+  /* 卡片預覽——要跟周邊頁的 .gcard 長得差不多 */
+  .pv-card { width:220px; margin:0 auto; border:2px solid #ffd9d6; border-radius:14px; overflow:hidden; background:#fff; }
+  .pv-card.off { opacity:.45; }
+  .pv-card .ph { position:relative; aspect-ratio:1 / 1; background:#f6f6f6; display:grid; place-items:center; color:#bbb; font-size:13px; }
+  .pv-card .ph img { width:100%; height:100%; object-fit:cover; display:block; }
+  .pv-card i { position:absolute; font-style:normal; font-size:12px; font-weight:800; color:#fff; line-height:1; padding:6px 10px; }
+  .pv-card .cnt { right:0; bottom:0; background:rgba(0,0,0,.62); border-radius:10px 0 0 0; }
+  .pv-card .d3 { right:0; top:0; background:rgba(255,45,45,.62); border-radius:0 0 0 10px; }
+  .pv-card .so { left:7px; top:7px; background:#555; border-radius:4px; padding:3px 8px; }
+  .pv-card b { display:block; padding:10px 12px 2px; font-size:15px; }
+  .pv-card span { display:block; padding:0 12px 12px; font-size:14px; color:#555; }
+  @media (max-width:600px) { .two { grid-template-columns:1fr; } }
   button { font-family:inherit; font-size:14px; cursor:pointer; border-radius:8px; border:1.5px solid var(--red);
            background:#fff; color:var(--red); padding:8px 14px; }
   button.primary { background:var(--red); color:#fff; }
@@ -142,11 +147,6 @@
   .hotcard-name { padding:6px 8px; font-size:13px; font-weight:700; line-height:1.3; }
   .hotcard-ops { display:flex; gap:4px; padding:0 6px 8px; }
   .hotcard-ops button[disabled] { opacity:.3; cursor:default; }
-  .hotimgs { display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 2px; }
-  .hotimgs button { padding:0; border:2px solid #ddd; border-radius:8px; background:none;
-    cursor:pointer; line-height:0; overflow:hidden; }
-  .hotimgs button.on { border-color:var(--red); }
-  .hotimgs img { width:64px; height:64px; object-fit:cover; display:block; }
   /* 圖片管理 */
   .imgs { display:flex; flex-wrap:wrap; gap:10px; margin-top:8px; }
   .thumb { width:132px; border:1px solid var(--line); border-radius:9px; padding:6px; background:#fff; }
@@ -160,14 +160,6 @@
   .preview { background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; }
   .preview .stage { border:1px dashed #ddd; border-radius:9px; padding:14px; }
   .pv-title { font-size:30px; font-weight:800; margin:0 0 12px; color:#2a2a2a; line-height:1.3; }
-  .ck-prod-imgs { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; align-items:flex-start; }
-  .ck-prod-imgs figure { margin:0; }
-  .ck-prod-imgs img { width:100%; height:auto; display:block; border-radius:8px; }
-  .ck-prod-imgs .ck-lg { flex:0 0 100%; max-width:620px; }
-  .ck-prod-imgs .ck-md { flex:0 0 calc(50% - 6px); max-width:460px; }
-  .ck-prod-imgs .ck-sm { flex:0 0 calc(33.333% - 8px); max-width:320px; }
-  .ck-prod-desc { text-align:center; font-size:90%; margin-top:10px; color:var(--muted); }
-  .ck-prod-desc.ck-desc-left { text-align:left; }
   .msg { padding:11px 14px; border-radius:9px; margin-bottom:14px; font-size:14px; display:none; }
   .msg.err { background:#ffecec; color:#c00; border:1px solid #ffc9c9; display:block; }
   .msg.ok { background:#e8f8ee; color:#127a3d; border:1px solid #b7e6c8; display:block; }
@@ -197,11 +189,11 @@
   <div id="pane-goods">
   <!-- 清單模式 -->
   <div id="view-list">
-    <div class="card" id="hotbar" style="display:none"></div>
-    <div class="card">
-      <h2>目前商品（由上到下就是網站顯示順序）</h2>
+    <div class="card" id="hotbar"></div>
+    <div class="card" style="margin-top:18px;">
+      <h2>目前商品（同一區由上到下＝周邊頁的推薦排序）</h2>
       <div id="list"></div>
-      <p class="hint">新商品會加在最上面。「下架」不會馬上生效，按右上角「儲存變更」才會真的更新網站。</p>
+      <p class="hint">改完按右上角「儲存變更」才會真的更新網站（約 1～2 分鐘後上線）。T 恤、貼紙不在這裡，要改請找 Claude。</p>
     </div>
   </div>
 
@@ -210,55 +202,64 @@
     <div class="cols">
       <div class="card">
         <h2 id="edit-heading">新增商品</h2>
-        <p class="hint legacy-note" id="legacy-note" style="display:none">
-          這是舊版結構的商品，圖片與說明沒辦法在這裡改，但名稱與賣場按鈕可以。
-        </p>
         <label>商品名稱</label>
-        <input type="text" id="f-title" placeholder="例如：下雨天杯墊" />
+        <input type="text" id="f-name" placeholder="例如：下雨天杯墊" />
 
-        <label>賣場按鈕（會顯示在商品標題下方）</label>
-        <div class="buyrow">
-          <label class="chk"><input type="checkbox" id="f-myship" /> 賣貨便</label>
-          <span class="hint" id="myship-url"></span>
+        <div class="two">
+          <div>
+            <label>分區</label>
+            <select id="f-section"></select>
+          </div>
+          <div>
+            <label>價格（NT$）</label>
+            <input type="number" id="f-price" min="0" step="1" placeholder="220" />
+            <label class="chk"><input type="checkbox" id="f-from" /> 顯示成「起」（例如單抽 330 起）</label>
+          </div>
         </div>
-        <input type="text" id="f-shopee" placeholder="蝦皮連結（留空就不顯示蝦皮按鈕）" />
-        <input type="text" id="f-video" placeholder="影片網址（留空就不顯示影片按鈕）" />
-        <p class="hint" id="own-buttons-note" style="display:none"></p>
 
-        <label>熱銷推薦</label>
-        <div class="buyrow">
-          <label class="chk"><input type="checkbox" id="f-hot" /> 放進頁面最上方的熱銷推薦區</label>
-        </div>
-        <div id="f-hot-pick" style="display:none">
-          <p class="hint">卡片要用哪一張圖：</p>
-          <div class="hotimgs" id="f-hot-imgs"></div>
-        </div>
-        <p class="hint">最多三個。點卡片會捲到那個商品，賣場按鈕就在商品標題下方。</p>
+        <label>一行說明（選填）</label>
+        <input type="text" id="f-note" placeholder="例如：陶瓷 吸水 杯墊｜直徑 11cm" />
 
-        <div id="edit-rich">
-        <label>說明文字（選填）</label>
-        <input type="text" id="f-desc" placeholder="例如：陶瓷 吸水 杯墊｜UV浮雕印刷" />
-        <div class="align" id="f-align">
-          <span>對齊：</span>
-          <button type="button" data-align="center">置中</button>
-          <button type="button" data-align="left">靠左</button>
-          <span class="hint" id="align-auto">（目前自動判斷）</span>
-        </div>
-        <label>商品圖片</label>
+        <label>商品圖片（第一張是卡片上的圖）</label>
         <div class="imgs" id="f-imgs"></div>
         <div class="drop" id="drop">點這裡選圖片，或把圖片拖進來（可一次多張）</div>
         <input type="file" id="file" accept="image/*" multiple hidden />
-        <p class="hint">圖片會自動壓縮。版型：大＝獨佔一行、中＝兩張並排、小＝三張並排；手機一律單欄。</p>
-        </div><!-- /edit-rich -->
+        <p class="hint">圖片會自動縮小、轉成 WebP。最多 12 張。</p>
+
+        <label>影片網址（選填）</label>
+        <input type="text" id="f-video" placeholder="IG reel 或 YouTube 網址，會放在圖片最後一格" />
+
+        <label>蝦皮商品網址（選填）</label>
+        <input type="text" id="f-shopee" placeholder="留空就不顯示蝦皮按鈕" />
+
+        <label>賣貨便上的名稱（選填）</label>
+        <input type="text" id="f-find" placeholder="跟上面的商品名稱不同時才填" />
+        <p class="hint">賣貨便所有商品在同一頁，客人會照這個名字去找。</p>
+
+        <div class="two">
+          <div>
+            <label>上架日期</label>
+            <input type="date" id="f-date" />
+            <p class="hint">「新到舊」排序用。</p>
+          </div>
+          <div>
+            <label>狀態</label>
+            <label class="chk"><input type="checkbox" id="f-hot" /> 放進熱銷推薦</label>
+            <label class="chk"><input type="checkbox" id="f-soldout" /> 已絕版（還看得到，不能買）</label>
+            <label class="chk"><input type="checkbox" id="f-hidden" /> 隱藏（網站上看不到）</label>
+          </div>
+        </div>
+        <p class="hint note3d" id="f-3d" style="display:none">這個商品有 3D 預覽，3D 的設定要找 Claude 改。</p>
+
         <div style="margin-top:18px; display:flex; gap:8px;">
           <button id="btn-apply" class="primary">完成，回到清單</button>
           <button id="btn-cancel" class="ghost">取消</button>
         </div>
       </div>
       <div class="preview">
-        <h2 style="font-size:16px;margin:0 0 12px;">即時預覽</h2>
+        <h2 style="font-size:16px;margin:0 0 12px;">卡片預覽</h2>
         <div class="stage" id="stage"></div>
-        <p class="hint">這就是它在網站上的樣子（手機上多圖會自動變成上下排列）。</p>
+        <p class="hint">周邊頁上的卡片長這樣；點開會看到全部的圖、影片和購買按鈕。</p>
       </div>
     </div>
   </div>
@@ -314,9 +315,14 @@
 </div>
 
 <script>
+/* 商品分頁：讀寫 data/products.json（周邊頁直接讀這份畫出商品） */
 (function () {
   var $ = function (id) { return document.getElementById(id); };
-  var state = { sha: null, products: [], dirty: false, uploads: {}, editing: null, isNewItem: false };
+  var SECTIONS = [['blind', '盲盒'], ['postcard', '明信片'], ['apparel', '服飾'], ['other', '其他周邊']];
+  var SEC_NAME = {}; SECTIONS.forEach(function (s) { SEC_NAME[s[0]] = s[1]; });
+  var HOT_MAX = 8, IMG_MAX = 12;
+  // sha：讀取時 products.json 的版本，存檔時後端拿來比對有沒有人同時改過
+  var state = { sha: null, products: [], hot: [], dirty: false, uploads: {}, previews: {}, editing: null, editIdx: -1 };
 
   function setMsg(text, kind) {
     var el = $('msg');
@@ -329,6 +335,14 @@
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  // 剛上傳、還沒存檔的圖用本機預覽；其他的直接讀網站上的檔案
+  function big(s) { return state.previews[s] || s; }
+  function small(s) { return state.previews[s.replace(/-l\.webp$/, '-s.webp')] || s.replace(/-l\.webp$/, '-s.webp'); }
+  function priceText(p) {
+    if (p.soldout) return '已絕版';
+    return p.price ? 'NT$' + Number(p.price).toLocaleString() + (p.from ? ' 起' : '') : '';
+  }
 
   /* ---------- 載入 ---------- */
   function load(okMsg) {
@@ -338,421 +352,263 @@
     }).then(function (res) {
       if (!res.ok) { setMsg(res.d.error || '載入失敗', 'err'); return; }
       state.sha = res.d.sha;
-      state.myshipUrl = res.d.myshipUrl || '';
-      state.products = res.d.products.map(function (p) { p.removed = false; return p; });
+      state.products = res.d.data.products;
+      state.hot = res.d.data.hot || [];
+      state.uploads = {}; state.previews = {};
+      state.dirty = false; $('btn-save').disabled = true;
       $('who').textContent = res.d.user || '';
       setMsg(okMsg || '', okMsg ? 'ok' : '');
       renderList();
     }).catch(function (e) { setMsg('連線失敗：' + e.message, 'err'); });
   }
 
-  /* 清單縮圖：新商品用自己的第一張圖（含尚未儲存的），舊商品用後端給的路徑 */
-  function thumbOf(p) {
-    if (p.images && p.images.length) {
-      var im = p.images[0];
-      return im.dataUrl || ('images/' + im.file);
-    }
-    return p.thumb || '';
-  }
-
-  /* ---------- 清單 ---------- */
-  /* 熱銷推薦的排序：跟商品在頁面上的順序無關，所以獨立一區來調 */
-  function hotList() {
-    return state.products
-      .map(function (p, i) { return { p: p, i: i }; })
-      .filter(function (x) { return x.p.hot && !x.p.removed; })
-      .sort(function (a, b) { return (a.p.hotOrder || 99) - (b.p.hotOrder || 99); });
-  }
-  function renumberHot() {
-    hotList().forEach(function (x, k) { x.p.hotOrder = k + 1; });
-  }
+  /* ---------- 熱銷推薦 ---------- */
+  function byId(id) { return state.products.filter(function (p) { return p.id === id; })[0]; }
   function renderHotBar() {
-    var box = $('hotbar');
-    var list = hotList();
-    if (!list.length) { box.innerHTML = ''; box.style.display = 'none'; return; }
-    box.style.display = '';
-    var h = '<h2>熱銷推薦（頁面最上方，由左到右）</h2><div class="hotbar-row">';
-    list.forEach(function (x, k) {
-      h += '<div class="hotcard">'
-        + '<img src="' + esc(x.p.hot) + '" alt="" />'
-        + '<div class="hotcard-name">' + esc(x.p.title) + '</div>'
-        + '<div class="hotcard-ops">'
-        + '<button class="mini ghost" data-h="l" data-k="' + k + '"'
-        + (k === 0 ? ' disabled' : '') + ' title="往前">◀</button>'
-        + '<button class="mini ghost" data-h="r" data-k="' + k + '"'
-        + (k === list.length - 1 ? ' disabled' : '') + ' title="往後">▶</button>'
-        + '<button class="mini ghost" data-h="x" data-k="' + k + '" title="移出熱銷">✕</button>'
-        + '</div></div>';
+    var bar = $('hotbar');
+    bar.innerHTML = '<h2>熱銷推薦（周邊頁最上面的輪播，最多 ' + HOT_MAX + ' 個）</h2>';
+    if (!state.hot.length) { bar.innerHTML += '<p class="empty">還沒有。到商品編輯裡勾「放進熱銷推薦」。</p>'; return; }
+    var row = document.createElement('div'); row.className = 'hotbar-row';
+    state.hot.forEach(function (id, k) {
+      var p = byId(id); if (!p) return;
+      var c = document.createElement('div'); c.className = 'hotcard';
+      c.innerHTML = '<img src="' + esc(small(p.imgs[0])) + '" alt=""><div class="hotcard-name">' + (k + 1) + '. ' + esc(p.name) + '</div>' +
+        '<div class="hotcard-ops"><button class="mini ghost" data-hot="' + k + '" data-d="-1"' + (k ? '' : ' disabled') + '>←</button>' +
+        '<button class="mini ghost" data-hot="' + k + '" data-d="1"' + (k < state.hot.length - 1 ? '' : ' disabled') + '>→</button>' +
+        '<button class="mini ghost" data-hot="' + k + '" data-d="x">移除</button></div>';
+      row.appendChild(c);
     });
-    h += '</div><p class="hint">這裡的順序就是網站上卡片的左右順序，跟下方商品排序無關。</p>';
-    box.innerHTML = h;
+    bar.appendChild(row);
   }
   $('hotbar').addEventListener('click', function (ev) {
-    var b = ev.target.closest ? ev.target.closest('button[data-h]') : null;
-    if (!b) return;
-    var list = hotList(), k = +b.getAttribute('data-k'), a = b.getAttribute('data-h');
-    if (a === 'x') { list[k].p.hot = ''; list[k].p.hotOrder = 0; }
-    else {
-      var j = a === 'l' ? k - 1 : k + 1;
-      if (j < 0 || j >= list.length) return;
-      var t = list[k].p.hotOrder; list[k].p.hotOrder = list[j].p.hotOrder; list[j].p.hotOrder = t;
-    }
-    renumberHot(); markDirty(); renderList();
+    var b = ev.target.closest('button[data-hot]'); if (!b || b.disabled) return;
+    var k = +b.getAttribute('data-hot'), d = b.getAttribute('data-d');
+    if (d === 'x') state.hot.splice(k, 1);
+    else { var j = k + +d, t = state.hot[k]; state.hot[k] = state.hot[j]; state.hot[j] = t; }
+    markDirty(); renderList();
   });
 
+  /* ---------- 清單 ---------- */
   function renderList() {
     renderHotBar();
-    var box = $('list');
-    box.innerHTML = '';
-    state.products.forEach(function (p, i) {
-      var row = document.createElement('div');
-      row.className = 'row' + (p.removed ? ' removed' : '');
-      var badge = p.editable
-        ? '<span class="tag new">可完整編輯</span>'
-        : '<span class="tag">舊版結構' + (p.hasVideo ? '·含影片' : '') + '</span>';
-      // 已經設定了哪些賣場按鈕，一眼看得出來
-      var shops = '';
-      if (p.myship) shops += '<span class="tag shop">賣貨便</span>';
-      if (p.shopee) shops += '<span class="tag shop">蝦皮</span>';
-      if (p.hot) shops += '<span class="tag hot">熱銷</span>';
-      var src = thumbOf(p);
-      var thumb = src
-        ? '<img class="rowthumb" src="' + esc(src) + '" alt="" loading="lazy" />'
-        : '<div class="rowthumb-none">無圖</div>';
-      row.innerHTML =
-        '<button class="mini ghost" data-a="up" title="上移">▲</button>' +
-        '<button class="mini ghost" data-a="down" title="下移">▼</button>' +
-        thumb +
-        '<span class="name">' + esc(p.title) + '</span>' + badge +
-        shops +
-        '<button class="mini" data-a="edit">編輯</button>' +
-        '<button class="mini ghost" data-a="del">' + (p.removed ? '復原' : '下架') + '</button>';
-      row.addEventListener('click', function (e) {
-        var b = e.target.closest('button'); if (!b) return;
-        var a = b.getAttribute('data-a');
-        if (a === 'up' && i > 0) { swap(i, i - 1); }
-        else if (a === 'down' && i < state.products.length - 1) { swap(i, i + 1); }
-        else if (a === 'del') { p.removed = !p.removed; markDirty(); renderList(); }
-        else if (a === 'edit') { openEditor(i); }
+    var list = $('list'); list.innerHTML = '';
+    SECTIONS.forEach(function (sec) {
+      var items = state.products.map(function (p, i) { return { p: p, i: i }; }).filter(function (x) { return x.p.section === sec[0]; });
+      var h = document.createElement('h3'); h.className = 'sec'; h.textContent = sec[1] + '（' + items.length + '）';
+      list.appendChild(h);
+      items.forEach(function (x, k) {
+        var p = x.p, row = document.createElement('div');
+        row.className = 'row' + (p.hidden ? ' removed' : '');
+        var hotN = state.hot.indexOf(p.id);
+        row.innerHTML = '<img class="rowthumb" src="' + esc(small(p.imgs[0])) + '" alt="">' +
+          '<span class="name">' + esc(p.name) + '<small>' + esc(priceText(p)) + '</small></span>' +
+          (hotN >= 0 ? '<span class="tag hot">熱銷 ' + (hotN + 1) + '</span>' : '') +
+          (p.soldout ? '<span class="tag">絕版</span>' : '') +
+          (p.hidden ? '<span class="tag">隱藏</span>' : '') +
+          (p.view3d ? '<span class="tag shop">3D</span>' : '') +
+          (p.video ? '<span class="tag shop">影片</span>' : '') +
+          '<span class="tag">' + p.imgs.length + ' 張</span>' +
+          '<button class="mini ghost" data-op="up"' + (k ? '' : ' disabled') + '>↑</button>' +
+          '<button class="mini ghost" data-op="down"' + (k < items.length - 1 ? '' : ' disabled') + '>↓</button>' +
+          '<button class="mini" data-op="edit">編輯</button>' +
+          (p.special ? '' : '<button class="mini ghost" data-op="del">刪除</button>');
+        row.addEventListener('click', function (e) {
+          var b = e.target.closest('button[data-op]'); if (!b || b.disabled) return;
+          var op = b.getAttribute('data-op');
+          if (op === 'edit') return openEditor(x.i);
+          if (op === 'del') {
+            if (!confirm('確定刪除「' + p.name + '」？\n\n只是暫時不賣的話，用「隱藏」比較好，之後還能再打開。')) return;
+            state.products.splice(x.i, 1);
+            state.hot = state.hot.filter(function (id) { return id !== p.id; });
+          } else {
+            var other = items[k + (op === 'up' ? -1 : 1)].i;     // 跟同一區的上／下一個交換
+            var t = state.products[x.i]; state.products[x.i] = state.products[other]; state.products[other] = t;
+          }
+          markDirty(); renderList();
+        });
+        list.appendChild(row);
       });
-      box.appendChild(row);
     });
   }
-  function swap(a, b) {
-    var t = state.products[a]; state.products[a] = state.products[b]; state.products[b] = t;
-    markDirty(); renderList();
-  }
 
-  /* ---------- 編輯器 ---------- */
+  /* ---------- 編輯 ---------- */
+  function today() {
+    var d = new Date(Date.now() + 8 * 3600e3);           // 台北時間
+    return d.toISOString().slice(0, 10);
+  }
   function openEditor(i) {
-    state.isNewItem = (i == null);
-    if (state.isNewItem) {
-      state.editing = { new: true, title: '', desc: '', descAlign: null, images: [],
-        editable: true, rich: true, removed: false, myship: false, shopee: '', video: '',
-        hot: '', hotOrder: 0, allImages: [] };
-      $('edit-heading').textContent = '新增商品';
-    } else {
-      var p = state.products[i];
-      state.editing = {
-        idx: i, new: !!p.new, title: p.title, desc: p.desc || '',
-        descAlign: p.descAlign || null,
-        images: (p.images || []).map(function (im) { return { file: im.file, size: im.size, dataUrl: im.dataUrl }; }),
-        // 舊版結構只能改名稱與賣場按鈕，圖片／說明藏起來
-        editable: true, rich: !!p.editable, removed: false, origIdx: p.idx,
-        myship: !!p.myship, shopee: p.shopee || '', video: p.video || '',
-        hot: p.hot || '', hotOrder: p.hotOrder || 0, allImages: p.allImages || [],
-        ownButtons: !!p.ownButtons
-      };
-      $('edit-heading').textContent = '編輯商品';
-    }
-    var e = state.editing;
-    $('f-title').value = e.title;
-    $('f-desc').value = e.desc;
-    $('f-myship').checked = !!e.myship;
-    $('f-shopee').value = e.shopee;
-    $('f-video').value = e.video || '';
-    $('f-hot').checked = !!e.hot;
-    renderHotPick();
-    $('edit-rich').style.display = e.rich ? '' : 'none';
-    $('legacy-note').style.display = e.rich ? 'none' : '';
-    $('myship-url').textContent = state.myshipUrl ? '→ ' + state.myshipUrl : '（找不到賣貨便網址）';
-    $('own-buttons-note').style.display = e.ownButtons ? '' : 'none';
-    $('own-buttons-note').textContent = e.ownButtons
-      ? '注意：這個商品本來就有自己的按鈕，再加可能會重複。' : '';
+    state.editIdx = i;
+    var p = i == null ? { id: 'p-' + Date.now().toString(36), section: 'other', name: '', price: 0, note: '', imgs: [],
+      video: '', shopee: '', date: today() } : clone(state.products[i]);
+    p.hot = state.hot.indexOf(p.id) >= 0;
+    state.editing = p;
+    $('edit-heading').textContent = i == null ? '新增商品' : '編輯：' + p.name;
+    $('f-section').innerHTML = SECTIONS.map(function (s) {
+      // 明信片區是特殊版面（明信片牆、卡冊），只有原本那兩個商品能在那裡
+      var off = (s[0] === 'postcard') !== !!p.special;
+      return '<option value="' + s[0] + '"' + (off ? ' disabled' : '') + '>' + s[1] + '</option>';
+    }).join('');
+    $('f-section').value = p.section;
+    $('f-name').value = p.name; $('f-price').value = p.price || ''; $('f-from').checked = !!p.from;
+    $('f-note').value = p.note || ''; $('f-video').value = p.video || ''; $('f-shopee').value = p.shopee || '';
+    $('f-find').value = p.findName || ''; $('f-date').value = p.date || '';
+    $('f-hot').checked = p.hot; $('f-soldout').checked = !!p.soldout; $('f-hidden').checked = !!p.hidden;
+    $('f-3d').style.display = p.view3d ? '' : 'none';
+    $('view-list').style.display = 'none'; $('view-edit').style.display = '';
     renderImgs(); renderPreview();
-    $('view-list').style.display = 'none';
-    $('view-edit').style.display = '';
+    window.scrollTo(0, 0);
   }
   function closeEditor() {
     state.editing = null;
-    $('view-edit').style.display = 'none';
-    $('view-list').style.display = '';
-    renderList();
+    $('view-edit').style.display = 'none'; $('view-list').style.display = '';
   }
-  function imgSrc(im) { return im.dataUrl || ('images/' + im.file); }
-
   function renderImgs() {
-    var box = $('f-imgs'); box.innerHTML = '';
-    state.editing.images.forEach(function (im, i) {
-      var d = document.createElement('div');
-      d.className = 'thumb';
-      d.innerHTML =
-        '<img src="' + imgSrc(im) + '" alt="" />' +
-        '<div class="ops">' +
-          '<button class="mini ghost" data-a="l" title="左移">◀</button>' +
-          '<select data-a="size">' +
-            '<option value="lg">大</option><option value="md">中</option><option value="sm">小</option>' +
-          '</select>' +
-          '<button class="mini ghost" data-a="r" title="右移">▶</button>' +
-          '<button class="mini ghost" data-a="x" title="移除">✕</button>' +
-        '</div>';
-      d.querySelector('select').value = im.size || 'lg';
-      d.addEventListener('change', function (e) {
-        if (e.target.getAttribute('data-a') === 'size') { im.size = e.target.value; renderPreview(); }
-      });
-      d.addEventListener('click', function (e) {
-        var b = e.target.closest('button'); if (!b) return;
-        var a = b.getAttribute('data-a'), arr = state.editing.images;
-        if (a === 'l' && i > 0) { arr.splice(i - 1, 0, arr.splice(i, 1)[0]); }
-        else if (a === 'r' && i < arr.length - 1) { arr.splice(i + 1, 0, arr.splice(i, 1)[0]); }
-        else if (a === 'x') { arr.splice(i, 1); }
+    var box = $('f-imgs'), e = state.editing; box.innerHTML = '';
+    e.imgs.forEach(function (s, k) {
+      var d = document.createElement('div'); d.className = 'thumb';
+      d.innerHTML = '<img src="' + esc(small(s)) + '" alt="">' + (k ? '' : '<span class="first">卡片</span>') +
+        '<div class="ops"><button class="mini ghost" data-d="-1"' + (k ? '' : ' disabled') + '>←</button>' +
+        '<button class="mini ghost" data-d="1"' + (k < e.imgs.length - 1 ? '' : ' disabled') + '>→</button>' +
+        '<button class="mini ghost" data-d="x">✕</button></div>';
+      d.addEventListener('click', function (ev) {
+        var b = ev.target.closest('button[data-d]'); if (!b || b.disabled) return;
+        var dd = b.getAttribute('data-d');
+        if (dd === 'x') e.imgs.splice(k, 1);
+        else { var j = k + +dd, t = e.imgs[k]; e.imgs[k] = e.imgs[j]; e.imgs[j] = t; }
         renderImgs(); renderPreview();
       });
       box.appendChild(d);
     });
-    // 圖片動了，熱銷卡片能挑的圖也跟著動
-    renderHotPick();
   }
-
-  /* 沒有明講對齊時的自動規則：有並排圖就靠左，單張大圖置中。
-     必須與 functions/api/products.js 的 buildBlock 一致。 */
-  function autoAlign(images) {
-    return images.some(function (im) { return im.size === 'md' || im.size === 'sm'; }) ? 'left' : 'center';
-  }
-  function effectiveAlign(e) {
-    return e.descAlign === 'left' || e.descAlign === 'center' ? e.descAlign : autoAlign(e.images);
-  }
-  function renderAlign() {
-    var e = state.editing; if (!e) return;
-    var cur = effectiveAlign(e);
-    Array.prototype.forEach.call($('f-align').querySelectorAll('button'), function (b) {
-      b.classList.toggle('on', b.getAttribute('data-align') === cur);
-    });
-    $('align-auto').style.display =
-      e.descAlign === 'left' || e.descAlign === 'center' ? 'none' : '';
-  }
-
-  /* 預覽裡的賣場按鈕，配色比照網站上的 wsite-button */
-  function buyPreview(e) {
-    var out = '';
-    if (e.myship) out += '<a class="pv-myship">賣貨便</a>';
-    if (e.shopee) out += '<a class="pv-shopee">蝦皮</a>';
-    if (e.video) out += '<a class="pv-video">▶ 影片</a>';
-    return out ? '<div class="pv-buy">' + out + '</div>' : '';
-  }
-
   function renderPreview() {
-    var e = state.editing; if (!e) return;
-    var imgs = e.images.map(function (im) {
-      return '<figure class="ck-img ck-' + (im.size || 'lg') + '"><img src="' + imgSrc(im) + '" alt="" /></figure>';
-    }).join('');
-    var descCls = 'ck-prod-desc' + (effectiveAlign(e) === 'left' ? ' ck-desc-left' : '');
-    renderAlign();
-    $('stage').innerHTML =
-      '<h3 class="pv-title">' + (esc(e.title) || '<span style="color:#bbb">（商品名稱）</span>') + '</h3>' +
-      buyPreview(e) +
-      '<div class="ck-prod"><div class="ck-prod-imgs">' + imgs + '</div>' +
-      (e.desc.trim() ? '<div class="' + descCls + '">' + esc(e.desc) + '</div>' : '') + '</div>';
+    var e = state.editing;
+    $('stage').innerHTML = '<div class="pv-card' + (e.hidden ? ' off' : '') + '">' +
+      '<div class="ph">' + (e.imgs[0] ? '<img src="' + esc(small(e.imgs[0])) + '" alt="">' : '<span>還沒有圖</span>') +
+      (e.imgs.length > 1 ? '<i class="cnt">▣ ' + e.imgs.length + '</i>' : '') + (e.soldout ? '<i class="so">絕版</i>' : '') +
+      (e.view3d ? '<i class="d3">3D</i>' : '') + '</div>' +
+      '<b>' + (esc(e.name) || '（商品名稱）') + '</b><span>' + esc(priceText(e)) + '</span></div>' +
+      (e.hidden ? '<p class="hint">隱藏中，網站上看不到。</p>' : '');
   }
+  function bind(id, key, how) {
+    $(id).addEventListener(how === 'chk' ? 'change' : 'input', function () {
+      var e = state.editing; if (!e) return;
+      e[key] = how === 'chk' ? this.checked : how === 'num' ? Math.round(+this.value || 0) : this.value.trim();
+      renderPreview();
+    });
+  }
+  bind('f-name', 'name'); bind('f-price', 'price', 'num'); bind('f-from', 'from', 'chk'); bind('f-note', 'note');
+  bind('f-video', 'video'); bind('f-shopee', 'shopee'); bind('f-find', 'findName'); bind('f-date', 'date');
+  bind('f-hot', 'hot', 'chk'); bind('f-soldout', 'soldout', 'chk'); bind('f-hidden', 'hidden', 'chk');
+  $('f-section').addEventListener('change', function () { state.editing.section = this.value; });
 
-  /* ---------- 圖片壓縮 ---------- */
-  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  /* ---------- 圖片：縮小、轉 WebP（大圖最長邊 1400、小圖寬 600，跟 optimize_images.py 一樣） ---------- */
+  var lastStamp = '', seq = 0;
   function stamp() {
-    var d = new Date();
-    return '' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) +
-      '-' + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+    var d = new Date(Date.now() + 8 * 3600e3).toISOString();
+    return d.slice(0, 10).replace(/-/g, '') + '-' + d.slice(11, 19).replace(/:/g, '');
   }
-  function compress(file, seq) {
+  function toWebp(img, w, h, q) {
     return new Promise(function (resolve, reject) {
-      var fr = new FileReader();
-      fr.onload = function () {
-        var img = new Image();
-        img.onload = function () {
-          var maxW = 1400;
-          var scale = Math.min(1, maxW / img.width);
-          var w = Math.round(img.width * scale), h = Math.round(img.height * scale);
-          var c = document.createElement('canvas'); c.width = w; c.height = h;
-          var ctx = c.getContext('2d');
-          ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
-          ctx.drawImage(img, 0, 0, w, h);
-          resolve({ dataUrl: c.toDataURL('image/jpeg', 0.85), file: 'prod-' + stamp() + '-' + seq + '.jpg' });
-        };
-        img.onerror = function () { reject(new Error('圖片讀取失敗')); };
-        img.src = fr.result;
+      var c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      c.toBlob(function (b) {
+        // Safari 的 canvas 轉不出 WebP，會默默給 PNG
+        if (!b || b.type !== 'image/webp') return reject(new Error('這個瀏覽器沒辦法轉 WebP，請用電腦的 Chrome 或 Edge 上傳圖片。'));
+        var fr = new FileReader();
+        fr.onload = function () { resolve(fr.result); };
+        fr.onerror = function () { reject(new Error('圖片轉檔失敗')); };
+        fr.readAsDataURL(b);
+      }, 'image/webp', q);
+    });
+  }
+  function convert(file) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        var kl = Math.min(1, 1400 / Math.max(w, h)), ks = Math.min(1, 600 / w);
+        Promise.all([toWebp(img, Math.round(w * kl), Math.round(h * kl), 0.84), toWebp(img, Math.round(w * ks), Math.round(h * ks), 0.8)])
+          .then(function (r) { URL.revokeObjectURL(url); resolve(r); }, reject);
       };
-      fr.onerror = function () { reject(new Error('檔案讀取失敗')); };
-      fr.readAsDataURL(file);
+      img.onerror = function () { reject(new Error('讀不到「' + file.name + '」這張圖')); };
+      img.src = url;
     });
   }
   function addFiles(files) {
+    var e = state.editing;
     var list = [].slice.call(files).filter(function (f) { return /^image\//.test(f.type); });
     if (!list.length) return;
+    if (e.imgs.length + list.length > IMG_MAX) { setMsg('一個商品最多 ' + IMG_MAX + ' 張圖。', 'err'); return; }
     setMsg('處理圖片中…', 'info');
-    Promise.all(list.map(function (f, i) { return compress(f, i + 1); })).then(function (res) {
-      res.forEach(function (r) {
-        state.editing.images.push({ file: r.file, size: 'lg', dataUrl: r.dataUrl });
-        state.uploads[r.file] = r.dataUrl.split(',')[1];
+    var st = stamp();
+    if (st !== lastStamp) { lastStamp = st; seq = 0; }
+    var names = list.map(function () { seq += 1; return 'img/opt/up-' + st + '-' + seq; });
+    if (seq > 99) { setMsg('一次加太多圖了，等一秒再加。', 'err'); return; }
+    Promise.all(list.map(convert)).then(function (res) {
+      res.forEach(function (r, k) {
+        var L = names[k] + '-l.webp', S = names[k] + '-s.webp';
+        state.uploads[L] = r[0].split(',')[1]; state.uploads[S] = r[1].split(',')[1];
+        state.previews[L] = r[0]; state.previews[S] = r[1];
+        e.imgs.push(L);
       });
-      setMsg(''); renderImgs(); renderPreview();
-    }).catch(function (e) { setMsg(e.message, 'err'); });
+      setMsg('', ''); renderImgs(); renderPreview();
+    }).catch(function (err) { setMsg(err.message, 'err'); });
   }
 
-  /* ---------- 儲存 ---------- */
-  function save() {
-    var keep = state.products.filter(function (p) { return !p.removed; });
-    if (!keep.length) { setMsg('至少要保留一個商品。', 'err'); return; }
-    var bad = keep.filter(function (p) { return p.new && !p.images.length; });
-    if (bad.length) { setMsg('「' + bad[0].title + '」還沒有圖片。', 'err'); return; }
+  /* ---------- 完成編輯 ---------- */
+  $('btn-apply').addEventListener('click', function () {
+    var e = state.editing;
+    if (!e.name) { setMsg('請填商品名稱。', 'err'); return; }
+    if (!e.imgs.length) { setMsg('至少要有一張圖。', 'err'); return; }
+    if (e.video && !/^https:\/\//.test(e.video)) { setMsg('影片網址要是 https:// 開頭。', 'err'); return; }
+    if (e.shopee && !/^https:\/\/([a-z0-9-]+\.)*shopee\.tw\//.test(e.shopee)) { setMsg('蝦皮網址要是 https://shopee.tw/ 開頭。', 'err'); return; }
+    var hot = e.hot; delete e.hot;
+    var had = state.hot.indexOf(e.id);
+    if (hot && had < 0) {
+      if (state.hot.length >= HOT_MAX) { setMsg('熱銷推薦最多 ' + HOT_MAX + ' 個，先從上面的熱銷區移掉一個。', 'err'); e.hot = hot; return; }
+      state.hot.push(e.id);
+    }
+    if (!hot && had >= 0) state.hot.splice(had, 1);
+    if (state.editIdx == null) {
+      // 新商品放在那一區的最前面
+      var at = state.products.map(function (p) { return p.section; }).indexOf(e.section);
+      state.products.splice(at < 0 ? state.products.length : at, 0, e);
+    } else {
+      var old = state.products[state.editIdx];
+      if (old.section !== e.section) {
+        // 換了分區：移到新分區的最前面
+        state.products.splice(state.editIdx, 1);
+        var at2 = state.products.map(function (p) { return p.section; }).indexOf(e.section);
+        state.products.splice(at2 < 0 ? state.products.length : at2, 0, e);
+      } else state.products[state.editIdx] = e;
+    }
+    setMsg('', ''); markDirty(); closeEditor(); renderList();
+  });
+  $('btn-cancel').addEventListener('click', function () { setMsg('', ''); closeEditor(); });
+  $('btn-new').addEventListener('click', function () { openEditor(null); });
 
+  /* ---------- 存檔 ---------- */
+  function save() {
+    $('btn-save').disabled = true;
+    setMsg('儲存中…', 'info');
+    // 只送有用到的圖（加了又刪掉的就不送）
     var used = {};
-    var items = keep.map(function (p) {
-      if (p.new) {
-        (p.images || []).forEach(function (im) { used[im.file] = 1; });
-        return { new: true, title: p.title, desc: p.desc || '', descAlign: p.descAlign || null,
-                 myship: !!p.myship, shopee: p.shopee || '', video: p.video || '',
-                 hot: p.hot || '', hotOrder: p.hotOrder || 0,
-                 images: p.images.map(function (im) { return { file: im.file, size: im.size }; }) };
-      }
-      var o = { idx: p.idx, title: p.title, myship: !!p.myship, shopee: p.shopee || '',
-                video: p.video || '', hot: p.hot || '', hotOrder: p.hotOrder || 0 };
-      if (p.editable) {
-        o.desc = p.desc || '';
-        o.descAlign = p.descAlign || null;
-        o.images = (p.images || []).map(function (im) { used[im.file] = 1; return { file: im.file, size: im.size }; });
-      }
-      return o;
-    });
+    state.products.forEach(function (p) { p.imgs.forEach(function (s) { used[s] = 1; used[s.replace(/-l\.webp$/, '-s.webp')] = 1; }); });
     var uploads = {};
     Object.keys(state.uploads).forEach(function (k) { if (used[k]) uploads[k] = state.uploads[k]; });
-
-    $('btn-save').disabled = true;
-    setMsg('儲存中，請稍候…', 'info');
     fetch('/api/products', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sha: state.sha, items: items, uploads: uploads })
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ sha: state.sha, data: { hot: state.hot, products: state.products }, uploads: uploads }),
     }).then(function (r) {
       return r.json().then(function (d) { return { ok: r.ok, d: d }; });
     }).then(function (res) {
       if (!res.ok) { setMsg(res.d.error || '儲存失敗', 'err'); $('btn-save').disabled = false; return; }
-      state.dirty = false; state.uploads = {};
-      load('已儲存！網站約 1～2 分鐘後更新完成。');
+      state.dirty = false;
+      load(res.d.changed ? '已儲存，網站約 1～2 分鐘後更新。' : '沒有變更。');
     }).catch(function (e) { setMsg('儲存失敗：' + e.message, 'err'); $('btn-save').disabled = false; });
   }
-
-  /* ---------- 綁定 ---------- */
-  $('btn-new').addEventListener('click', function () { openEditor(null); });
   $('btn-save').addEventListener('click', save);
-  $('btn-cancel').addEventListener('click', closeEditor);
-  $('f-title').addEventListener('input', function () { state.editing.title = this.value; renderPreview(); });
-  $('f-desc').addEventListener('input', function () { state.editing.desc = this.value; renderPreview(); });
-  $('f-myship').addEventListener('change', function () { state.editing.myship = this.checked; renderPreview(); });
-  $('f-shopee').addEventListener('input', function () { state.editing.shopee = this.value.trim(); renderPreview(); });
-  $('f-video').addEventListener('input', function () { state.editing.video = this.value.trim(); renderPreview(); });
 
-  /* ---------- 熱銷推薦 ---------- */
-  var HOT_MAX = 3;
-  // 這個商品可以挑的圖：新結構用編輯中的圖片清單（還沒存檔的也看得到），
-  // 舊結構用後端掃出來的原圖清單
-  function hotChoices() {
-    var e = state.editing;
-    if (e.rich) {
-      return (e.images || []).map(function (im) {
-        return { value: 'images/' + im.file, show: im.dataUrl || 'images/' + im.file };
-      });
-    }
-    return (e.allImages || []).map(function (src) { return { value: src, show: src }; });
-  }
-  function hotCount(exceptIdx) {
-    return state.products.filter(function (p, i) {
-      return p.hot && !p.removed && i !== exceptIdx;
-    }).length;
-  }
-  function renderHotPick() {
-    var e = state.editing;
-    var on = !!e.hot;
-    $('f-hot').checked = on;
-    $('f-hot-pick').style.display = on ? '' : 'none';
-    if (!on) return;
-    // 選中的圖被刪掉了就退回第一張；一張都沒有就不算熱銷
-    var choices = hotChoices();
-    if (!choices.length) { e.hot = ''; $('f-hot').checked = false;
-      $('f-hot-pick').style.display = 'none'; return; }
-    if (!choices.some(function (c) { return c.value === e.hot; })) e.hot = choices[0].value;
-    var box = $('f-hot-imgs');
-    box.innerHTML = '';
-    choices.forEach(function (c) {
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.className = c.value === e.hot ? 'on' : '';
-      b.innerHTML = '<img src="' + esc(c.show) + '" alt="" />';
-      b.addEventListener('click', function () { e.hot = c.value; renderHotPick(); });
-      box.appendChild(b);
-    });
-  }
-  $('f-hot').addEventListener('change', function () {
-    var e = state.editing;
-    if (!this.checked) { e.hot = ''; e.hotOrder = 0; renderHotPick(); setMsg(''); return; }
-    var others = hotCount(state.isNewItem ? -1 : e.idx);
-    if (others >= HOT_MAX) {
-      this.checked = false;
-      setMsg('熱銷推薦最多 ' + HOT_MAX + ' 個，先把其中一個取消再加。', 'err');
-      return;
-    }
-    var choices = hotChoices();
-    if (!choices.length) {
-      this.checked = false;
-      setMsg('這個商品找不到可以放上卡片的圖片。', 'err');
-      return;
-    }
-    setMsg('');
-    e.hot = choices[0].value;   // 預設第一張，想換再點
-    // 新加入的排在最後面，順序之後在清單上的熱銷區調
-    e.hotOrder = Math.max(0, ...state.products.map(function (p) { return p.hotOrder || 0; })) + 1;
-    renderHotPick();
-  });
-  $('f-align').addEventListener('click', function (ev) {
-    var b = ev.target.closest('button[data-align]');
-    if (!b || !state.editing) return;
-    // 按下之後就是明講的，不再跟著圖片版型自動變
-    state.editing.descAlign = b.getAttribute('data-align');
-    renderPreview();
-  });
-  $('btn-apply').addEventListener('click', function () {
-    var e = state.editing;
-    if (!e.title.trim()) { setMsg('請填寫商品名稱。', 'err'); return; }
-    // 舊版商品沒辦法在這裡管圖片，不能拿「至少一張圖」去要求它
-    if (e.rich && !e.images.length) { setMsg('請至少上傳一張圖片。', 'err'); return; }
-    if (e.shopee && !/^https?:\/\//i.test(e.shopee)) {
-      setMsg('蝦皮連結要以 http:// 或 https:// 開頭。', 'err'); return;
-    }
-    setMsg('');
-    if (state.isNewItem) {
-      state.products.unshift({ new: true, title: e.title.trim(), desc: e.desc.trim(),
-        descAlign: e.descAlign || null, images: e.images, editable: true, removed: false,
-        myship: !!e.myship, shopee: e.shopee || '', video: e.video || '',
-        hot: e.hot || '', hotOrder: e.hotOrder || 0 });
-    } else {
-      var p = state.products[e.idx];
-      p.title = e.title.trim();
-      p.myship = !!e.myship; p.shopee = e.shopee || ''; p.video = e.video || '';
-      p.hot = e.hot || ''; p.hotOrder = e.hotOrder || 0;
-      if (e.rich) {
-        p.desc = e.desc.trim(); p.images = e.images;
-        p.descAlign = e.descAlign || null;
-      }
-    }
-    markDirty(); closeEditor();
-  });
   $('drop').addEventListener('click', function () { $('file').click(); });
   $('file').addEventListener('change', function () { addFiles(this.files); this.value = ''; });
   ['dragenter', 'dragover'].forEach(function (t) {
@@ -833,7 +689,8 @@
     '/2550940845t24676': '接龍T恤',
     '/penker-3287921517': 'PENKER 聯名',
     '/events-883299': '實體店寄售',
-    '/events': '活動'
+    '/events': '活動',
+    '/stickers': '貼紙'
   };
   function pageName(p) {
     var k = String(p || '/').split('?')[0].replace(/\.html$/, '');

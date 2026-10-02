@@ -1,0 +1,336 @@
+/* 三個版面設計稿共用的樣式。盡量照 cankingstore.com 現在的樣子：白底、紅色點綴、圓角膠囊按鈕。 */
+:root { --red:#f64c3f; --red2:#ff2d2d; --pink:#ffd9d6; --ink:#2a2a2a; --mute:#8b8b8b; --line:#ececec; --paper:#f6f4f0; }
+* { box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body { margin:0; background:#fff; color:var(--ink); font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif; line-height:1.6; }
+a { color:inherit; }
+button { font:inherit; color:inherit; }
+img { max-width:100%; }
+
+/* ---- 頁首 ---- */
+.site-head { text-align:center; padding:22px 0 0; background:#fff; }
+.site-head .logo { height:74px; display:block; margin:0 auto 12px; }
+.nav { display:flex; align-items:center; gap:0; }
+.nav { justify-content:center; }   /* 選單兩側的紅色橫條拿掉了（他要的，2026-10-02） */
+.nav ul { list-style:none; margin:0; padding:0 18px; display:flex; flex-wrap:wrap; justify-content:center; gap:2px; }
+.nav a { display:block; padding:9px 13px; font-size:12px; letter-spacing:1px; text-decoration:none; color:#444; cursor:pointer; position:relative; }
+.nav a.on { background:#f3f3f3; }
+.nav a .dot { position:absolute; top:6px; right:4px; width:6px; height:6px; border-radius:50%; background:var(--red2); }
+.page { background:#fafafa; padding:26px 16px 70px; min-height:60vh; }
+.wrap { max-width:960px; margin:0 auto; }
+
+.hero { display:block; width:min(460px,92%); margin:6px auto 4px; }
+.shoprow { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin:8px 0 6px; }
+.pill { display:inline-block; border-radius:999px; padding:10px 24px; font-size:15px; text-decoration:none; background:var(--red); color:#fff; border:1.5px solid var(--red); }
+.pill.ghost { background:#fff; color:#666; border-color:#ddd; }
+
+.sect-title { display:flex; align-items:center; justify-content:center; gap:10px; font-weight:900; color:var(--ink); font-size:20px; margin:38px 0 18px; }   /* 他要標題黑色粗體 */
+/* 區塊標題兩側的橫線拿掉了（他要的，2026-10-02） */
+.hot { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; max-width:900px; margin:0 auto; }
+.hot a { display:block; background:#fff; border:2px solid var(--pink); border-radius:14px; overflow:hidden; text-decoration:none; }
+.hot img { display:block; width:100%; aspect-ratio:1/1; object-fit:cover; }
+.hot span { display:block; padding:9px 10px; text-align:center; font-weight:700; font-size:15px; }
+
+/* ---- 現在的商品區塊（一個商品一大塊往下排） ---- */
+.prod { text-align:center; margin:54px auto 0; max-width:900px; }
+.prod h2 { font-size:34px; margin:0 0 8px; font-weight:800; }
+.buy { margin:0 0 14px; line-height:1.9; }
+.buy .main { display:inline-block; background:var(--red); color:#fff; font-size:13px; line-height:1; padding:7px 16px; border-radius:999px; margin-right:14px; text-decoration:none; }
+.buy .sub { font-size:14px; color:#555; border-bottom:1px solid #ccc; padding-bottom:1px; text-decoration:none; }
+.prod > img { width:min(620px,100%); border-radius:4px; display:block; margin:0 auto; }
+.prod p { color:#555; margin:12px 0 0; }
+.more-note { text-align:center; color:var(--mute); margin:56px 0 0; font-size:14px; border-top:1px dashed #ddd; padding-top:22px; }
+
+/* ---- 貼紙磚 ---- */
+.wall { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:10px 8px; background:var(--paper); border-radius:20px; padding:22px 16px 18px;
+  background-image:radial-gradient(rgba(0,0,0,.055) 1px, transparent 1.2px); background-size:18px 18px; }
+.tile { border:0; background:none; padding:6px 4px 8px; cursor:pointer; text-align:center; position:relative; border-radius:14px; }
+.tile .pic { height:174px; display:grid; place-items:center; }
+.tile .stk { position:relative; display:inline-block; line-height:0;
+  transform:perspective(620px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) rotate(var(--tw,var(--rot,0deg))) scale(var(--sc,1)); transition:transform .2s ease-out, filter .25s;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.18)) drop-shadow(0 5px 8px rgba(0,0,0,.13)); }
+/* 寬度照實際公釐數換算，所以牆上每張的大小比例跟實物一樣 */
+.tile .stk img { display:block; width:calc(var(--mm) * 1.7px); max-width:174px; max-height:168px; object-fit:contain; }
+.tile:hover .stk, .tile:focus-visible .stk { --tw:0deg; --sc:1.08; filter:drop-shadow(0 2px 2px rgba(0,0,0,.16)) drop-shadow(0 14px 16px rgba(0,0,0,.18)); }
+.tile:focus-visible { outline:2px solid var(--red); outline-offset:2px; }
+/* 雷射款：一道會掃過去的光，只落在貼紙形狀裡 */
+.tile.holo .stk::after { content:""; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(115deg, transparent 32%, rgba(255,255,255,.85) 47%, rgba(190,240,255,.55) 52%, rgba(255,200,245,.5) 57%, transparent 70%);
+  background-size:260% 100%; background-position:120% 0; mix-blend-mode:screen;
+  -webkit-mask:var(--mask) center/contain no-repeat; mask:var(--mask) center/contain no-repeat; animation:sheen 3.6s ease-in-out infinite; }
+@keyframes sheen { 0%,35% { background-position:120% 0; } 75%,100% { background-position:-40% 0; } }
+/* 滑鼠在上面時：光帶和彩虹跟著游標位置走（--px／--py 由 shared.js 寫入） */
+.tile.holo:hover .stk::after { animation:none; background-position:calc(120% - var(--px,50) * 1.6%) 0; }
+.tile.holo .stk::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity .25s;
+  background:linear-gradient(115deg,#ff7ad1,#ffd95e,#7dffb2,#6cc4ff,#c08bff,#ff7ad1); background-size:320% 320%;
+  background-position:calc(var(--px,50) * 1%) calc(var(--py,50) * 1%); mix-blend-mode:overlay;
+  -webkit-mask:var(--mask) center/contain no-repeat; mask:var(--mask) center/contain no-repeat; }
+.tile.holo:hover .stk::before { opacity:.85; }
+/* 霧面款沒有反光，只有一層很淡的明暗跟著角度變 */
+.tile:not(.holo) .stk::after { content:""; position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity .25s;
+  background:radial-gradient(circle at calc(var(--px,50) * 1%) calc(var(--py,50) * 1%), rgba(255,255,255,.22), rgba(255,255,255,0) 60%);
+  -webkit-mask:var(--mask) center/contain no-repeat; mask:var(--mask) center/contain no-repeat; }
+.tile:not(.holo):hover .stk::after { opacity:1; }
+@media (prefers-reduced-motion:reduce) { .tile.holo .stk::after { animation:none; } .tile .stk { transition:none; } }
+.tile .nm { display:block; font-weight:700; font-size:14px; margin-top:6px; }
+.tile .nt { display:block; font-size:12px; color:var(--mute); }
+.tag { display:inline-block; font-size:10.5px; font-weight:800; letter-spacing:.06em; line-height:1; padding:4px 7px; border-radius:999px; vertical-align:middle; }
+.tag.new { background:var(--red2); color:#fff; }
+.tag.holo { background:linear-gradient(90deg,#9be7ff,#d9b8ff,#ffc6e6); color:#3a2a55; }
+.tile .tags { position:absolute; top:4px; left:8px; display:flex; gap:4px; z-index:1; }
+
+.chips { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:0 0 16px; }
+.chip { border:1.5px solid #ddd; background:#fff; border-radius:999px; padding:7px 15px; font-size:14px; cursor:pointer; }
+.chip b { font-weight:500; color:var(--mute); margin-left:3px; }
+.chip.on { background:var(--ink); border-color:var(--ink); color:#fff; }
+.chip.on b { color:#ccc; }
+
+/* ---- 設計說明（黃色便條＝不是版面的一部分） ---- */
+.memo { background:#fff6c9; border:1px solid #ead98a; border-radius:10px; padding:10px 14px; font-size:13px; color:#5c5220; margin:14px auto; max-width:900px; text-align:left; position:relative; }
+.memo::before { content:"設計說明"; display:inline-block; font-weight:800; font-size:11px; background:#e9d25c; color:#443a08; border-radius:4px; padding:1px 6px; margin-right:8px; }
+.back { position:fixed; left:12px; top:12px; z-index:30; background:#2a2a2a; color:#fff; border-radius:999px; padding:7px 14px; font-size:12.5px; text-decoration:none; opacity:.88; }
+.back b { color:#ffd84a; }
+
+/* ---- 燈箱：3D 預覽 ---- */
+.lb { position:fixed; inset:0; z-index:100; background:rgba(20,18,16,.62); display:none; align-items:center; justify-content:center; padding:14px; }
+.lb.open { display:flex; }
+.lb-panel { width:min(820px,100%); background:#fdfdfd; border-radius:20px; overflow:hidden; position:relative; box-shadow:0 30px 80px rgba(0,0,0,.35); }
+.lb-stage { position:relative; height:min(60vh,500px); }
+.lb-stage iframe { width:100%; height:100%; border:0; display:block; }
+.lb-hint { position:absolute; left:0; right:0; bottom:8px; text-align:center; font-size:12px; color:#a3a3a3; pointer-events:none; }
+.lb-x, .lb-arrow { position:absolute; border:0; background:#fff; width:38px; height:38px; border-radius:50%; cursor:pointer; font-size:18px; line-height:1; box-shadow:0 2px 10px rgba(0,0,0,.14); z-index:2; }
+.lb-x { top:12px; right:12px; z-index:10; }      /* 要在 3D 預覽、尺寸表上面，不然切到那兩頁就關不掉 */
+.lb-arrow { top:calc(min(60vh,500px) / 2 - 19px); }
+.lb-arrow.prev { left:12px; } .lb-arrow.next { right:12px; }
+/* 貼紙預覽下面一排縮圖：點了直接跳到那張 */
+.lb-strip { display:flex; gap:8px; overflow-x:auto; padding:10px 16px 12px; background:#fff; scrollbar-width:none; cursor:grab; user-select:none; -webkit-user-select:none; }
+.lb-strip::-webkit-scrollbar { display:none; }
+.lb-strip.dragging { cursor:grabbing; }
+.lb-strip.dragging button { pointer-events:none; }
+.lb-strip img { -webkit-user-drag:none; }
+.lb-strip[hidden], .strip-wrap[hidden] { display:none; }
+.strip-wrap { position:relative; border-top:1px solid var(--line); background:#fff; }
+.strip-wrap:has(> .lb-strip[hidden]) { display:none; }
+/* 兩側的小圓鈕：跟周邊頁輪播的箭頭同款（半透明白底、灰色箭頭） */
+.strip-arrow { position:absolute; top:50%; transform:translateY(-50%); z-index:2; width:30px; height:30px; border-radius:50%; border:0;
+  background:rgba(255,255,255,.7); box-shadow:0 1px 4px rgba(0,0,0,.15); font-size:18px; line-height:1; color:rgba(0,0,0,.55); cursor:pointer;
+  backdrop-filter:blur(2px); transition:background .15s, color .15s; }
+.strip-arrow:hover { background:rgba(255,255,255,.95); color:#333; }
+.strip-arrow[hidden] { display:none; }
+.strip-arrow.prev { left:4px; } .strip-arrow.next { right:4px; }
+.lb-strip button { flex:0 0 auto; width:58px; height:58px; padding:4px; border:2px solid transparent; border-radius:10px; background:#f7f6f3; cursor:pointer; opacity:.7;
+  transition:opacity .15s, border-color .15s, transform .15s; }
+.lb-strip button:hover { opacity:1; transform:translateY(-2px); }
+.lb-strip button.on { border-color:var(--red2); opacity:1; background:#fff; }
+.lb-strip button.set { position:relative; }
+.lb-strip button.set i { position:absolute; left:0; right:0; bottom:0; font-style:normal; font-size:10px; font-weight:800; line-height:1; color:#fff;
+  background:rgba(0,0,0,.55); padding:3px 0; border-radius:0 0 8px 8px; }
+.lb-strip img { width:100%; height:100%; object-fit:contain; display:block; }
+/* 明信片的縮圖：直的、橫的照原本比例 */
+.pw-strip button { width:46px; height:64px; padding:2px; }
+.pw-strip button.wide { width:84px; }
+.pw-strip img { object-fit:cover; border-radius:3px; }
+.lb-foot { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:14px 20px 16px; border-top:1px solid var(--line); background:#fff; }
+.lb-foot h3 { margin:0; font-size:19px; }
+.lb-foot h3 .tag { margin-left:6px; }
+.lb-foot small { color:var(--mute); font-size:13px; }
+.buybox { text-align:right; line-height:1.9; }
+.buybox .main { display:inline-block; background:var(--red); color:#fff; font-size:14px; line-height:1; padding:9px 18px; border-radius:999px; margin-right:12px; text-decoration:none; }
+.buybox .sub { font-size:14px; color:#555; border-bottom:1px solid #ccc; padding-bottom:1px; text-decoration:none; }
+.buybox .sub + .sub { margin-left:14px; }
+.buybox small { display:block; font-size:12px; color:var(--mute); }
+@media (max-width:640px) { .buybox { text-align:left; width:100%; } }
+
+/* ---- 商品燈箱：多圖 ---- */
+.pl .lb-panel { width:min(640px,100%); }
+.pl-stage { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; background:#f4f4f4; height:min(62vh,560px); }
+.pl-stage::-webkit-scrollbar { display:none; }
+.pl-slide { flex:0 0 100%; scroll-snap-align:center; display:grid; place-items:center; }
+.pl-slide img { max-width:100%; max-height:min(62vh,560px); display:block; }
+/* 影片那格：直的播放器（IG reel、YouTube shorts 都是直的），高度跟圖一樣 */
+.pl-video { height:min(62vh,560px); aspect-ratio:9 / 16; max-width:100%; background:#111; border-radius:10px; overflow:hidden; display:grid; place-items:center; }
+/* IG 的嵌入框上下有帳號列、按讚列，比影片本身寬一點：給它固定寬，內容太高就在框裡捲 */
+.pl-video.ig { aspect-ratio:auto; width:min(400px,100%); background:#fff; border:1px solid #eee; }
+.pl-video iframe { width:100%; height:100%; border:0; display:block; background:#fff; }
+.pl-video-ph { color:#fff; font-size:34px; opacity:.8; }
+/* 組合視窗下面那排：3D、影片格的小標 */
+.lb-strip .th3d, .lb-strip .thvid { position:relative; }
+.lb-strip .th3d i { position:absolute; right:0; top:0; font-style:normal; font-size:10px; font-weight:900; line-height:1; color:#fff; background:var(--red2); border-radius:0 6px 0 6px; padding:3px 4px; }
+.lb-strip .thvid i { position:absolute; inset:0; display:grid; place-items:center; font-style:normal; font-size:16px; color:#fff; background:rgba(0,0,0,.35); border-radius:8px; }
+.sl-photo .pl-video { margin:auto; height:100%; }
+.pl-thumbs .thvid i { position:absolute; inset:0; display:grid; place-items:center; font-style:normal; font-size:16px; color:#fff; background:rgba(0,0,0,.35); }
+.pl .lb-arrow { top:calc(min(62vh,560px) / 2 - 19px); }
+.pl-thumbs { display:flex; gap:8px; justify-content:center; padding:10px 12px 0; background:#fff; }
+.pl-thumbs:empty { display:none; }
+.pl-thumbs button { border:2px solid transparent; border-radius:8px; padding:0; width:52px; height:52px; overflow:hidden; cursor:pointer; background:#f4f4f4; opacity:.6; }
+.pl-thumbs button.on { border-color:var(--ink); opacity:1; }
+.pl-thumbs img { width:100%; height:100%; object-fit:cover; display:block; }
+/* 縮圖列第一格的 3D：用模型的圖（看得到整個圖案），角上一個紅色 3D；最後一格「尺寸」是文字格 */
+.pl-thumbs button { position:relative; }
+.pl-thumbs .th3d { background:#fff; }
+.pl-thumbs .th3d img { object-fit:contain; padding:4px; box-sizing:border-box; }
+.pl-thumbs .th3d i { position:absolute; right:0; top:0; font-style:normal; font-size:10px; font-weight:900; line-height:1; color:#fff; background:var(--red2); border-radius:0 0 0 6px; padding:3px 4px; }
+.pl-thumbs .thsize { display:grid; place-items:center; font-size:12px; font-weight:800; color:var(--ink); background:#fff; }
+
+@media (max-width:640px) {
+  .hot { grid-template-columns:repeat(2,1fr); gap:12px; }
+  .hot a:nth-child(3) { display:none; }
+  .prod h2 { font-size:26px; }
+  .wall { grid-template-columns:repeat(2,1fr); padding:16px 8px 12px; }
+  .tile .pic { height:128px; }
+  .tile .stk img { width:calc(var(--mm) * 1.25px); max-width:130px; max-height:124px; }
+  .back { top:auto; bottom:12px; }
+}
+
+/* ---- 組合（電影貼紙組、洗沐標籤貼） ---- */
+.lb.top { z-index:120; }
+.tag.setc { background:#2a2a2a; color:#fff; font-style:normal; }
+/* 立體盒 */
+.bx { position:relative; transform-style:preserve-3d; transform:rotateX(var(--bx,-20deg)) rotateY(var(--by,-28deg)); transition:transform .25s ease-out; }
+.bx i, .bx-lid i { position:absolute; display:block; background-size:100% 100%; backface-visibility:hidden; }
+/* 牛皮色瓦楞紙：外面疊一層紙纖維的顆粒；裡面是素面牛皮紙，隱約看得到瓦楞的直條 */
+.bx i.f::after { content:""; position:absolute; inset:0; mix-blend-mode:multiply; opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 .62 0 0 0 0 .48 0 0 0 0 .34 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(90deg, rgba(120,84,50,.10) 0 1px, rgba(120,84,50,0) 1px 5px); }
+.bx i.in, .bx-lid i.in { background-color:#c39d78;
+  background-image:repeating-linear-gradient(90deg, rgba(90,60,30,.13) 0 1.5px, rgba(255,240,220,.10) 1.5px 3px, rgba(90,60,30,0) 3px 6px);
+  box-shadow:inset 0 0 22px rgba(70,45,20,.28); }
+/* 紙板斷面：深淺相間的波浪，就是瓦楞 */
+.bx b.rim { position:absolute; left:0; top:0; box-sizing:border-box; transform-origin:50% 0; border-style:solid; border-color:#a98157;
+  border-image:repeating-linear-gradient(45deg, #d9b892 0 2px, #9a7550 2px 4px) 6; backface-visibility:hidden; }
+.bx-lid b.edge { position:absolute; left:0; transform-origin:50% 0; transform:rotateX(-90deg);
+  background:repeating-linear-gradient(90deg, #dcbc97 0 2px, #9a7550 2px 4px); box-shadow:inset 0 1px 0 #c9a57e, inset 0 -1px 0 #c9a57e; }
+.bx-lid { position:absolute; left:0; top:0; transform-style:preserve-3d; transform-origin:50% 0; transform:translateZ(var(--z)) rotateX(90deg); transition:transform .5s cubic-bezier(.3,1.4,.5,1); }
+.lid-open .bx-lid { transform:translateZ(var(--z)) rotateX(196deg); }
+/* 上蓋前緣的插舌：關著時垂直塞在正面內側，打開時跟著上蓋翻起來 */
+.bx-lid b.flap { position:absolute; transform-origin:50% 0; transform:rotateX(-90deg); border-radius:0 0 3px 3px;
+  background-color:#c39d78; background-image:repeating-linear-gradient(90deg, rgba(90,60,30,.13) 0 1.5px, rgba(255,240,220,.1) 1.5px 3px, rgba(90,60,30,0) 3px 6px);
+  box-shadow:inset 0 0 10px rgba(70,45,20,.25); }
+/* 透明貼紙板：整包（背卡、板子、袋子）跟著游標微微傾斜 */
+.sl.tilt .sl-items, .sl.sheet .sl-box:not(.gone) { transform:perspective(1300px) rotateX(var(--ty,0deg)) rotateY(var(--tx,0deg)); transition:transform .18s ease-out, opacity .4s; }
+.sl.sheet .opp { background-position:var(--sx,50%) 0, top; background-size:220% 100%, 100% 6%; background-repeat:no-repeat; }
+/* 電影貼紙組打開後的畫框（目前沒用到） */（照商品照：黑框、淺灰底紙） */
+.sl-frame { position:absolute; left:0; top:0; opacity:0; box-sizing:border-box; border:12px solid #1d1d1d; border-radius:2px; background:#dcdcdc;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.35), inset 0 2px 10px rgba(0,0,0,.18), 0 10px 26px rgba(0,0,0,.22); pointer-events:none; }
+/* 平放的盒子要從上往下看，才看得到頂面的大圖 */
+.bx { --bx:-38deg; --by:-24deg; }
+/* 牆上的組合磚 */
+.tile.set .stk.bxwrap { filter:none; transform-style:preserve-3d; display:grid; place-items:center; width:150px; height:130px; }
+.tile.set .stk.fan { width:150px; height:140px; }
+.tile.set .stk.fan img { position:absolute; left:50%; top:50%; width:74px; max-width:none; max-height:none; }
+.tile.set .stk.fan img:nth-child(1) { transform:translate(-92%,-52%) rotate(-12deg); }
+.tile.set .stk.fan img:nth-child(2) { transform:translate(-8%,-52%) rotate(11deg); }
+.tile.set .stk.fan img:nth-child(3) { transform:translate(-50%,-46%) rotate(-1deg); }
+/* 組合預覽的舞台 */
+.sl .lb-panel { width:min(900px,100%); }
+.sl-stage { position:relative; height:min(66vh,560px); overflow:hidden; background:var(--paper);
+  background-image:radial-gradient(rgba(0,0,0,.055) 1px, transparent 1.2px); background-size:18px 18px; }
+.sl-box { position:absolute; inset:0; display:grid; place-items:center; perspective:1100px; cursor:pointer; transition:opacity .4s, transform .5s; }
+.sl-box.gone { opacity:0; transform:translateY(70px) scale(.8); pointer-events:none; }
+.bx-float { animation:bxfloat 3.2s ease-in-out infinite; transform-style:preserve-3d; }
+.lid-open .bx-float { animation:bxpop .45s ease-out; }
+@keyframes bxfloat { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-9px); } }
+@keyframes bxpop { 0% { transform:scale(1); } 30% { transform:scale(.94,1.06) translateY(6px); } 60% { transform:scale(1.05,.96) translateY(-8px); } 100% { transform:scale(1); } }
+.sl-items { position:absolute; inset:0; pointer-events:none; transition:opacity .35s; }
+/* 透明貼紙板拿出來後疊上去的 3D 預覽（背景透明，載好才淡入） */
+.sl-sheet3d { position:absolute; z-index:4; border:0; background:transparent; opacity:0; transition:opacity .35s; color-scheme:light; }
+.sl-item { position:absolute; left:0; top:0; border:0; background:none; padding:0; cursor:pointer; line-height:0; transform-origin:50% 50%;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.2)) drop-shadow(0 5px 7px rgba(0,0,0,.14)); }
+.sl-item img { width:100%; display:block; }
+.sl-item:hover { z-index:5; filter:drop-shadow(0 2px 2px rgba(0,0,0,.2)) drop-shadow(0 12px 14px rgba(0,0,0,.2)); }
+.sl-hint { position:absolute; left:50%; bottom:22px; transform:translateX(-50%); background:#2a2a2a; color:#fff; border-radius:999px; padding:8px 20px; font-size:15px; cursor:pointer;
+  animation:hintpulse 1.6s ease-in-out infinite; }
+@keyframes hintpulse { 0%,100% { transform:translateX(-50%) scale(1); } 50% { transform:translateX(-50%) scale(1.06); } }
+.sl-reset { position:absolute; left:12px; top:10px; z-index:6; border:1.5px solid #ddd; background:#fff; border-radius:999px; padding:6px 14px; font-size:13px; cursor:pointer; }
+@media (prefers-reduced-motion:reduce) { .bx-float, .sl-hint { animation:none; } }
+
+/* 標籤貼＋分裝瓶 */
+.sl-box.flat { display:block; perspective:none; }
+.bt { position:absolute; }
+.bt svg { width:100%; display:block; overflow:visible; }
+.sl-item.stuck { filter:drop-shadow(0 .5px .5px rgba(0,0,0,.28)); }
+.sl-box canvas.bt3d { position:absolute; inset:0; width:100%; height:100%; display:block; }
+.sl-box canvas.bt3d.refl { pointer-events:none; }
+.sl-note { position:absolute; left:0; right:0; bottom:12px; text-align:center; font-size:13px; color:#666; pointer-events:none; z-index:6; }
+.sl-note[hidden] { display:none; }
+/* 組合預覽上方的「3D 示意／商品圖」切換，和蓋在舞台上的宣傳圖 */
+.sl-tabs { position:absolute; left:50%; top:12px; transform:translateX(-50%); z-index:9; display:flex; background:#fff; border-radius:999px; padding:3px; box-shadow:0 1px 6px rgba(0,0,0,.14); }
+.sl-tabs[hidden] { display:none; }
+/* 商品燈箱的 3D 預覽（杯墊） */
+.pl .lb-panel { position:relative; }
+.pl-3d { position:absolute; left:0; right:0; top:0; height:min(62vh,560px); z-index:3; background:radial-gradient(ellipse at 50% 40%, #fbfbfa, #ecebe7); }
+.pl-3d[hidden] { display:none; }
+
+/* 明信片牆（postcards.js）：小卡微微歪著排在點點牆上（不要圖釘），點了放大、可以翻面 */
+.pw .pw-wall { position:relative; height:min(66vh,600px); overflow-y:auto; padding:22px 18px 18px;
+  background-color:var(--paper); background-image:radial-gradient(rgba(0,0,0,.055) 1px, transparent 1.2px); background-size:18px 18px; }
+.pw-row { display:flex; flex-wrap:wrap; gap:16px 14px; align-items:flex-start; }
+.pc { position:relative; width:104px; padding:0; border:0; background:#fff; cursor:zoom-in; transform:rotate(var(--r)); line-height:0;
+  box-shadow:0 1px 2px rgba(0,0,0,.12), 0 6px 12px rgba(0,0,0,.10); transition:transform .18s, box-shadow .18s; }
+.pc.wide { width:156px; }
+.pc img { width:100%; display:block; }
+.pc:hover { transform:rotate(0) translateY(-4px) scale(1.04); box-shadow:0 2px 4px rgba(0,0,0,.14), 0 14px 22px rgba(0,0,0,.16); z-index:1; }
+.pw-more { margin:22px 2px 0; color:var(--mute); font-size:13px; }
+.pw-zoom { position:absolute; left:0; right:0; top:0; height:min(66vh,600px); z-index:4; background:rgba(246,244,240,.97);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; perspective:1400px; --tx:0deg; --ty:0deg; }
+.pw-zoom[hidden] { display:none; }
+.pw-back { position:absolute; left:12px; top:12px; z-index:2; border:1.5px solid #ddd; background:#fff; border-radius:999px; padding:6px 14px; font-size:13px; cursor:pointer; }
+.pw-card { height:min(48vh,440px); aspect-ratio:2/3; cursor:pointer; transform:rotateY(var(--tx)) rotateX(var(--ty)); transition:transform .25s ease-out; transform-style:preserve-3d; }
+.pw-card.wide { height:auto; width:min(76%,560px); aspect-ratio:3/2; }
+.pw-flip { position:relative; width:100%; height:100%; transform-style:preserve-3d; transition:transform .6s cubic-bezier(.2,.8,.2,1); }
+.pw-card.flipped .pw-flip { transform:rotateY(180deg); }   /* 不能叫 .back：樣品頁左上角的返回鈕就是 .back（固定在角落的深色膠囊） */
+.pw-flip img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; backface-visibility:hidden; -webkit-backface-visibility:hidden;
+  box-shadow:0 2px 4px rgba(0,0,0,.12), 0 18px 34px rgba(0,0,0,.2); background:#fff; }
+.pw-flip img.b { transform:rotateY(180deg); }
+.pw-cap { display:flex; align-items:center; gap:10px; font-size:13px; color:#666; }
+.pw-cap b { font-size:16px; color:var(--ink); }
+.pw .lb-arrow { z-index:3; }
+/* 尺寸表（T 恤）：蓋在圖片區上，跟 3D 預覽同一個位置 */
+.pl-size { position:absolute; left:0; right:0; top:0; height:min(62vh,560px); z-index:3; background:#fafaf8; padding:58px 12px 12px; display:flex; justify-content:center; align-items:center; }
+.pl-size[hidden] { display:none; }
+.pl-size .sizeimg { display:block; max-width:100%; max-height:100%; object-fit:contain; border-radius:4px; }
+.pl-3d-host, .pl-3d-host canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
+.pl-3d-hint { position:absolute; left:0; right:0; bottom:10px; text-align:center; font-size:12px; color:#999; pointer-events:none; z-index:1; }
+.pl-tabs { position:absolute; left:50%; top:12px; transform:translateX(-50%); z-index:5; display:flex; background:#fff; border-radius:999px; padding:3px; box-shadow:0 1px 6px rgba(0,0,0,.14); }
+.pl-tabs[hidden] { display:none; }
+.pl-3d-vars { position:absolute; left:0; right:0; bottom:34px; z-index:2; display:flex; flex-wrap:wrap; justify-content:center; gap:6px; padding:0 12px; }
+.pl-3d-vars[hidden] { display:none; }
+.pl-3d-vars button { border:1px solid #ddd; background:#fff; border-radius:999px; padding:5px 13px; font-size:13px; cursor:pointer; color:#555; }
+.pl-3d-vars button.on { border-color:var(--red2); background:var(--red2); color:#fff; font-weight:700; }
+.pl-tabs button { border:0; background:none; border-radius:999px; padding:6px 16px; font-size:13px; cursor:pointer; color:#555; }
+.pl-tabs button.on { background:var(--red2); color:#fff; font-weight:700; }
+.sl-tabs button { border:0; background:none; border-radius:999px; padding:6px 16px; font-size:13px; cursor:pointer; color:#555; }
+.sl-tabs button.on { background:var(--red2); color:#fff; font-weight:700; }
+.sl-photo { position:absolute; inset:0; z-index:8; background:var(--paper); display:flex; align-items:center; justify-content:center; padding:12px; overflow:auto; }
+.sl-photo[hidden] { display:none; }
+.sl-photo img { max-width:100%; max-height:100%; object-fit:contain; border-radius:6px; box-shadow:0 4px 18px rgba(0,0,0,.12); }
+
+/* 價格（賣貨便價） */
+.tile .pr { display:block; font-size:13px; font-weight:700; color:var(--red); margin-top:1px; }
+.hot span em { display:block; font-style:normal; font-size:13px; font-weight:700; color:var(--red); }
+.buybox small { line-height:1.5; margin-top:4px; }
+
+/* 透明貼紙板：紅色背卡上貼著一整板 */
+.sheetcard { position:relative; display:block; background:url('assets/card-long-front.webp') center/100% 100% no-repeat; border-radius:3px;
+  box-shadow:0 1px 2px rgba(0,0,0,.2), 0 6px 12px rgba(0,0,0,.14); }
+.sheetcard img { position:absolute; max-width:none; max-height:none; }
+.tile.set .stk.sheetwrap { filter:none; }
+.sl-box img.card { position:absolute; border-radius:4px; box-shadow:0 2px 3px rgba(0,0,0,.2), 0 14px 24px rgba(0,0,0,.18); }
+
+/* 透明貼紙板本體：透明 PVC 底紙，帶一點反光和邊緣 */
+.sheetfilm, .sheetcard .film { position:absolute; background:linear-gradient(125deg, rgba(255,255,255,.26), rgba(255,255,255,.08) 40%, rgba(255,255,255,.2) 70%, rgba(255,255,255,.1));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.75), 0 0 0 1px rgba(0,0,0,.08), 0 8px 18px rgba(0,0,0,.08); pointer-events:none; }
+.sheetcard .film { left:0; width:100%; }
+.sheetcard::after { content:""; position:absolute; inset:-3px; border-radius:4px; pointer-events:none;
+  background:linear-gradient(115deg, rgba(255,255,255,0) 35%, rgba(255,255,255,.4) 48%, rgba(255,255,255,0) 62%); box-shadow:inset 0 0 0 1px rgba(255,255,255,.6); }
+/* OPP 透明袋：亮面反光＋上方封口 */
+.opp { position:absolute; pointer-events:none; border-radius:5px; transition:opacity .35s; z-index:3;
+  background:linear-gradient(115deg, rgba(255,255,255,0) 30%, rgba(255,255,255,.42) 44%, rgba(255,255,255,.05) 52%, rgba(255,255,255,0) 64%),
+    linear-gradient(rgba(255,255,255,.35), rgba(255,255,255,.35)) top/100% 6% no-repeat;
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.8), 0 0 0 1px rgba(0,0,0,.05); }
+
+/* 亮面貼紙（洗沐標籤貼）：一道斜的高光，落在貼紙形狀裡，跟著滑鼠左右滑 */
+.sl-item.gloss::after { content:""; position:absolute; inset:0; pointer-events:none; mix-blend-mode:screen;
+  background:linear-gradient(115deg, transparent 44%, rgba(255,255,255,.5) 48.5%, rgba(255,255,255,.12) 51%, transparent 55%) var(--sx,30%) 0 / 260% 100% no-repeat;
+  -webkit-mask:var(--mask) center/100% 100% no-repeat; mask:var(--mask) center/100% 100% no-repeat; transition:background-position .15s ease-out; }
+.sl-note { bottom:8px; font-size:12.5px; }

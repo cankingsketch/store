@@ -18,22 +18,42 @@
 
 ## 頁面對照
 
-檔名多半是 Weebly 匯出時的數字流水號：
+2026-10 改版：全站換成新版面（ちいかわマーケット風格），**網址沿用 Weebly 時代的檔名**，
+舊連結、搜尋結果都不會斷。
 
 | 檔案 | 頁面 |
 |---|---|
 | `index.html` | 首頁 |
-| `goods.html` | 周邊一覽 |
+| `goods.html` | 周邊（商品資料讀 `data/products.json`）|
+| `stickers.html` | 貼紙（2026-10 新增）|
 | `lessons.html` | 課程 |
-| `illusts.html` | 數位賣場 |
+| `illusts.html` | 數位賣場（讀 `/api/gumroad`）|
 | `3005920874.html` | 畫冊 |
-| `t24676.html` | T恤 |
-| `2550940845t24676.html` | 接龍T恤 |
+| `t24676.html` | T恤（選單不放，網址還在）|
 | `3287921517251632723127580.html` | 聯名手機殼 |
-| `penker-3287921517.html` | PENKER 聯名 |
 | `2345835069212702183021697.html` | 客製化商品 |
-| `events.html` | 活動（自建）|
+| `events.html` | 活動 |
 | `events-883299.html` | 實體店寄售 |
+| `sticker-viewer.html` | 貼紙 3D 預覽（給貼紙燈箱嵌入用，`?embed=1&s=<id>`）|
+
+接龍T恤（`2550940845t24676`）、PENKER 聯名（`penker-3287921517`）已撤掉，
+`_redirects` 把舊網址 301 導到周邊頁。
+
+### ★ 版面的原稿不在這裡
+
+頁面、共用的 `shared.js` / `shop-v3.js` / `*.css` / 3D 模組（`*3d.js`）、`stickers.js`、
+`assets/`、`img/` 都是**從設計稿搬進來的產物**。原稿在
+`canking-tools\tools\sticker-preview\designs\`（本機 `sticker-preview` 預覽，埠 8811），
+改完跑：
+
+```
+python tools/sticker-preview/build_site.py          # 在 canking-tools 底下跑
+```
+
+它會把頁面改名成上表的網址、換掉站內連結、拿掉樣品才有的東西（「← 設計稿總覽」、
+「（樣品）」…）、補上 og／canonical／`track.js`，並檢查有沒有換漏。
+**直接改這個 repo 裡的那些檔案，下次跑 build 就會被蓋掉。**
+`build_site.py` 不碰 `data/products.json`（歸後台管）、`images/`、`functions/`、`admin.html`。
 
 ## 活動系統
 
@@ -59,89 +79,56 @@
 
 環境變數：`EVENTS_PUSH_KEY`（指揮部與這支端點的共用金鑰）、`GITHUB_TOKEN`（既有）。
 
-## 商品結構（goods.html）
+## 商品資料（data/products.json）
 
-商品 = 一個 `<h2 class="wsite-content-title">` 加上到下一個 h2 之前的所有內容。
+周邊頁的商品全部在 `data/products.json`，`goods.html` 讀它畫出來；後台讀寫的也是這份。
+（2026-10 以前是去解析、改寫 Weebly 的 goods.html HTML，那套已經整個拿掉。）
 
-兩種結構：
-
-**新結構**（後台建立，`data-ck="1"` 標記）— 乾淨、可程式化編輯：
-```html
-<h2 class="wsite-content-title" data-ck="1"><strong><font size="7">商品名</font></strong></h2>
-
-<div class="ck-prod" data-ck="1">
-<div class="ck-prod-imgs">
-<figure class="ck-img ck-lg"><img src="images/xxx.jpg" alt="商品名" /></figure>
-<figure class="ck-img ck-md"><img src="images/yyy.jpg" alt="商品名" loading="lazy" /></figure>
-</div>
-<div class="ck-prod-desc">說明文字</div>
-</div>
+```json
+{ "hot": ["bag", "anim1", ...],            // 最上面熱銷輪播的順序，最多 8 個
+  "products": [
+    { "id": "coaster", "section": "other", "name": "下雨天杯墊",
+      "findName": "（選填）賣貨便上的名稱", "price": 220, "from": true,
+      "note": "一行說明", "imgs": ["img/opt/rain_coaster-l.webp"],
+      "video": "https://www.instagram.com/reel/…/", "shopee": "https://shopee.tw/…",
+      "soldout": true, "hidden": true, "date": "2026-08-30",
+      "view3d": { … }, "special": "postcards" | "album" } ] }
 ```
-版型 class：`ck-lg` 獨佔一行、`ck-md` 兩張並排、`ck-sm` 三張並排；手機（≤700px）一律單欄。
-第一張圖不加 `loading="lazy"`（主圖要立即顯示），其餘才加。
 
-**舊結構**（Weebly 匯出）— 巢狀 table，內部**不要**用程式修改。
-安全操作只有三種：改 h2 文字、整塊搬移、整塊刪除。
-若要改圖或改版，把整塊換成新結構（整塊替換比局部修補安全）。
-
-其他注意事項：
-- 舊商品標題在 HTML 裡是數字實體（`&#30332;…`），解析時要解碼
-- 快速選單和回頂按鈕會**自動**掃描 h2 產生，新增商品不用另外維護
-- 頁面上方那排購買按鈕（711／蝦皮／海外／實體店）是全站共用，不屬於個別商品
+- `section`：`blind` 盲盒、`postcard` 明信片、`apparel` 服飾（接在 T 恤後面）、`other` 其他周邊。
+  同一區照陣列順序＝「推薦」排序。
+- 圖片一律是瘦身過的 WebP：`-l.webp` 大圖（長邊 1400）、同名 `-s.webp` 卡片小圖（寬 600）。
+- `shopee` 空的就不放蝦皮按鈕；`hidden` 整個不出現；`soldout` 看得到但不能買。
+- `view3d`（3D 模型設定）與 `special`（明信片牆、卡冊）是程式碼層級的設定，
+  **後台改不到**——`view3d.module` 會被頁面 import，不能讓前端決定。要改請直接改這份檔案。
+- T 恤（`tees-data.js`）和貼紙（`stickers.js`）不在這份裡。
 
 ## 商品後台
 
 `/admin` → `admin.html` + `functions/api/products.js`（Cloudflare Pages Function）
 
-- 功能：新增商品（多圖、版型、即時預覽）、改標題、排序、下架、編輯新結構商品
+- 功能：新增／編輯商品（分區、價格、說明、多張圖、影片、蝦皮、賣貨便名稱、上架日、
+  絕版、隱藏）、同區排序、熱銷推薦排序、刪除（明信片牆、卡冊只能隱藏不能刪）
 - 所有編輯只在瀏覽器暫存，按「儲存變更」才寫入 GitHub
-- 圖片在瀏覽器端壓縮（最大寬 1400、JPEG 85%）後上傳
-- 安全：必須通過 Cloudflare Access（API 會檢查 `Cf-Access-Authenticated-User-Email`）
+- 圖片在瀏覽器裡轉成 WebP（大圖 1400、小圖 600），檔名 `img/opt/up-日期-時間-序號-l|s.webp`。
+  **Safari 轉不出 WebP**，後台會擋下並請他改用電腦的 Chrome／Edge
+- 後端檢查：網址必須 https（蝦皮必須 shopee.tw）、圖片路徑必須在 `img/opt/`、
+  上傳檔必須是 WebP 且 ≤2MB、檔名必須是 `up-` 開頭（不會蓋到既有的圖）
+- 安全：必須通過 Cloudflare Access（`lib/access.js` 驗 JWT 簽章）
 - 金鑰：Cloudflare 環境變數 `GITHUB_TOKEN`（fine-grained PAT，只給 cankingsketch/store 的 Contents 讀寫）
 - 併發保護：GET 時取得檔案 sha，POST 時比對，不符會擋下並要求重新整理
-
-實作上踩過的坑（改動前先看）：
-- **Access 身分傳遞**：Cloudflare Access 保護 Pages Functions 時，不一定會帶
-  `Cf-Access-Authenticated-User-Email`，可能只有 `Cf-Access-Jwt-Assertion` 或
-  `CF_Authorization` cookie。三者接受其一即可（能到達 Function 就代表已通過 Access）。
-- **BOM**：`goods.html` 開頭有 UTF-8 BOM。TextDecoder 預設會吃掉它，導致存檔時
-  無關內容被改動，故指定 `ignoreBOM: true`。
-- **HTML 實體**：舊商品標題含 `&#nnnn;` 與 `&nbsp;`，解析時都要解碼。
+- 檔案格式固定（欄位順序、2 格縮排、LF），照原樣存回去＝一字不差＝不會推送
 - **預覽部署網址**（`<hash>.cankingstore.pages.dev`）不在 Access 規則涵蓋範圍內，
   後台頁面打得開，但 API 仍會擋下（403）——這是保留 Function 內身分檢查的理由。
 
-說明文字對齊：後台每個商品可以明講「置中／靠左」。沒明講時走自動規則
-（有並排圖→靠左、單張大圖→置中）。`buildBlock` 與 admin 的 `autoAlign()`
-必須保持一致，改了其中一個就要改另一個。舊 Weebly 商品的對齊是寫在
-外層 `text-align:`，不歸這套管。
+本機測後台：`canking-tools` 的 launch.json 有 `admin-mock`（埠 8812），
+用真的 `products.js`，只是把 GitHub 換成記憶體，存檔不會寫到任何地方。
 
-修改後端解析邏輯時，務必先跑無損測試（切開再合併必須與原檔一字不差）。
-
-**商品的賣場按鈕（2026-08-30）**：每個商品可以在標題下方放「賣貨便／蝦皮」按鈕。
-- **樣式：主要通路小紅膠囊（`ck-buy-main`）＋次要通路文字連結（`ck-buy-sub`）**。
-  刻意比頁面頂端那排 `wsite-button` 大按鈕安靜——21 個商品一路滑下來，
-  每個都放兩塊實心色塊會非常吵（使用者自己也提出這個顧慮）。主次之分反映
-  真實比例：賣貨便約佔購買點擊 62%、蝦皮 34%。
-  **樣式全在 `goods.html` 的 `<style>` 裡，換風格只改 CSS，不用動任何商品資料。**
-  改的話記得同步 `admin.html` 的 `.pv-buy` 預覽。
-- **賣貨便沒有個別商品網址**——實測過：整個賣場是單一頁面，點商品只開彈窗、
-  網址不變、沒有分享功能。所以全站共用一個網址，用 `findMyshipUrl()` 從頁面上既有的
-  那顆按鈕帶入。蝦皮則可以填個別商品網址。
-- **按鈕放在 `</h2>` 之後、不塞進標題裡**。塞進去的話 `parseBlock` 會把按鈕文字
-  當成商品名稱（變成「明信片組合賣貨便蝦皮」）、`renameLegacy` 還會把按鈕文字一起改掉。
-- 生成的按鈕列是**可完全剝離**的：`stripBuy()` 拿掉後必須與原區塊一字不差，
-  所有解析與改名都在乾淨區塊上做。沒設定按鈕的商品，檔案完全不變。
-- `ownButtons` 會標出本來就有自家按鈕的商品（手搖動畫機、LINE貼圖與主題），
-  後台會提醒避免重複。
-- 後台**舊版商品也能開編輯器**了（只顯示名稱與賣場按鈕，圖片／說明區隱藏），
-  原本的 `window.prompt` 改名已移除。
-
-**存檔＝單一 commit（2026-08-30 改）**：所有圖片與 `goods.html` 用 GitHub 的
+**存檔＝單一 commit（2026-08-30 改）**：所有圖片與 `data/products.json` 用 GitHub 的
 Git Data API（blob → tree → commit → 更新 ref）打包成一個 commit。
 原本用 Contents API 每個檔案一次 PUT，**每次 PUT 就是一個 commit，
 而 Cloudflare Pages 是每個 commit 部署一次**——上傳 3 張圖會排 4 次部署、
-還會互相取消，使用者就要等 1～2 分鐘。實測：11 個圖片 commit + 4 個存檔 commit
-＝ 15 次部署。改完之後不管幾張圖都只推一次。
+還會互相取消。改完之後不管幾張圖都只推一次。
 `base_tree` 讓其餘檔案完全不動；`parents: [讀取時的 head]` + `force: false`
 順便成為真正的併發保護（別人插隊推送 → GitHub 回 422 → 我們回 409）。
 
@@ -202,14 +189,20 @@ Git Data API（blob → tree → commit → 更新 ref）打包成一個 commit�
 ## 測試
 
 ```
-node tests/products.test.mjs    # 64 項
-node tests/save.test.mjs        # 42 項（存檔只推一次）
-node tests/track.test.mjs       # 41 項
-node tests/traffic.test.mjs     # 35 項
+node tests/products.test.mjs    # 商品資料格式、後端檢查規則、圖片檔都在
+node tests/save.test.mjs        # 存檔流程（只推一次、併發、驗證）
+node tests/track.test.mjs       # 點擊追蹤
+node tests/traffic.test.mjs     # 流量統計
 ```
-不必安裝套件（用 Node 內建 `node:sqlite` 模擬 D1）。改 `functions/api/*` 前後都要跑。
+不必安裝套件（用 Node 內建 `node:sqlite` 模擬 D1）。改 `functions/api/*` 或手動改
+`data/products.json` 前後都要跑。
 
 ## Weebly 殘留
+
+> **2026-10 改版後，頁面已經不用 Weebly 佈景**（`css/`、editmysite 的 CDN 都沒有新頁面在用）。
+> 以下是舊頁面時代的記錄，留著是因為 `images/` 還在用、git 歷史裡的舊頁面還查得到。
+> 商品點擊統計：新頁面的購買按鈕都帶 `data-track-label`＝商品名（`shared.js` 的 `buyBox`）。
+
 
 匯出的 HTML 帶著整套 Weebly 商店程式，但本站沒有購物車（所有購買都是外連）。
 2026-08-29 已清掉：`initCustomerAccountsModels` / `initCommerceModels` 的 RPC 設定、

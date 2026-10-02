@@ -1,0 +1,2 @@
+# 後台照固定格式（LF）讀寫這份；Windows 上 checkout 也不要被換成 CRLF
+data/products.json text eol=lf

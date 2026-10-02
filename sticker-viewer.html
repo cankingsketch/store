@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>貼紙預覽｜空罐王的商店</title>
+<style>
+  :root { --ink:#1d1d1f; --mute:#8a8a8e; --line:#e9e9ec; --red:#e8372c; }
+  * { box-sizing:border-box; }
+  html, body { height:100%; margin:0; }
+  body {
+    background:#fdfdfd; color:var(--ink); overflow:hidden;
+    font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+    -webkit-user-select:none; user-select:none;
+  }
+  #stage { position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; }
+  .brand {
+    position:fixed; left:18px; top:16px; display:flex; align-items:center; gap:9px;
+    font-weight:700; font-size:15px; letter-spacing:.02em; pointer-events:none;
+  }
+  .brand i {
+    width:26px; height:26px; border-radius:7px; background:var(--red); color:#fff;
+    display:grid; place-items:center; font-style:normal; font-size:14px;
+  }
+  .caption {
+    position:fixed; left:0; right:0; bottom:92px; text-align:center; pointer-events:none;
+    font-size:14px; line-height:1.5;
+  }
+  .caption b { display:block; font-size:16px; }
+  .caption span { color:var(--mute); font-size:12.5px; }
+  .bar {
+    position:fixed; left:50%; bottom:22px; transform:translateX(-50%);
+    display:flex; align-items:center; gap:6px; padding:7px 9px;
+    background:#fff; border-radius:14px; box-shadow:0 1px 2px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.08);
+    max-width:calc(100vw - 24px); overflow-x:auto;
+  }
+  .thumb {
+    flex:none; width:46px; height:40px; padding:0; border:0; border-radius:9px; cursor:pointer;
+    background:linear-gradient(135deg,#eef1f4,#dfe4ea 45%,#f4f1f6); position:relative;
+    filter:grayscale(1); opacity:.55; transition:filter .2s, opacity .2s;
+  }
+  .thumb img { width:100%; height:100%; object-fit:contain; display:block; pointer-events:none; }
+  .thumb.on { filter:none; opacity:1; }
+  .thumb.on::after {
+    content:""; position:absolute; left:14px; right:14px; bottom:-5px; height:2px; border-radius:2px; background:var(--ink);
+  }
+  .sep { width:1px; height:22px; background:var(--line); margin:0 3px; }
+  .play {
+    flex:none; width:34px; height:34px; border:0; border-radius:9px; background:transparent; cursor:pointer;
+    display:grid; place-items:center; color:var(--ink);
+  }
+  .play:hover { background:#f3f3f5; }
+  .play svg { width:14px; height:14px; }
+  .ring {
+    position:fixed; left:0; top:0; width:44px; height:44px; margin:-22px 0 0 -22px; border-radius:50%;
+    border:1.5px solid rgba(0,0,0,.55); pointer-events:none; opacity:0; transition:opacity .12s;
+  }
+  .ring.on { opacity:1; }
+  .embed body { background:transparent; }
+  .embed .brand, .embed .caption, .embed .bar { display:none; }
+  .err { position:fixed; inset:0; display:none; place-items:center; padding:24px; text-align:center; color:var(--mute); }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<script src="stickers.js"></script>
+<div class="brand"><i>罐</i>空罐商店　貼紙預覽</div>
+<div class="caption"><b id="capName"></b><span id="capNote"></span></div>
+<div class="bar" id="bar"></div>
+<div class="ring" id="ring"></div>
+<div class="err" id="err">這個瀏覽器不支援 WebGL2，無法顯示 3D 預覽。</div>
+
+<script id="fs" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+uniform vec2 uRes, uCenter, uTex;     // 畫布、貼紙中心、貼圖在畫面上的大小（裝置像素）
+uniform float uPxmm, uCam, uScale, uAlpha, uLod, uPeel, uHolo, uDebug, uClear, uGloss;
+uniform float uStack;                 // 1＝兩層（電影票根釘在發票上）：uUnder 是下層、不會動；uArt/uMask 是上層、可以翻
+uniform float uSheet;                 // 1＝透明貼紙板：uUnder 是整張板子，uArt/uMask 是正在撕的那一枚（位置 uTopOff、大小 uTopTex）
+uniform vec2 uTopOff, uTopTex;
+uniform mat3 uRot;                    // 貼紙平面的三個軸
+uniform vec2 uTilt, uM, uD;           // 傾斜角、摺線中點、摺線法向（指向沒撕的那側）
+uniform sampler2D uArt, uMask, uBack, uUnder;
+out vec4 o;
+
+float hash(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
+float vnoise(vec2 p){
+  vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1,0)),f.x), mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x), f.y);
+}
+float fbm(vec2 p){ float a=.5, s=0.; for(int i=0;i<4;i++){ s+=a*vnoise(p); p=p*2.03+17.1; a*=.5; } return s/.9375; }
+
+// 畫面上的點 → 貼紙平面上的座標（射線打平面，所以傾斜時有透視）
+vec2 toLocal(vec2 p){
+  vec2 q=(p-uCenter)/uScale;
+  vec3 O=vec3(0.,0.,uCam), dir=vec3(q,-uCam), n=uRot[2];
+  vec3 X=O-dot(O,n)/dot(dir,n)*dir;
+  return vec2(dot(X,uRot[0]),dot(X,uRot[1]));
+}
+vec2 uvOf(vec2 l){ return l/uTex+.5; }                    // 整張（下層）的貼圖座標
+vec2 uvT(vec2 l){ return (l-uTopOff)/uTopTex+.5; }         // 上層（會撕的那張）的貼圖座標；一般貼紙兩者相同
+float die(vec2 l,float lod){ return textureLod(uMask,uvT(l),lod).g; }
+
+// 透明貼紙：沒有白墨，只有油墨（貼圖的透明度＝油墨濃度）＋刀線內一層很淡的膜，亮面
+vec4 clearFront(vec2 l){
+  vec4 ar=textureLod(uArt,uvT(l),uLod);               // 預乘
+  float film=mix(.2,.06,uSheet);                       // 板子上的那一枚：跟 clear_sheet.py 合成時的貼紙膜一樣淡
+  float al=ar.a+film*(1.-ar.a);
+  vec2 mm=l/uPxmm;
+  float gp=dot(mm,vec2(.8,.6))-(uTilt.y-uTilt.x*.7)*200.;
+  vec3 c=ar.rgb+vec3(film*(1.-ar.a))+vec3(exp(-gp*gp/162.)*.28*al);
+  return vec4(c,al);
+}
+
+// 雷射膜：銀底＋會隨角度流動的彩虹
+vec3 holo(vec2 mm){
+  float n1=fbm(mm*.035+vec2(3.1,7.7));
+  float n2=fbm(mm*.09+vec2(11.3,1.9));
+  float view=uTilt.y*4.5+uTilt.x*3.2;
+  float phase=dot(mm,vec2(.016,.010))+n1*1.25+view;
+  vec3 rb=.5+.5*cos(6.2831*(phase+vec3(0.,.33,.67)));
+  float band=smoothstep(.40,.95,.5+.5*sin(6.2831*(phase*.5+n2*.9+view*.35)));
+  // 金屬底：明暗跟著角度大幅變化，像鏡面映到亮暗不同的環境
+  float env=.5+.5*sin(6.2831*(dot(mm,vec2(.006,-.011))+n2*.6+uTilt.x*1.8-uTilt.y*1.3));
+  vec3 silver=vec3(.80,.82,.85)*mix(.70,1.12,env);
+  vec3 c=mix(silver, mix(silver,rb,.85)*1.15, .12+.75*band);
+  return c*(.985+.03*hash(mm*9.));
+}
+
+vec3 front(vec2 l){
+  vec2 uv=uvT(l), mm=l/uPxmm;
+  vec4 art=textureLod(uArt,uv,uLod);                 // 預乘
+  float w=mix(1., textureLod(uMask,uv,uLod).r, uHolo);  // 白墨＝不透光
+  vec3 ink=art.a>.001?art.rgb/art.a:vec3(1.);
+  vec3 foil=holo(mm)*mix(vec3(1.),ink,art.a);        // 沒白墨：油墨直接疊在膜上
+  vec3 opaque=art.rgb+(1.-art.a);                    // 有白墨：圖疊在白底上
+  vec3 c=mix(foil,opaque,w);
+  float gp=dot(mm,vec2(.8,.6))-(uTilt.y-uTilt.x*.7)*200.;
+  c+=exp(-gp*gp/162.)*.42*(1.-w);                    // 高光帶只掃過雷射膜，白墨區不反光
+  c+=exp(-gp*gp/162.)*.28*uClear;                    // 透明 PVC 是亮面的
+  c+=exp(-gp*gp/120.)*.34*uGloss+exp(-gp*gp/2400.)*.05*uGloss;   // 亮面貼紙：一道清楚的高光＋一圈柔光
+  // 霧面款：沒有高光，只有整面很淡的明暗隨角度變（霧膜把光打散了）
+  c*=1.+(1.-uHolo)*(1.-uClear)*(1.-uGloss)*(.05*uTilt.y-.07*uTilt.x+.035*exp(-gp*gp/5000.)-.02);
+  return mix(c,vec3(1.,.15,.2),.6*w*uDebug);         // 檢查用：把白墨範圍標紅
+}
+
+vec3 back(vec2 r,float side){
+  vec2 mm=r/uPxmm;
+  vec3 paper=mix(vec3(.865,.855,.83),vec3(.95,.945,.93),uStack)*(.97+.06*fbm(mm*1.7));
+  vec2 bq=mat2(.8776,-.4794,.4794,.8776)*vec2(-mm.x,mm.y);
+  // 貼紙背面才有離型紙的浮水印和切線；票根背面就是白紙
+  paper*=1.-.13*texture(uBack,bq/38.).a*(1.-uStack);             // 背紙浮水印
+  paper*=1.-.14*(1.-smoothstep(.05,.22,abs(mm.x-7.)))*(1.-uStack);  // 背紙切線
+  float s=side/uPxmm;
+  paper*=mix(.80,1.,smoothstep(0.,5.5,s));           // 摺線旁的捲曲陰影
+  paper+=.09*exp(-(s-1.3)*(s-1.3)/.8);
+  return paper;
+}
+
+void main(){
+  vec2 p=vec2(gl_FragCoord.x,uRes.y-gl_FragCoord.y);
+  vec2 l=toLocal(p);
+  float side=dot(l-uM,uD);
+  vec4 acc=vec4(0.);
+
+  // 桌面上的陰影（只有還貼著的部分會投影）
+  vec2 so=(vec2(.9,1.7)+uTilt.yx*vec2(-5.,5.))*uPxmm;
+  float sh;
+  if(uStack>.5){
+    // 兩層：桌上的影子是下層發票的（它永遠貼著桌面）
+    sh=textureLod(uUnder,uvOf(l-so),uLod+3.4).a*.24 + textureLod(uUnder,uvOf(l-so*.3),uLod+1.6).a*.16;
+  } else {
+    float k1=mix(1.,smoothstep(-2.*uPxmm,2.*uPxmm,dot(l-so-uM,uD)),uPeel);
+    sh=die(l-so,uLod+3.4)*.24*k1 + die(l-so*.3,uLod+1.6)*.16*mix(1.,smoothstep(-uPxmm,uPxmm,side),uPeel);
+  }
+  acc.a=min(sh,.5)*mix(1.,.55,uClear);
+
+  if(uStack>.5){
+    // 下層發票，上面有票根壓著的淡影子（翻起來的那塊就沒有）
+    vec4 u=textureLod(uUnder,uvOf(l),uLod);
+    if(uSheet>.5){
+      // 貼紙板：正在撕的那一枚由上層畫，下層那塊換成空的底片（撕起來的地方就露出底片）
+      float dm=die(l,uLod);
+      u=mix(u,vec4(vec3(.1),.1),dm);
+    }
+    vec2 to=vec2(.3,.5)*uPxmm;
+    float ts=die(l-to,uLod+2.)*.2*mix(1.,smoothstep(-uPxmm,uPxmm,dot(l-to-uM,uD)),uPeel)*(1.-uSheet);
+    acc=vec4(u.rgb*(1.-ts),u.a)+acc*(1.-u.a);
+  }
+
+  // 正面
+  float a=die(l,uLod)*mix(1.,smoothstep(-.7,.7,side),uPeel);
+  if(uClear>.5){
+    vec4 cf=clearFront(l)*a;
+    if(cf.a>.001) acc=cf+acc*(1.-cf.a);
+  } else if(a>.001) acc=vec4(front(l)*a,a)+acc*(1.-a);
+
+  if(uPeel>.5){
+    // 掀起那片的影子
+    vec2 ls=l-(uD*1.3+vec2(.8,1.7))*uPxmm;
+    float sd=dot(ls-uM,uD);
+    float fs=die(ls-2.*sd*uD,uLod+3.)*smoothstep(-1.5*uPxmm,uPxmm,sd)*.30;
+    acc=vec4(acc.rgb*(1.-fs), fs+acc.a*(1.-fs));
+    // 掀起那片：沿摺線鏡射回來，貼背紙
+    vec2 r=l-2.*side*uD;
+    float fa=die(r,uLod)*smoothstep(-.7,.7,side);
+    if(uClear>.5){
+      // 透明貼紙翻起來：圖案底下有白墨，從背面看是白墨的白；圖以外是透明膜。摺線旁一點反光
+      vec4 ar=textureLod(uArt,uvT(r),uLod);
+      float film=mix(.2,.06,uSheet), al=ar.a+film*(1.-ar.a);
+      vec4 cf=vec4(vec3(.94)*ar.a+vec3(film*(1.-ar.a)),al);
+      float s=side/uPxmm;
+      cf.rgb*=mix(.85,1.,smoothstep(0.,5.5,s));
+      cf.rgb+=vec3(.10*exp(-(s-1.3)*(s-1.3)/.8))*cf.a;
+      cf*=fa;
+      if(cf.a>.001) acc=cf+acc*(1.-cf.a);
+    } else if(fa>.001) acc=vec4(back(r,side)*fa,fa)+acc*(1.-fa);
+  }
+  o=acc*uAlpha;
+}
+</script>
+
+<script>
+(function () {
+'use strict';
+
+// 要加新貼紙：跑 build_assets.py 產生兩張圖，再在這裡加一筆。
+var STICKERS = window.CK_STICKERS;      // 清單在 stickers.js
+var TEX_PX_PER_MM = 20;
+// ?s=<id> 指定開哪一張；?embed=1 是給貼紙牆的燈箱嵌入用，只留貼紙本體
+var QS = new URLSearchParams(location.search);
+var EMBED = QS.get('embed') === '1';
+if (EMBED) document.documentElement.classList.add('embed');
+
+var canvas = document.getElementById('stage');
+var gl = canvas.getContext('webgl2', { premultipliedAlpha: true, antialias: false });
+if (!gl) { document.getElementById('err').style.display = 'grid'; return; }
+
+// ---------- WebGL ----------
+function shader(type, src) {
+  var s = gl.createShader(type);
+  gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+var prog = gl.createProgram();
+gl.attachShader(prog, shader(gl.VERTEX_SHADER, '#version 300 es\nin vec2 a;void main(){gl_Position=vec4(a,0.,1.);}'));
+gl.attachShader(prog, shader(gl.FRAGMENT_SHADER, document.getElementById('fs').textContent));
+gl.linkProgram(prog);
+if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+gl.useProgram(prog);
+gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+var U = {};
+['uRes', 'uCenter', 'uTex', 'uPxmm', 'uCam', 'uScale', 'uAlpha', 'uLod', 'uPeel', 'uHolo', 'uDebug', 'uClear', 'uGloss', 'uStack', 'uSheet', 'uTopOff', 'uTopTex', 'uRot', 'uTilt', 'uM', 'uD',
+ 'uArt', 'uMask', 'uBack', 'uUnder'].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
+
+function texture(source, premultiply, repeat) {
+  var t = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, premultiply);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+  gl.generateMipmap(gl.TEXTURE_2D);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  var wrap = repeat ? gl.REPEAT : gl.CLAMP_TO_EDGE;
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrap);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, wrap);
+  return t;
+}
+
+// 背紙浮水印：兩排錯開的字，在 shader 裡轉斜、平鋪
+function backTexture() {
+  var c = document.createElement('canvas'); c.width = c.height = 512;
+  var x = c.getContext('2d');
+  x.fillStyle = '#000'; x.textBaseline = 'middle';
+  x.font = '700 50px "Noto Sans TC","Microsoft JhengHei",sans-serif';
+  x.fillText('空罐王', 18, 128); x.fillText('空罐王', 274, 384);
+  x.font = '700 30px system-ui,sans-serif';
+  x.fillText('CANKING', 180, 132); x.fillText('CANKING', 436 - 512, 388); x.fillText('CANKING', 436, 388);
+  return texture(c, true, true);
+}
+var texBack = backTexture();
+// 單層的貼紙沒有下層，綁一張 1×1 透明圖佔位
+var texNone = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, texNone);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+
+function loadImage(src) {
+  return new Promise(function (ok, no) {
+    var im = new Image(); im.onload = function () { ok(im); }; im.onerror = function () { no(new Error('載入失敗：' + src)); };
+    im.src = src;
+  });
+}
+function loadSticker(s) {
+  if (s.ready) return s.ready;
+  var files = [loadImage('assets/' + s.id + '-art.webp'), loadImage('assets/' + s.id + '-mask.png')];
+  if (s.stack) files.push(loadImage('assets/' + s.id + '-under.webp'));
+  s.ready = Promise.all(files).then(function (r) {
+    s.texArt = texture(r[0], true, false);
+    s.texMask = texture(r[1], false, false);
+    s.texUnder = r[2] ? texture(r[2], true, false) : texNone;
+    // 留一份小的刀模在 CPU，給滑鼠判定和「撕了幾成」用
+    var cw = 200, ch = Math.round(cw * r[1].height / r[1].width);
+    var c = document.createElement('canvas'); c.width = cw; c.height = ch;
+    var x = c.getContext('2d', { willReadFrequently: true });
+    x.drawImage(r[1], 0, 0, cw, ch);
+    var d = x.getImageData(0, 0, cw, ch).data, m = new Uint8Array(cw * ch);
+    for (var i = 0; i < m.length; i++) m[i] = d[i * 4 + 1] > 127 ? 1 : 0;
+    s.cpu = { w: cw, h: ch, m: m, texWmm: s.wMm + s.padMm * 2, texHmm: s.hMm + s.padMm * 2 };
+    return s;
+  });
+  return s.ready;
+}
+
+// ---------- 透明貼紙板 ----------
+// 空罐表情貼、通學路散步組合貼是「半斷」：很多小張貼在同一大張透明底片上。
+// 預覽時一律顯示整張板子（clear_sheet.py 合成的 <set>-sheet.webp），按住哪一枚就只撕那一枚，其他留在板子上。
+var SHEETS = {};
+function sheetOf(s) {
+  if (!s.clear || s.sx == null) return null;
+  var sh = SHEETS[s.set];
+  if (!sh) {
+    var ms = STICKERS.filter(function (x) { return x.set === s.set && x.sx != null; });
+    var info = (window.CK_SETS || []).filter(function (t) { return t.id === s.set; })[0] || {};
+    sh = SHEETS[s.set] = { id: s.set + '-sheet', set: s.set, name: info.name || s.name, note: info.note || '', wMm: 100, hMm: 124, padMm: 5,
+      clear: 1, sheet: true, members: ms, active: null };
+    sh.ready = Promise.all([loadImage('assets/' + s.set + '-sheet.webp')].concat(ms.map(loadSticker))).then(function (r) {
+      sh.texUnder = texture(r[0], true, false); sh.cpu = { sheet: true }; return sh;
+    });
+  }
+  return sh;
+}
+// 某一枚在板子上的中心（mm，原點在板子中心）
+function offOf(m) { return [m.sx - 50, m.sy - 62]; }
+function hitMember(p) {
+  var hit = null;
+  S.members.forEach(function (m) { var o = offOf(m); if (m.cpu && inside(m, p[0] - o[0], p[1] - o[1])) hit = m; });
+  return hit;
+}
+
+// ---------- 刀模查詢（單位 mm，原點在貼紙中心） ----------
+function inside(s, x, y) {
+  var c = s.cpu, u = Math.floor((x / c.texWmm + 0.5) * c.w), v = Math.floor((y / c.texHmm + 0.5) * c.h);
+  return u >= 0 && v >= 0 && u < c.w && v < c.h && c.m[v * c.w + u] === 1;
+}
+// 從某個點往外找最近的邊
+function nearestEdge(s, x, y) {
+  var best = null, bd = 1e9;
+  for (var i = 0; i < 48; i++) {
+    var a = i / 48 * Math.PI * 2, dx = Math.cos(a), dy = Math.sin(a), t = 0;
+    while (t < 140 && inside(s, x + dx * t, y + dy * t)) t += 0.4;
+    if (t < bd) { bd = t; best = [x + dx * (t - 0.4), y + dy * (t - 0.4)]; }
+  }
+  return best;
+}
+function peeledFraction(s, g, c) {
+  var dx = c[0] - g[0], dy = c[1] - g[1], len = Math.hypot(dx, dy);
+  if (len < 1e-3) return 0;
+  dx /= len; dy /= len;
+  var mx = (g[0] + c[0]) / 2, my = (g[1] + c[1]) / 2, m = s.cpu, all = 0, off = 0;
+  for (var v = 0; v < m.h; v++) for (var u = 0; u < m.w; u++) {
+    if (!m.m[v * m.w + u]) continue;
+    all++;
+    var x = ((u + 0.5) / m.w - 0.5) * m.texWmm, y = ((v + 0.5) / m.h - 0.5) * m.texHmm;
+    if ((x - mx) * dx + (y - my) * dy < 0) off++;
+  }
+  return off / all;
+}
+
+// ---------- 狀態 ----------
+var cur = 0, S = STICKERS[0];
+var view = { dpr: 1, w: 0, h: 0, pxmm: 5, cx: 0, cy: 0 };
+var tilt = [0, 0], tiltTarget = [0, 0];
+var mode = 'appear';            // idle | drag | spring | detach | appear
+var g = [0, 0], c = [0, 0], peelOn = false;       // 抓起點、目前拉到哪（mm）
+var press = null, pointerMm = null, lastInput = -1e9;
+var alpha = 0, scale = 0.94, detachT = 0, demoMix = 0;
+// 換張：翻轉（他要的；之前從右邊滑進來看了會暈、連續翻也不方便）。
+// flipA＝繞直軸多轉的角度：舊的很快轉到側面（90°），換成新的、從另一側 -90° 轉回正面，一開始快、最後慢慢停住
+var flipA = 0, leaving = 0, pendingShow = -1, pendingQuiet = false, tap0 = null;
+var autoPlay = true;
+var ring = document.getElementById('ring');
+
+function resize() {
+  view.dpr = Math.min(window.devicePixelRatio || 1, 2);
+  view.w = window.innerWidth; view.h = window.innerHeight;
+  canvas.width = Math.round(view.w * view.dpr); canvas.height = Math.round(view.h * view.dpr);
+  if (EMBED) {
+    view.pxmm = Math.max(1, Math.min(view.w * 0.8 / S.wMm, view.h * 0.74 / S.hMm, 12));
+    view.cx = view.w / 2; view.cy = view.h / 2;
+  } else {
+    view.pxmm = Math.max(1, Math.min(view.w * 0.84 / S.wMm, (view.h - 190) / S.hMm, 12));
+    view.cx = view.w / 2; view.cy = Math.max(70 + S.hMm * view.pxmm / 2, (view.h - 130) / 2);
+  }
+  gl.viewport(0, 0, canvas.width, canvas.height);
+}
+window.addEventListener('resize', resize);
+
+function toMm(e) { return [(e.clientX - view.cx) / view.pxmm, (e.clientY - view.cy) / view.pxmm]; }
+function smooth(a, b, x) { x = Math.min(1, Math.max(0, (x - a) / (b - a))); return x * x * (3 - 2 * x); }
+
+// 可不可以翻：貼紙都可以；紙類（票根、發票）不行，除了釘在一起那組的上層票根
+function peelable(s) { return !s.paper || !!s.stack; }
+
+// 釘住的那組：只能從右下角往左上翻，方向限制在對角線左右 40° 內，
+// 摺線最多翻到訂書針旁邊、不能越過針的兩端，不然就等於把票根從訂書針扯下來
+function pinned(s, gp, cp) {
+  var st = s.stack, dx = cp[0] - gp[0], dy = cp[1] - gp[1], len = Math.hypot(dx, dy);
+  if (len < 1e-4) return cp;
+  var px = (st.pin[0][0] + st.pin[1][0]) / 2 - gp[0], py = (st.pin[0][1] + st.pin[1][1]) / 2 - gp[1];
+  var base = Math.atan2(py, px), a = Math.atan2(dy, dx), da = Math.atan2(Math.sin(a - base), Math.cos(a - base));
+  a = base + Math.max(-0.7, Math.min(0.7, da));
+  var ux = Math.cos(a), uy = Math.sin(a), room = 1e9;
+  st.pin.forEach(function (p) { room = Math.min(room, (p[0] - gp[0]) * ux + (p[1] - gp[1]) * uy); });
+  // 摺線在 g 與 c 的正中間，所以能拉到 2×(距離－留白)。他要能一路翻到訂書針那裡，只留 2.5mm 讓摺線停在針的下緣
+  len = Math.max(0, Math.min(len, 2 * (room - 2.5)));
+  return [gp[0] + ux * len, gp[1] + uy * len];
+}
+
+// 拉的方向要朝貼紙裡面才算撕；往外拉不會把整張翻過來
+function inward(gp, cp) {
+  var dx = cp[0] - gp[0], dy = cp[1] - gp[1], len = Math.hypot(dx, dy), gl_ = Math.hypot(gp[0], gp[1]);
+  if (len < 1e-4 || gl_ < 1e-4) return cp;
+  var f = smooth(-0.1, 0.35, (dx * -gp[0] + dy * -gp[1]) / (len * gl_));
+  return [gp[0] + dx * f, gp[1] + dy * f];
+}
+
+canvas.addEventListener('pointermove', function (e) {
+  pointerMm = toMm(e); lastInput = performance.now();
+  ring.style.transform = 'translate(' + e.clientX + 'px,' + e.clientY + 'px)';
+  if (mode === 'drag') {
+    var k = smooth(0, 8, Math.hypot(pointerMm[0] - press[0], pointerMm[1] - press[1]));
+    var want = [g[0] + (pointerMm[0] - g[0]) * k, g[1] + (pointerMm[1] - g[1]) * k];
+    if (S.sheet) {
+      // 板子上的某一枚：用它自己的中心判斷「往內拉」
+      var o = offOf(S.active), w = inward([g[0] - o[0], g[1] - o[1]], [want[0] - o[0], want[1] - o[1]]);
+      c = [w[0] + o[0], w[1] + o[1]];
+    } else c = S.stack ? pinned(S, g, want) : inward(g, want);
+  } else if (S.cpu) {
+    canvas.style.cursor = (S.sheet ? !!hitMember(pointerMm) : peelable(S) && inside(S, pointerMm[0], pointerMm[1])) ? 'grab' : 'default';
+  }
+});
+canvas.addEventListener('pointerdown', function (e) {
+  tap0 = { x: e.clientX, y: e.clientY, t: performance.now() };      // 記下來判斷是不是「點一下」
+  if (!S.cpu || !peelable(S) || mode === 'detach' || mode === 'appear' || mode === 'leave') return;
+  var p = toMm(e); pointerMm = p; lastInput = performance.now();
+  if (S.sheet) {
+    var m = hitMember(p);
+    if (!m) return;
+    canvas.setPointerCapture(e.pointerId);
+    var o = offOf(m), ge = nearestEdge(m, p[0] - o[0], p[1] - o[1]);
+    S.active = m; press = p; g = [ge[0] + o[0], ge[1] + o[1]]; c = g.slice(); peelOn = true; mode = 'drag'; demoMix = 0;
+    canvas.style.cursor = 'grabbing';
+    ring.style.transform = 'translate(' + e.clientX + 'px,' + e.clientY + 'px)'; ring.classList.add('on');
+    return;
+  }
+  if (!inside(S, p[0], p[1])) return;
+  canvas.setPointerCapture(e.pointerId);
+  // 釘住的票根：不管按哪裡，都是從右下角翻起來（其他角被訂書針或發票擋著）
+  press = p; g = S.stack ? S.stack.grab.slice() : nearestEdge(S, p[0], p[1]); c = g.slice(); peelOn = true; mode = 'drag'; demoMix = 0;
+  canvas.style.cursor = 'grabbing';
+  ring.style.transform = 'translate(' + e.clientX + 'px,' + e.clientY + 'px)'; ring.classList.add('on');
+});
+function release() {
+  if (mode !== 'drag') return;
+  ring.classList.remove('on'); canvas.style.cursor = 'default';
+  // 釘住的票根撕不下來，放手就彈回去
+  // 板子上的那一枚也是放手就貼回去（看整張的預覽，不換下一張）
+  if (!S.stack && !S.sheet && peeledFraction(S, g, c) > 0.55) { mode = 'detach'; detachT = 0; } else mode = 'spring';
+}
+canvas.addEventListener('pointerup', function (e) {
+  // 點一下（沒拖、很快放開）而且點在貼紙上＝下一張；嵌在燈箱裡時交給外層換（外層的清單、標題、上一張下一張才會一致）
+  var tp = tap0; tap0 = null;
+  var isTap = tp && Math.hypot(e.clientX - tp.x, e.clientY - tp.y) < 6 && performance.now() - tp.t < 380;
+  var p = toMm(e), onIt = S.cpu && inside(S, p[0], p[1]);
+  release();
+  if (isTap && (onIt || mode === 'leave')) {          // 翻到一半再點也算（可以連續快速翻）
+    lastInput = performance.now();
+    if (EMBED && window.parent !== window) window.parent.postMessage({ type: 'ck-next' }, '*');
+    else slideTo(nextInGroup(), 1);
+  }
+});
+canvas.addEventListener('pointercancel', release);
+canvas.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse' && mode !== 'drag') pointerMm = null; });
+
+// 下一張：只在同一組裡輪（單張貼紙一組、每個組合各一組）
+function nextInGroup() {
+  for (var k = 1; k <= STICKERS.length; k++) {
+    var j = (cur + k) % STICKERS.length;
+    if ((STICKERS[j].set || '') === (S.set || '')) return j;
+  }
+  return cur;
+}
+// 帶滑動的換張：dir 1＝下一張（舊的往左出、新的從右進），-1 反過來
+// quiet：是外層叫我換的（外層自己已經知道換到哪張），換好不用再回報，不然連點時回報會蓋掉外層更新的那張
+function slideTo(i, dir, quiet) {
+  if (i === cur && mode !== 'leave') return;
+  pendingShow = i; pendingQuiet = !!quiet; peelOn = false;
+  if (mode !== 'leave') { leaving = dir || 1; mode = 'leave'; }     // 已經在翻了就只換目標，不重來
+}
+function show(i, dir, quiet) {
+  cur = i; S = sheetOf(STICKERS[i]) || STICKERS[i];        // 透明貼紙板上的任何一枚 → 顯示整張板子
+  document.getElementById('capName').textContent = S.name;
+  document.getElementById('capNote').textContent = S.note;
+  Array.prototype.forEach.call(document.querySelectorAll('.thumb'), function (b, j) {
+    b.classList.toggle('on', j === i);
+    b.style.display = (STICKERS[j].set || '') === (S.set || '') ? '' : 'none';
+  });
+  mode = 'appear'; alpha = 0; scale = 0.94; peelOn = false; demoMix = 0;
+  if (dir) { flipA = -dir * Math.PI / 2; alpha = 1; scale = 1; }   // 從側面轉回正面（不用淡入）
+  wb.style.display = S.holo ? '' : 'none'; if (!S.holo) { showWhite = false; wb.style.background = ''; }
+  loadSticker(S).then(resize);
+  if (!quiet && EMBED && window.parent !== window) window.parent.postMessage({ type: 'ck-sticker', id: S.id }, '*');
+}
+// 外層（貼紙牆的燈箱）要換貼紙時送這個訊息進來
+window.addEventListener('message', function (e) {
+  if (!e.data || e.data.type !== 'ck-show') return;
+  for (var i = 0; i < STICKERS.length; i++) if (STICKERS[i].id === e.data.id && (i !== cur || mode === 'leave')) { if (e.data.dir) slideTo(i, e.data.dir, true); else show(i, 0, true); }
+});
+
+// ---------- 底部列 ----------
+var bar = document.getElementById('bar');
+STICKERS.forEach(function (s, i) {
+  var b = document.createElement('button');
+  b.className = 'thumb'; b.title = s.name; b.setAttribute('aria-label', s.name);
+  var im = document.createElement('img'); im.src = 'assets/' + s.id + '-thumb.webp'; im.alt = ''; im.loading = 'lazy';
+  b.appendChild(im);
+  b.addEventListener('click', function () { show(i); });
+  bar.appendChild(b);
+});
+var sep = document.createElement('div'); sep.className = 'sep'; bar.appendChild(sep);
+var play = document.createElement('button'); play.className = 'play';
+var ICON_PAUSE = '<svg viewBox="0 0 14 14"><rect x="3" y="2" width="3" height="10" rx="1" fill="currentColor"/><rect x="8" y="2" width="3" height="10" rx="1" fill="currentColor"/></svg>';
+var ICON_PLAY = '<svg viewBox="0 0 14 14"><path d="M4 2.2v9.6a.6.6 0 0 0 .9.5l7.6-4.8a.6.6 0 0 0 0-1L4.9 1.7a.6.6 0 0 0-.9.5z" fill="currentColor"/></svg>';
+function syncPlay() { play.innerHTML = autoPlay ? ICON_PAUSE : ICON_PLAY; play.title = autoPlay ? '暫停自動展示' : '自動展示'; play.setAttribute('aria-label', play.title); }
+play.addEventListener('click', function () { autoPlay = !autoPlay; syncPlay(); });
+syncPlay(); bar.appendChild(play);
+
+// 檢查用：標出白墨範圍（紅色＝有白墨＝不反光）
+var showWhite = false;
+var wb = document.createElement('button'); wb.className = 'play'; wb.style.width = 'auto'; wb.style.padding = '0 9px';
+wb.style.fontSize = '12px'; wb.textContent = '白墨'; wb.title = '標出白墨範圍';
+wb.addEventListener('click', function () { showWhite = !showWhite; wb.style.background = showWhite ? '#ffe3e0' : ''; });
+bar.appendChild(wb);
+
+// ---------- 每一格 ----------
+var last = performance.now();
+function frame(now) {
+  var dt = Math.min(0.05, (now - last) / 1000); last = now;
+  var t = now / 1000;
+  if (S.cpu) { step(dt, t, now); draw(); }
+  requestAnimationFrame(frame);
+}
+
+function step(dt, t, now) {
+  var demo = autoPlay && mode === 'idle' && now - lastInput > 2600;
+  demoMix += ((demo ? 1 : 0) - demoMix) * (1 - Math.exp(-dt * (demo ? 1.6 : 9)));
+
+  // 傾斜：滑鼠在哪就往哪邊倒；沒人動的時候自己慢慢晃
+  if (demo) {
+    tiltTarget = [Math.sin(t * 0.8) * 0.15, Math.sin(t * 0.55 + 1) * 0.24];
+  } else if (pointerMm && mode !== 'detach') {
+    var f = mode === 'drag' ? 0.45 : 1;
+    tiltTarget = [Math.max(-1, Math.min(1, -pointerMm[1] / 55)) * 0.26 * f, Math.max(-1, Math.min(1, pointerMm[0] / 65)) * 0.32 * f];
+  } else tiltTarget = [0, 0];
+  var k = 1 - Math.exp(-dt * 8);
+  tilt[0] += (tiltTarget[0] - tilt[0]) * k; tilt[1] += (tiltTarget[1] - tilt[1]) * k;
+
+  // 轉回正面：一開始快、越接近正面越慢，最後輕輕停住（不回彈）
+  if (flipA && mode !== 'leave') {
+    flipA *= Math.exp(-dt * 11);
+    if (Math.abs(flipA) < 0.002) flipA = 0;
+  }
+  if (mode === 'leave') {
+    // 轉到側面：很快（約 0.1 秒），轉到 90° 看不見了就換成下一張
+    flipA += leaving * dt * 15;
+    if (Math.abs(flipA) >= Math.PI / 2) { var j = pendingShow, d = leaving; pendingShow = -1; show(j, d, pendingQuiet); }
+  } else if (mode === 'appear') {
+    alpha = Math.min(1, alpha + dt * 4); scale += (1 - scale) * (1 - Math.exp(-dt * 10));
+    if (alpha >= 1 && scale > 0.998 && Math.abs(flipA) < 0.05) { scale = 1; mode = 'idle'; }
+  } else if (mode === 'spring') {
+    var e = Math.exp(-dt * 13);
+    c = [g[0] + (c[0] - g[0]) * e, g[1] + (c[1] - g[1]) * e];
+    if (Math.hypot(c[0] - g[0], c[1] - g[1]) < 0.08) { peelOn = false; mode = 'idle'; }
+  } else if (mode === 'detach') {
+    detachT += dt;
+    var dx = c[0] - g[0], dy = c[1] - g[1], len = Math.hypot(dx, dy) || 1, v = 260 + detachT * 900;
+    c = [c[0] + dx / len * v * dt, c[1] + dy / len * v * dt];
+    if (detachT > 0.16) alpha = Math.max(0, alpha - dt * 6);
+    if (alpha <= 0) show(nextInGroup());
+  } else if (mode === 'idle') {
+    // 自動展示：左下角掀起一點，一呼一吸
+    if (demoMix > 0.002 && S.stack) {
+      // 票根：右下角往左上掀起一點，一呼一吸
+      if (!peelOn) { g = S.stack.grab.slice(); peelOn = true; }
+      var amp2 = (12 + 6 * Math.sin(t * 1.25)) * demoMix;
+      c = pinned(S, g, [g[0] - amp2 * 0.75, g[1] - amp2 * 0.66]);
+    } else if (demoMix > 0.002 && !S.paper && !S.sheet) {
+      if (!peelOn) { g = nearestEdge(S, -S.wMm / 2 + 1.2, S.hMm / 2 - 1.2); peelOn = true; }
+      var gl_ = Math.hypot(g[0], g[1]), amp = (9 + 5 * Math.sin(t * 1.25)) * demoMix;
+      c = [g[0] - g[0] / gl_ * amp + amp * 0.18, g[1] - g[1] / gl_ * amp];
+    } else if (peelOn) peelOn = false;
+  }
+}
+
+function draw() {
+  var d = view.dpr, px = view.pxmm * d;
+  var rx = tilt[0], ry = tilt[1] + flipA, cx = Math.cos(rx), sx = Math.sin(rx), cy = Math.cos(ry), sy = Math.sin(ry);
+  var dx = c[0] - g[0], dy = c[1] - g[1], len = Math.hypot(dx, dy), on = peelOn && len > 0.02;
+  gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.uniform2f(U.uRes, canvas.width, canvas.height);
+  gl.uniform2f(U.uCenter, view.cx * d, view.cy * d);
+  gl.uniform2f(U.uTex, (S.wMm + S.padMm * 2) * px, (S.hMm + S.padMm * 2) * px);
+  gl.uniform1f(U.uPxmm, px);
+  gl.uniform1f(U.uCam, 1100 * d);
+  gl.uniform1f(U.uScale, scale);
+  gl.uniform1f(U.uAlpha, alpha);
+  gl.uniform1f(U.uLod, Math.max(0, Math.log2(TEX_PX_PER_MM / (px * scale))));
+  gl.uniform1f(U.uPeel, on ? 1 : 0);
+  gl.uniform1f(U.uHolo, S.holo ? 1 : 0);
+  gl.uniform1f(U.uDebug, showWhite ? 1 : 0);
+  gl.uniform1f(U.uClear, S.clear ? 1 : 0);
+  gl.uniform1f(U.uGloss, S.gloss ? 1 : 0);
+  gl.uniform1f(U.uStack, S.stack || S.sheet ? 1 : 0);
+  gl.uniform1f(U.uSheet, S.sheet ? 1 : 0);
+  // 上層：一般貼紙就是自己；貼紙板是正在撕的那一枚（還沒按過就沒有）
+  var top = S.sheet ? S.active : S;
+  gl.uniform2f(U.uTopTex, top ? (top.wMm + top.padMm * 2) * px : 1, top ? (top.hMm + top.padMm * 2) * px : 1);
+  gl.uniform2f(U.uTopOff, S.sheet && top ? offOf(top)[0] * px : 0, S.sheet && top ? offOf(top)[1] * px : 0);
+  gl.uniformMatrix3fv(U.uRot, false, [cy, 0, -sy, sy * sx, cx, cy * sx, sy * cx, -sx, cy * cx]);
+  gl.uniform2f(U.uTilt, rx, ry);
+  gl.uniform2f(U.uM, on ? (g[0] + c[0]) / 2 * px : -1e6, on ? (g[1] + c[1]) / 2 * px : 0);
+  gl.uniform2f(U.uD, on ? dx / len : 1, on ? dy / len : 0);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, top ? top.texArt : texNone); gl.uniform1i(U.uArt, 0);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, top ? top.texMask : texNone); gl.uniform1i(U.uMask, 1);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, texBack); gl.uniform1i(U.uBack, 2);
+  gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, S.texUnder || texNone); gl.uniform1i(U.uUnder, 3);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
+
+resize();
+var first = 0;
+STICKERS.forEach(function (s, i) { if (s.id === QS.get('s')) first = i; });
+show(first);
+requestAnimationFrame(frame);
+
+// 給測試用：直接擺一個姿勢再截圖
+window.__sticker = {
+  pose: function (o) {
+    autoPlay = false; syncPlay(); lastInput = performance.now(); alpha = 1; scale = 1;
+    if (o.tilt) { tilt = o.tilt.slice(); pointerMm = [o.tilt[1] / 0.32 * 65, -o.tilt[0] / 0.26 * 55]; }
+    if (o.g && S.sheet) {
+      var m = hitMember(o.g), off = offOf(m), ge = nearestEdge(m, o.g[0] - off[0], o.g[1] - off[1]);
+      S.active = m; g = [ge[0] + off[0], ge[1] + off[1]]; c = o.c.slice(); peelOn = true; mode = 'drag'; press = o.g;
+    } else if (o.g && S.stack) { g = S.stack.grab.slice(); c = pinned(S, g, o.c); peelOn = true; mode = 'drag'; press = o.g; }
+    else if (o.g) { g = nearestEdge(S, o.g[0], o.g[1]); c = inward(g, o.c); peelOn = true; mode = 'drag'; press = o.g; }
+    else if (o.flat) { peelOn = false; mode = 'idle'; }
+    return { g: g, c: c, frac: peelOn ? peeledFraction(S, g, c) : 0, mode: mode };
+  },
+  release: release,
+  state: function () { return { mode: mode, alpha: alpha, scale: scale, peelOn: peelOn, tilt: tilt, pxmm: view.pxmm, center: [view.cx, view.cy] }; }
+};
+})();
+</script>
+</body>
+</html>

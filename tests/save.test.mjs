@@ -1,6 +1,6 @@
 /* 存檔流程測試：模擬 GitHub API，驗證「所有變更打包成一個 commit、只推一次」。
  *
- * 這是整個專案風險最高的路徑——它直接改寫線上商店的 goods.html，
+ * 這是整個專案風險最高的路徑——它直接改寫線上商店的 data/products.json，
  * 而且每多推一次就多一次 Cloudflare 部署。
  */
 
@@ -11,8 +11,7 @@ import { loadFunction } from './_load.mjs';
 // 驗證換成替身：這裡測的是存檔流程，不是 Cloudflare 的登入
 const mod = await loadFunction(REPO_DIR, 'functions/api/products.js');
 
-const CR = String.fromCharCode(13);
-const SRC = fs.readFileSync(REPO_DIR + 'goods.html', 'utf8').split(CR).join('');
+const SRC = fs.readFileSync(REPO_DIR + 'data/products.json', 'utf8');
 
 let pass = 0, fail = 0;
 const ok = (name, cond, extra) => {
@@ -21,11 +20,11 @@ const ok = (name, cond, extra) => {
 };
 
 const b64 = (s) => Buffer.from(s, 'utf8').toString('base64');
-// 用真正的身分標頭。原本寫 Cookie: CF_Authorization=abc——那是漏洞本身，
-// 舊的驗證只看 cookie 名字存不存在，等於把破掉的行為寫成預期行為。
+const clone = o => JSON.parse(JSON.stringify(o));
 const AUTH = { 'Cf-Access-Authenticated-User-Email': 'test@example.com',
   'content-type': 'application/json' };
 const ENV = { GITHUB_TOKEN: 'test-token' };
+const WEBP = (tag) => Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(4), Buffer.from('WEBPVP8 ' + tag)]).toString('base64');
 
 /* 假的 GitHub：記錄每一次呼叫，好斷言到底推了幾次 */
 function fakeGitHub(opts = {}) {
@@ -39,7 +38,7 @@ function fakeGitHub(opts = {}) {
       new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json' } });
 
     if (method === 'GET' && path.startsWith('git/ref/heads/')) return reply({ object: { sha: 'HEAD1' } });
-    if (method === 'GET' && path.startsWith('contents/goods.html')) {
+    if (method === 'GET' && path.startsWith('contents/data/products.json')) {
       return reply({ sha: 'FILESHA', content: b64(opts.src || SRC) });
     }
     if (method === 'POST' && path === 'git/blobs') return reply({ sha: 'blob' + calls.length });
@@ -63,50 +62,46 @@ const save = (payload, headers = AUTH) =>
     }),
     env: ENV,
   });
-
-/* 先用真的解析結果組出「什麼都不改」的 payload */
-const listed = await (async () => {
-  fakeGitHub();
-  const r = await mod.onRequestGet({
+const read = async (src) => {
+  fakeGitHub({ src });
+  return (await mod.onRequestGet({
     request: new Request('https://cankingstore.com/api/products', { headers: AUTH }), env: ENV,
-  });
-  return r.json();
-})();
+  })).json();
+};
+const written = (calls) => {
+  const blob = calls.filter(c => c.path === 'git/blobs').pop().body;
+  return Buffer.from(blob.content, 'base64').toString('utf8');
+};
 
-// 賣場按鈕與影片新舊結構都有，不帶上就等於把它們清空，那不是「什麼都不改」
-const carry = p => Object.assign(
-  { idx: p.idx, title: p.title, myship: !!p.myship, shopee: p.shopee, video: p.video, hot: p.hot, hotOrder: p.hotOrder },
-  p.editable ? { desc: p.desc, images: p.images, descAlign: p.descAlign } : {});
-const keepAll = listed.products.map(carry);
+const listed = await read();
 
 /* ---------------------------------------------------------------- */
 console.log('\n[1] 讀取');
 {
-  ok('讀得到商品清單', Array.isArray(listed.products) && listed.products.length > 0, listed.products?.length);
-  ok('有回傳 sha 供併發比對', !!listed.sha);
+  ok('讀得到商品清單', Array.isArray(listed.data?.products) && listed.data.products.length > 0, listed.data?.products?.length);
+  ok('有回傳 sha 供併發比對', listed.sha === 'FILESHA');
+  ok('有回傳登入者', listed.user === 'test@example.com');
 }
 
 console.log('\n[2] 沒有變更時完全不碰 GitHub');
 {
   const calls = fakeGitHub();
-  const d = await (await save({ sha: 'FILESHA', items: keepAll })).json();
+  const d = await (await save({ sha: 'FILESHA', data: listed.data })).json();
   ok('回報沒有變更', d.changed === false, d);
   ok('一次都沒有推送', calls.filter(c => c.method === 'PATCH').length === 0,
     calls.map(c => c.method + ' ' + c.path));
   ok('也沒有建立 commit', calls.filter(c => c.path === 'git/commits' && c.method === 'POST').length === 0);
 }
 
-console.log('\n[3] 新增一個帶 3 張圖的商品 → 只能推一次');
+console.log('\n[3] 新增一個帶 2 張圖的商品 → 只能推一次');
 {
   const calls = fakeGitHub();
-  const item = {
-    new: true, title: '測試商品', desc: '說明',
-    images: [{ file: 'a.jpg', size: 'md' }, { file: 'b.jpg', size: 'md' }, { file: 'c.jpg', size: 'lg' }],
-  };
-  const d = await (await save({
-    sha: 'FILESHA', items: [item].concat(keepAll),
-    uploads: { 'a.jpg': b64('AAA'), 'b.jpg': b64('BBB'), 'c.jpg': b64('CCC') },
-  })).json();
+  const data = clone(listed.data);
+  const imgs = ['img/opt/up-20261003-120000-1-l.webp', 'img/opt/up-20261003-120000-2-l.webp'];
+  data.products.unshift({ id: 'p-test', section: 'other', name: '測試商品', price: 100, note: '說明', imgs });
+  const uploads = {};
+  imgs.forEach((l, k) => { uploads[l] = WEBP('L' + k); uploads[l.replace('-l.', '-s.')] = WEBP('S' + k); });
+  const d = await (await save({ sha: 'FILESHA', data, uploads })).json();
 
   ok('存檔成功', d.ok === true && d.changed === true, d);
   const pushes = calls.filter(c => c.method === 'PATCH' && c.path.startsWith('git/refs/'));
@@ -115,184 +110,133 @@ console.log('\n[3] 新增一個帶 3 張圖的商品 → 只能推一次');
     calls.filter(c => c.method === 'POST' && c.path === 'git/commits').length === 1);
 
   const blobs = calls.filter(c => c.method === 'POST' && c.path === 'git/blobs');
-  ok('3 張圖 + goods.html 共 4 個檔案物件', blobs.length === 4, blobs.length);
+  ok('2 張圖×大小兩種 + products.json 共 5 個檔案物件', blobs.length === 5, blobs.length);
   ok('圖片內容以 base64 原樣送出',
-    blobs.some(b => b.body.content === b64('AAA') && b.body.encoding === 'base64'));
+    blobs.some(b => b.body.content === uploads[imgs[0]] && b.body.encoding === 'base64'));
 
   const tree = calls.find(c => c.path === 'git/trees').body;
   ok('以現有目錄樹為底（不會刪掉其他檔案）', tree.base_tree === 'TREE1', tree.base_tree);
-  ok('樹裡有 4 個路徑', tree.tree.length === 4, tree.tree.length);
-  ok('圖片路徑正確', tree.tree.some(t => t.path === 'images/a.jpg'), tree.tree.map(t => t.path));
-  ok('goods.html 也在同一個 commit 裡', tree.tree.some(t => t.path === 'goods.html'));
+  ok('圖片路徑正確', tree.tree.some(t => t.path === imgs[0]) && tree.tree.some(t => t.path === imgs[0].replace('-l.', '-s.')),
+    tree.tree.map(t => t.path));
+  ok('products.json 也在同一個 commit 裡', tree.tree.some(t => t.path === 'data/products.json'));
   ok('檔案模式是一般檔案', tree.tree.every(t => t.mode === '100644' && t.type === 'blob'));
 
   const commit = calls.find(c => c.method === 'POST' && c.path === 'git/commits').body;
   ok('commit 接在讀取時的分支位置之後', commit.parents[0] === 'HEAD1', commit.parents);
-  ok('commit 訊息有寫明圖片數', /新增圖片 3 張/.test(commit.message), commit.message);
+  ok('commit 訊息有寫明圖片數', /新增圖片 2 張/.test(commit.message), commit.message);
+  ok('commit 訊息有寫是誰改的', /test@example\.com/.test(commit.message));
 
   const push = pushes[0].body;
   ok('推送指向新的 commit', push.sha === 'COMMIT2', push);
   ok('不強推（分支被動過就該失敗）', push.force === false, push);
+
+  const after = JSON.parse(written(calls));
+  ok('新商品在最上面', after.products[0].id === 'p-test');
+  ok('原有商品順序沒變', after.products.slice(1).map(p => p.id).join() === listed.data.products.map(p => p.id).join());
 }
 
 console.log('\n[4] 只改文字、沒有圖片');
 {
   const calls = fakeGitHub();
-  const renamed = keepAll.slice();
-  const legacyAt = listed.products.findIndex(p => p.kind === 'legacy');
-  renamed[legacyAt] = { idx: renamed[legacyAt].idx, title: '改過的名字' };
-  const d = await (await save({ sha: 'FILESHA', items: renamed })).json();
-
+  const data = clone(listed.data);
+  data.products[0].name = '改過的名字';
+  const d = await (await save({ sha: 'FILESHA', data })).json();
   ok('存檔成功', d.ok === true, d);
   ok('只推送一次', calls.filter(c => c.method === 'PATCH').length === 1);
   const tree = calls.find(c => c.path === 'git/trees').body;
-  ok('只送 goods.html 一個檔案', tree.tree.length === 1 && tree.tree[0].path === 'goods.html', tree.tree);
+  ok('只送 products.json 一個檔案', tree.tree.length === 1 && tree.tree[0].path === 'data/products.json', tree.tree);
+  const after = JSON.parse(written(calls));
+  ok('名字改到了', after.products[0].name === '改過的名字');
+  ok('其他商品一個字都沒動',
+    JSON.stringify(after.products.slice(1)) === JSON.stringify(listed.data.products.slice(1)));
 }
 
-console.log('\n[5] 併發保護');
+console.log('\n[5] 改回原樣 → 與原檔一字不差');
+{
+  const calls = fakeGitHub();
+  const data = clone(listed.data);
+  data.products[0].soldout = true;
+  await save({ sha: 'FILESHA', data });
+  const once = written(calls);
+  ok('絕版有寫進去', JSON.parse(once).products[0].soldout === true);
+
+  const back = (await read(once)).data;
+  back.products[0].soldout = false;
+  const calls2 = fakeGitHub({ src: once });
+  await save({ sha: 'FILESHA', data: back });
+  ok('★ 取消絕版後與原檔一字不差', written(calls2) === SRC);
+}
+
+console.log('\n[6] 併發保護');
 {
   fakeGitHub();
-  const r = await save({ sha: '別人的 sha', items: keepAll });
+  const r = await save({ sha: '別人的 sha', data: listed.data });
   ok('送來的 sha 不符 -> 409', r.status === 409, r.status);
+
+  fakeGitHub();
+  const r0 = await save({ data: listed.data });
+  ok('沒帶 sha -> 409（不能跳過比對）', r0.status === 409, r0.status);
 
   // 讀完之後、推送之前有人插隊：GitHub 會拒絕非快轉推送
   const calls = fakeGitHub({ pushConflict: true });
-  const r2 = await save({
-    sha: 'FILESHA', items: [{ new: true, title: 'X', desc: '', images: [{ file: 'z.jpg', size: 'lg' }] }].concat(keepAll),
-    uploads: { 'z.jpg': b64('ZZZ') },
-  });
+  const data = clone(listed.data);
+  data.products[0].note = '改一下';
+  const r2 = await save({ sha: 'FILESHA', data });
   const d2 = await r2.json();
   ok('推送被拒 -> 409 而不是 500', r2.status === 409, r2.status);
   ok('訊息叫使用者重新整理', /重新整理/.test(d2.error || ''), d2.error);
   ok('仍然只嘗試推送一次', calls.filter(c => c.method === 'PATCH').length === 1);
 }
 
-console.log('\n[6] 驗證');
+console.log('\n[7] 不合格的資料 → 400，完全不碰 GitHub 寫入');
+{
+  const calls = fakeGitHub();
+  const data = clone(listed.data);
+  data.products[0].video = 'javascript:alert(1)';
+  const r = await save({ sha: 'FILESHA', data });
+  ok('回 400', r.status === 400, r.status);
+  ok('錯誤訊息是中文、指出哪個商品', /影片網址/.test((await r.json()).error || ''));
+  ok('沒有建立任何 Git 物件', calls.filter(c => c.method === 'POST' || c.method === 'PATCH').length === 0);
+
+  const calls2 = fakeGitHub();
+  const r2 = await save({ sha: 'FILESHA', data: listed.data, uploads: { 'functions/api/evil.js': b64('x') } });
+  ok('★ 上傳到奇怪的路徑 -> 400', r2.status === 400, r2.status);
+  ok('★ 而且什麼都沒寫', calls2.filter(c => c.method === 'POST' || c.method === 'PATCH').length === 0);
+
+  fakeGitHub();
+  const r3 = await save({ sha: 'FILESHA', data: { products: [] } });
+  ok('空清單 -> 400（不會把商品全部清掉）', r3.status === 400, r3.status);
+}
+
+console.log('\n[8] 3D 設定不能從後台改');
+{
+  const calls = fakeGitHub();
+  const data = clone(listed.data);
+  const p = data.products.find(x => x.view3d);
+  p.view3d = { module: 'https://evil.example/x.js' };
+  const d = await (await save({ sha: 'FILESHA', data })).json();
+  ok('★ 只改 view3d 等於沒有變更', d.changed === false, d);
+  ok('★ 所以沒有推送', calls.filter(c => c.method === 'PATCH').length === 0);
+}
+
+console.log('\n[9] 驗證');
 {
   fakeGitHub();
-  const r = await save({ sha: 'FILESHA', items: keepAll }, { 'content-type': 'application/json' });
+  const r = await save({ sha: 'FILESHA', data: listed.data }, { 'content-type': 'application/json' });
   ok('沒有 Access 憑證 -> 403', r.status === 403, r.status);
+
+  fakeGitHub();
+  const r1 = await mod.onRequestGet({ request: new Request('https://cankingstore.com/api/products'), env: ENV });
+  ok('讀取也要 Access 憑證 -> 403', r1.status === 403, r1.status);
 
   fakeGitHub();
   const r2 = await mod.onRequestPost({
     request: new Request('https://cankingstore.com/api/products', {
-      method: 'POST', headers: AUTH, body: JSON.stringify({ sha: 'FILESHA', items: keepAll }),
+      method: 'POST', headers: AUTH, body: JSON.stringify({ sha: 'FILESHA', data: listed.data }),
     }),
     env: {},
   });
   ok('沒有 GITHUB_TOKEN -> 500 並說明原因', r2.status === 500, r2.status);
-}
-
-console.log('\n[7] 存檔後的內容仍與解析結果一致（無損）');
-{
-  const calls = fakeGitHub();
-  const item = { new: true, title: '暫時商品', desc: '說明', images: [{ file: 'tmp.jpg', size: 'lg' }] };
-  await save({ sha: 'FILESHA', items: [item].concat(keepAll), uploads: { 'tmp.jpg': b64('X') } });
-  const blob = calls.filter(c => c.path === 'git/blobs').pop().body;
-  const written = Buffer.from(blob.content, 'base64').toString('utf8');
-  ok('寫出的 goods.html 開頭與原檔相同（BOM/前置內容沒被動）',
-    written.slice(0, 200) === SRC.slice(0, 200));
-  ok('寫出的內容比原檔長（多了一個商品）', written.length > SRC.length);
-
-  // 把寫出的內容餵回解析器，確認商品一個都沒少、順序也對
-  // （舊商品標題在 HTML 裡是 &#nnnn; 實體碼，不能直接用字面比對）
-  fakeGitHub({ src: written });
-  const after = await (await mod.onRequestGet({
-    request: new Request('https://cankingstore.com/api/products', { headers: AUTH }), env: ENV,
-  })).json();
-  ok('商品數 +1', after.products.length === listed.products.length + 1, after.products.length);
-  ok('新商品在最上面', after.products[0].title === '暫時商品', after.products[0].title);
-  ok('原有商品順序與標題都沒變',
-    after.products.slice(1).map(p => p.title).join('|') === listed.products.map(p => p.title).join('|'));
-}
-
-console.log('\n[8] 賣場按鈕經過完整存檔流程');
-{
-  const calls = fakeGitHub();
-  const li = listed.products.findIndex(
-    p => p.kind === 'legacy' && !p.myship && !p.shopee && !p.video);
-  ok('找得到沒有按鈕的舊版商品可測', li >= 0, li);
-  const base = listed.products.filter(p => p.myship || p.shopee).length;
-  const items = keepAll.slice();
-  items[li] = Object.assign({}, items[li], { myship: true, shopee: 'https://shopee.tw/canking?itemId=1' });
-  await save({ sha: 'FILESHA', items });
-
-  const blob = calls.filter(c => c.path === 'git/blobs').pop().body;
-  const written = Buffer.from(blob.content, 'base64').toString('utf8');
-  ok('寫出的檔案含賣場按鈕', /<div class="ck-buy"/.test(written));
-  ok('賣貨便用共用網址（不是前端送什麼就寫什麼）',
-    /data-buy="myship"/.test(written) && /myship\.7-11\.com\.tw/.test(written));
-  ok('蝦皮用填入的網址', /shopee\.tw\/canking\?itemId=1/.test(written));
-
-  // 讀回來，商品名稱不能被按鈕文字污染
-  fakeGitHub({ src: written });
-  const after = await (await mod.onRequestGet({
-    request: new Request('https://cankingstore.com/api/products', { headers: AUTH }), env: ENV,
-  })).json();
-  ok('商品數不變', after.products.length === listed.products.length, after.products.length);
-  ok('★ 商品名稱沒被按鈕文字污染',
-    after.products[li].title === listed.products[li].title, after.products[li].title);
-  ok('讀得回賣貨便設定', !!after.products[li].myship);
-  ok('讀得回蝦皮網址',
-    after.products[li].shopee === 'https://shopee.tw/canking?itemId=1', after.products[li].shopee);
-  ok('其他商品沒被加上按鈕',
-    after.products.filter(p => p.myship || p.shopee).length === base + 1);
-
-  // 再取消掉，檔案要回到原樣
-  const off = after.products.map(carry);
-  off[li] = Object.assign({}, off[li], { myship: false, shopee: '' });
-  const calls2 = fakeGitHub({ src: written });
-  await save({ sha: 'FILESHA', items: off });
-  const blob2 = calls2.filter(c => c.path === 'git/blobs').pop().body;
-  const restored = Buffer.from(blob2.content, 'base64').toString('utf8');
-  ok('★ 取消按鈕後與原檔一字不差', restored === SRC,
-    restored.length + ' vs ' + SRC.length);
-}
-
-console.log('\n[9] 熱銷推薦經過完整存檔流程');
-{
-  // 挑四個有圖可用的商品，故意給「跟頁面順序相反」的熱銷排序，
-  // 才驗得出排序是照後台指定的，不是照商品在頁面上的位置
-  const pick = listed.products.filter(p => (p.allImages || p.images || []).length).slice(0, 4);
-  ok('找得到四個有圖的商品可測', pick.length === 4, pick.length);
-  const want = new Map(pick.map((p, k) => [p.idx, pick.length - k]));   // 4,3,2,1
-  const items = keepAll.map(o => want.has(o.idx)
-    ? Object.assign({}, o, { hot: 'images/x' + o.idx + '.jpg', hotOrder: want.get(o.idx) })
-    : Object.assign({}, o, { hot: '', hotOrder: 0 }));
-
-  const calls = fakeGitHub();
-  await save({ sha: 'FILESHA', items });
-  const written = Buffer.from(
-    calls.filter(c => c.path === 'git/blobs').pop().body.content, 'base64').toString('utf8');
-  const marks = written.match(/data-hot="[^"]*" data-hot-n="[0-9]+"/g) || [];
-  ok('★ 超過三個時只留三個', marks.length === 3, marks.length + ' -> ' + marks.join(' '));
-  ok('★ 留下的是排序最前面的三個（不是頁面最前面的三個）',
-    marks.every(m => !m.includes('images/x' + pick[0].idx + '.jpg')),
-    marks.join(' '));
-  // 排序 1,2,3 應該落在 hotOrder 1,2,3 的那三個商品上
-  const rank = {};
-  marks.forEach(m => { rank[m.match(/images\/x(\d+)\.jpg/)[1]] = +m.match(/data-hot-n="(\d+)"/)[1]; });
-  ok('★ 排序照後台給的值重新編號成 1,2,3',
-    rank[pick[3].idx] === 1 && rank[pick[2].idx] === 2 && rank[pick[1].idx] === 3,
-    JSON.stringify(rank));
-
-  fakeGitHub({ src: written });
-  const after = await (await mod.onRequestGet({
-    request: new Request('https://cankingstore.com/api/products', { headers: AUTH }), env: ENV,
-  })).json();
-  ok('讀得回熱銷設定', after.products.filter(p => p.hot).length === 3);
-  ok('讀得回排序', after.products.find(p => p.idx === pick[3].idx).hotOrder === 1,
-    after.products.find(p => p.idx === pick[3].idx).hotOrder);
-  ok('商品數沒變', after.products.length === listed.products.length);
-  ok('標題沒被標記污染',
-    after.products.map(p => p.title).join('|') === listed.products.map(p => p.title).join('|'));
-
-  // 照原樣存回去：內容既然一字不差，後端根本不該推送
-  const calls2 = fakeGitHub();
-  const back = await (await save({ sha: 'FILESHA', items: listed.products.map(carry) })).json();
-  ok('★ 照原樣存回去等於沒有變更（含熱銷與排序）', back.changed === false, back);
-  ok('★ 所以一次都沒有推送', calls2.filter(c => c.method === 'PATCH').length === 0,
-    calls2.map(c => c.method + ' ' + c.path));
 }
 
 console.log('\n=== ' + pass + ' 通過 / ' + fail + ' 失敗 ===');

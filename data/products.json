@@ -1,0 +1,351 @@
+{
+  "hot": [
+    "bag",
+    "anim1",
+    "anim2",
+    "coaster",
+    "blind1",
+    "blind2"
+  ],
+  "products": [
+    {
+      "id": "anim1",
+      "section": "blind",
+      "name": "發條食物抉擇動畫機 第一彈（盲盒）",
+      "findName": "發條食物抉擇動畫機",
+      "price": 220,
+      "note": "早餐、晚餐、飲料 共 3 款",
+      "imgs": [
+        "img/opt/catoong01_orig-l.webp",
+        "img/opt/cartoon03_orig-l.webp"
+      ],
+      "video": "https://youtube.com/shorts/CvTLK2Nmkvo",
+      "shopee": "https://shopee.tw/product/12223072/29638769850",
+      "date": "2026-04-27"
+    },
+    {
+      "id": "anim2",
+      "section": "blind",
+      "name": "發條食物抉擇動畫機 第二彈（盲盒）",
+      "findName": "發條食物抉擇動畫機",
+      "price": 220,
+      "note": "午餐、甜點、消夜 共 3 款",
+      "imgs": [
+        "img/opt/cartoong02_orig-l.webp",
+        "img/opt/cartoon04s_orig-l.webp"
+      ],
+      "video": "https://www.instagram.com/reel/DLmfxOUsguN/",
+      "shopee": "https://shopee.tw/product/12223072/29638769850",
+      "date": "2026-04-27"
+    },
+    {
+      "id": "blind1",
+      "section": "blind",
+      "name": "小立牌盲盒・通學路",
+      "findName": "小立牌盲盒",
+      "price": 330,
+      "from": true,
+      "note": "單抽 330／整盒 1980",
+      "imgs": [
+        "img/opt/1240798645_orig-l.webp",
+        "img/opt/d-l.webp",
+        "img/opt/674462185_orig-l.webp"
+      ],
+      "video": "https://youtube.com/shorts/HTc5Pq8Wo04",
+      "shopee": "https://shopee.tw/product/12223072/25345295131",
+      "date": "2026-07-07"
+    },
+    {
+      "id": "blind2",
+      "section": "blind",
+      "name": "小立牌盲盒・名店選",
+      "findName": "小立牌盲盒",
+      "price": 330,
+      "from": true,
+      "note": "單抽 330／整盒 1980",
+      "imgs": [
+        "img/opt/img-9472_orig-l.webp",
+        "img/opt/2_orig-l.webp"
+      ],
+      "video": "https://www.instagram.com/reel/DFmxVTeMvKm/",
+      "shopee": "https://shopee.tw/product/12223072/25345295131",
+      "date": "2026-07-07"
+    },
+    {
+      "id": "album",
+      "section": "postcard",
+      "name": "明信片卡冊",
+      "price": 380,
+      "note": "霧面 PVC・15.5 × 17.5 × 3.5 cm",
+      "imgs": [
+        "img/opt/1229182880_orig-l.webp"
+      ],
+      "video": "",
+      "shopee": "https://shopee.tw/product/12223072/49608465352",
+      "date": "2026-07-07",
+      "special": "album"
+    },
+    {
+      "id": "post",
+      "section": "postcard",
+      "name": "明信片",
+      "price": 44,
+      "from": true,
+      "note": "單張 44 元起・30 款",
+      "imgs": [
+        "img/opt/1416710783_orig-l.webp",
+        "img/opt/630936751_orig-l.webp"
+      ],
+      "video": "",
+      "shopee": "https://shopee.tw/product/12223072/44101460088",
+      "date": "2026-07-07",
+      "special": "postcards"
+    },
+    {
+      "id": "socks",
+      "section": "apparel",
+      "name": "破防襪",
+      "price": 250,
+      "note": "男女通用 24–27 cm",
+      "imgs": [
+        "img/opt/socks_orig-l.webp"
+      ],
+      "video": "",
+      "shopee": "https://shopee.tw/product/12223072/52203583803",
+      "date": "2026-07-07"
+    },
+    {
+      "id": "bag",
+      "section": "other",
+      "name": "洗沐盥洗包",
+      "price": 495,
+      "note": "贈特典明信片＋洗沐貼 3 小張",
+      "imgs": [
+        "img/opt/prod-20260830-010423-1-l.webp",
+        "img/opt/prod-20260830-010423-2-l.webp"
+      ],
+      "video": "https://www.instagram.com/reel/DbQXlWjsq6J/",
+      "shopee": "https://shopee.tw/product/12223072/49467005502",
+      "date": "2026-08-29"
+    },
+    {
+      "id": "charm",
+      "section": "other",
+      "name": "畫圖抉擇轉盤吊飾",
+      "price": 220,
+      "note": "",
+      "imgs": [
+        "img/opt/charm-draw2-l.webp",
+        "img/opt/2138515468_orig-l.webp"
+      ],
+      "video": "",
+      "shopee": "",
+      "date": "2026-07-07"
+    },
+    {
+      "id": "coaster",
+      "section": "other",
+      "name": "下雨天杯墊",
+      "price": 220,
+      "note": "陶瓷 吸水 杯墊｜UV 浮雕印刷・直徑 11cm",
+      "imgs": [
+        "img/opt/rain_coaster-l.webp"
+      ],
+      "video": "https://www.instagram.com/reel/DaNdfMIM6J6/",
+      "shopee": "https://shopee.tw/product/12223072/42132480645",
+      "date": "2026-08-30",
+      "view3d": {
+        "module": "coaster3d.js",
+        "art": "assets/rain-coaster-art.webp",
+        "uv": "assets/rain-coaster-uv.png",
+        "hint": "移動滑鼠轉動・看亮光油的反光"
+      }
+    },
+    {
+      "id": "omamori",
+      "section": "other",
+      "name": "肌腱安泰壓克力御守",
+      "price": 220,
+      "note": "",
+      "imgs": [
+        "img/opt/prod-20260830-010340-1-l.webp",
+        "img/opt/prod-20260830-010340-2-l.webp"
+      ],
+      "video": "",
+      "shopee": "https://shopee.tw/product/12223072/51216969300",
+      "date": "2026-08-29"
+    },
+    {
+      "id": "badge",
+      "section": "other",
+      "name": "罐罐吸麵金屬徽章",
+      "price": 220,
+      "note": "尺寸 3.5 × 3.4 cm",
+      "imgs": [
+        "img/opt/prod-20260830-010607-1-l.webp"
+      ],
+      "video": "",
+      "shopee": "https://shopee.tw/product/12223072/46067015760",
+      "date": "2026-08-30",
+      "view3d": {
+        "module": "badge3d.js",
+        "art": "assets/badge-art.png",
+        "uv": "assets/badge-gold.png",
+        "hint": "移動滑鼠轉動・點一下翻到背面"
+      }
+    },
+    {
+      "id": "lightbox",
+      "section": "other",
+      "name": "偷拍禁止小燈箱",
+      "price": 220,
+      "note": "黃光・可吸冰箱／主機",
+      "imgs": [
+        "img/opt/prod-20260830-010256-1-l.webp"
+      ],
+      "video": "",
+      "shopee": "https://shopee.tw/product/12223072/57416978139",
+      "date": "2026-08-29"
+    },
+    {
+      "id": "mousepad",
+      "section": "other",
+      "name": "電影院滑鼠墊",
+      "price": 220,
+      "note": "30 × 25 cm 無鎖邊",
+      "imgs": [
+        "img/opt/prod-20260830-010404-1-l.webp"
+      ],
+      "video": "",
+      "shopee": "https://shopee.tw/product/12223072/57316980345",
+      "date": "2026-08-29"
+    },
+    {
+      "id": "stamp",
+      "section": "other",
+      "name": "誇誇印章",
+      "price": 220,
+      "note": "共 5 款",
+      "imgs": [
+        "img/opt/stamp-product-l.webp",
+        "img/opt/stamp-ph2-l.webp",
+        "img/opt/stamp-ph3-l.webp",
+        "img/opt/stamp-ph4-l.webp",
+        "img/opt/stamp-ph5-l.webp",
+        "img/opt/prod-20260830-010144-1-l.webp"
+      ],
+      "video": "",
+      "shopee": "https://shopee.tw/product/12223072/49051134800",
+      "date": "2026-08-30",
+      "view3d": {
+        "module": "stamp3d.js",
+        "art": "assets/stamp-hao-print.png",
+        "uv": "assets/stamp-hao-rubber.png",
+        "hint": "點一下印章就會蓋章・移動滑鼠轉動",
+        "variants": [
+          {
+            "name": "好會畫畫",
+            "art": "assets/stamp-hao-print.png",
+            "uv": "assets/stamp-hao-rubber.png"
+          },
+          {
+            "name": "你是天才",
+            "art": "assets/stamp-genius-print.png",
+            "uv": "assets/stamp-genius-rubber.png"
+          },
+          {
+            "name": "100分",
+            "art": "assets/stamp-100-print.png",
+            "uv": "assets/stamp-100-rubber.png"
+          },
+          {
+            "name": "神",
+            "art": "assets/stamp-god-print.png",
+            "uv": "assets/stamp-god-rubber.png"
+          },
+          {
+            "name": "算你厲害",
+            "art": "assets/stamp-good-print.png",
+            "uv": "assets/stamp-good-rubber.png"
+          }
+        ]
+      }
+    },
+    {
+      "id": "memo",
+      "section": "other",
+      "name": "罐快遞Q版便利貼",
+      "price": 50,
+      "note": "",
+      "imgs": [
+        "img/opt/prod-20260908-192410-1-l.webp",
+        "img/opt/prod-20260908-192410-2-l.webp"
+      ],
+      "video": "",
+      "shopee": "https://shopee.tw/product/12223072/40601703804",
+      "date": "2026-07-07"
+    },
+    {
+      "id": "doll",
+      "section": "other",
+      "name": "罐頭娃娃套組",
+      "price": 1000,
+      "note": "含表情貼等六種小配件",
+      "imgs": [
+        "img/opt/1808148779_orig-l.webp",
+        "img/opt/dsc01192_orig-l.webp"
+      ],
+      "video": "https://youtube.com/shorts/1jRUPOapXcU",
+      "shopee": "",
+      "date": "2026-08-29"
+    },
+    {
+      "id": "stand",
+      "section": "other",
+      "name": "原創人物立牌",
+      "price": 385,
+      "note": "春・夏・秋・冬 四款",
+      "imgs": [
+        "img/opt/71221571_orig-l.webp",
+        "img/opt/900918169_orig-l.webp",
+        "img/opt/1068899994_orig-l.webp",
+        "img/opt/148499953_orig-l.webp"
+      ],
+      "video": "",
+      "shopee": "https://shopee.tw/product/12223072/43751706371",
+      "date": "2025-08-19"
+    },
+    {
+      "id": "charm2",
+      "section": "other",
+      "name": "飲料甜度轉盤吊飾",
+      "price": 0,
+      "note": "已絕版",
+      "imgs": [
+        "img/opt/937539326-l.webp"
+      ],
+      "video": "https://youtube.com/shorts/FcWltnvKEHg",
+      "shopee": "",
+      "soldout": true,
+      "date": ""
+    },
+    {
+      "id": "tote",
+      "section": "other",
+      "name": "帆布袋組合",
+      "price": 0,
+      "note": "已絕版",
+      "imgs": [
+        "img/opt/bag-1_orig-l.webp",
+        "img/opt/bag3_orig-l.webp",
+        "img/opt/bag2_orig-l.webp",
+        "img/opt/bag04_orig-l.webp",
+        "img/opt/img-4507_orig-l.webp"
+      ],
+      "video": "https://youtube.com/shorts/bMN3kRacmwQ",
+      "shopee": "",
+      "soldout": true,
+      "date": ""
+    }
+  ]
+}
