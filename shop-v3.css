@@ -167,6 +167,11 @@
 .v3-lb .thumbs img { width:64px; height:64px; object-fit:contain; background:#f6f1f0; border-radius:8px; border:2px solid transparent; cursor:pointer; opacity:.7; }
 .v3-lb .thumbs img.on { border-color:var(--red2); opacity:1; }
 .v3-lb .v3-btns { margin-top:16px; }
+@media (max-width:760px) {
+  .v3-lb .box { max-height:calc(100svh - 32px); }
+  .v3-lb .big { max-height:52svh; }
+  .v3-lb .x { position:fixed !important; top:calc(14px + env(safe-area-inset-top)) !important; right:14px !important; z-index:5; box-shadow:0 2px 10px rgba(0,0,0,.18); }
+}
 .v3-lb .x { position:absolute; top:10px; right:12px; width:36px; height:36px; border:0; border-radius:50%; background:#fff4f2; color:var(--ink);
   font-size:22px; line-height:1; cursor:pointer; }
 @media (max-width:760px) {

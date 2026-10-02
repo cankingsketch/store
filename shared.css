@@ -95,6 +95,9 @@ img { max-width:100%; }
 /* ---- 燈箱：3D 預覽 ---- */
 .lb { position:fixed; inset:0; z-index:100; background:rgba(20,18,16,.62); display:none; align-items:center; justify-content:center; padding:14px; }
 .lb.open { display:flex; }
+/* 視窗比畫面高時（LINE、IG 內建瀏覽器的 100vh 比看得到的範圍高）：不要上下被切掉，可以捲回頂端 */
+.lb { align-items:flex-start; overflow-y:auto; overscroll-behavior:contain; }
+.lb-panel { margin:auto; }
 .lb-panel { width:min(820px,100%); background:#fdfdfd; border-radius:20px; overflow:hidden; position:relative; box-shadow:0 30px 80px rgba(0,0,0,.35); }
 .lb-stage { position:relative; height:min(60vh,500px); }
 .lb-stage iframe { width:100%; height:100%; border:0; display:block; }
@@ -343,3 +346,20 @@ img { max-width:100%; }
   background:linear-gradient(115deg, transparent 44%, rgba(255,255,255,.5) 48.5%, rgba(255,255,255,.12) 51%, transparent 55%) var(--sx,30%) 0 / 260% 100% no-repeat;
   -webkit-mask:var(--mask) center/100% 100% no-repeat; mask:var(--mask) center/100% 100% no-repeat; transition:background-position .15s ease-out; }
 .sl-note { bottom:8px; font-size:12.5px; }
+
+/* 手機：
+   - 圖片區高度用 svh（扣掉瀏覽器工具列、真正看得到的高度），整個視窗塞得進一個畫面
+   - 右上角 ✕ 固定在螢幕上，捲到哪都按得到（他在 LINE 裡點開商品，✕ 被推出畫面外、關不掉） */
+@media (max-width:760px) {
+  .lb { padding:10px; }
+  .pl-stage, .pl-video, .pl-3d { height:min(50vh, 560px); height:min(50svh, 560px); }
+  .pl-slide img { max-height:min(50vh, 560px); max-height:min(50svh, 560px); }
+  .pl .lb-arrow { top:calc(min(50svh, 560px) / 2 - 19px); }
+  .lb-stage { height:min(52vh, 500px); height:min(52svh, 500px); }
+  .lb-arrow { top:calc(min(52svh, 500px) / 2 - 19px); }
+  .sl-stage { height:min(56vh, 560px); height:min(56svh, 560px); }
+  .pw .pw-wall, .pw-zoom { height:min(60vh, 600px); height:min(60svh, 600px); }
+  .pw-card { height:min(44vh, 440px); height:min(44svh, 440px); }
+  .pl-size { height:min(50vh, 560px); height:min(50svh, 560px); }
+  .lb-x { position:fixed; top:calc(14px + env(safe-area-inset-top)); right:14px; width:40px; height:40px; z-index:130; }
+}
