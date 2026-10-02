@@ -20,17 +20,20 @@
 @media (max-width:1180px) { .hd-ch { top:8px; height:96px; } .hd-ch.l { right:calc(50% + 120px); } .hd-ch.r { left:calc(50% + 120px); } }
 @media (max-width:760px) { .hd-ch { height:58px; top:14px; } .hd-ch.l { right:calc(50% + 86px); } .hd-ch.r { left:calc(50% + 86px); } }
 
-/* ---- 手機頁首（照ちいかわマーケット）：一條 64px「≡＋Logo」，往下捲也固定在最上面；選單收進左邊滑出的抽屜 ---- */
+/* ---- 手機頁首（照ちいかわマーケット）：一條 72px「≡＋Logo＋插畫」，往下捲也固定在最上面；選單收進左邊滑出的抽屜 ---- */
 @media (max-width:760px) {
-  .site-head { position:sticky; top:0; z-index:60; height:64px; padding:0; box-shadow:0 2px 8px rgba(190,60,50,.10); }
-  /* 門楣縮成細細一條 */
-  .site-head::before { position:absolute; left:0; right:0; top:0; height:14px;
-    -webkit-mask:linear-gradient(#000 0 0) top / 100% 8px no-repeat, radial-gradient(circle 6px at 6px 0, #000 96%, transparent 100%) 0 8px / 12px 6px repeat-x;
-            mask:linear-gradient(#000 0 0) top / 100% 8px no-repeat, radial-gradient(circle 6px at 6px 0, #000 96%, transparent 100%) 0 8px / 12px 6px repeat-x;
-    background:repeating-linear-gradient(90deg, #f8cfcb 0 12px, #fffaf9 12px 24px); }
-  .site-head .logo { height:44px; margin:14px auto 0; }
-  .hd-ch { height:42px; top:17px; } .hd-ch.l { right:calc(50% + 46px); } .hd-ch.r { left:calc(50% + 46px); }
-  .nav-btn { display:block; position:absolute; left:6px; top:16px; width:44px; height:44px; border:0; background:none; cursor:pointer; padding:0; }
+  /* 門楣（紅白直條）鋪滿整個頁首、蓋掉原本的白底；下緣一排半圓垂到下一段的底紋上（他畫的藍線） */
+  .site-head { position:sticky; top:0; z-index:60; height:72px; padding:0; background:none; isolation:isolate; }
+  .site-head::before { position:absolute; z-index:-1; left:0; right:0; top:0; height:auto; bottom:-11px;
+    background:repeating-linear-gradient(90deg, #f8cfcb 0 22px, #fffaf9 22px 44px);
+    -webkit-mask:linear-gradient(#000 0 0) top / 100% calc(100% - 11px) no-repeat, radial-gradient(circle 11px at 11px 0, #000 96%, transparent 100%) 0 calc(100% - 11px) / 22px 11px repeat-x;
+            mask:linear-gradient(#000 0 0) top / 100% calc(100% - 11px) no-repeat, radial-gradient(circle 11px at 11px 0, #000 96%, transparent 100%) 0 calc(100% - 11px) / 22px 11px repeat-x;
+    filter:drop-shadow(0 2px 3px rgba(150,40,30,.22)); }
+  /* 左 ≡、中 Logo（放大）、右一張小插畫（購物罐罐）；左邊那隻是電腦版橫向排才放 */
+  .site-head .logo { height:62px; margin:5px auto 0; }
+  .hd-ch.l { display:none; }
+  .hd-ch.r { left:auto; right:8px; top:7px; height:60px; }
+  .nav-btn { display:block; position:absolute; left:6px; top:14px; width:44px; height:44px; border:0; background:none; cursor:pointer; padding:0; }
   .nav-btn i, .nav-btn i::before, .nav-btn i::after { position:absolute; left:11px; width:22px; height:2.5px; border-radius:2px; background:var(--ink); content:""; }
   .nav-btn i { top:21px; } .nav-btn i::before { left:0; top:-7px; } .nav-btn i::after { left:0; top:7px; }
   /* 抽屜 */
