@@ -141,11 +141,19 @@ window.CK_SHOP = {
     var N = track.children.length, EASE = 'transform 500ms cubic-bezier(0, 1, .75, 1.1)', HOLD = 3500;
     track.innerHTML = track.innerHTML + track.innerHTML + track.innerHTML;
     var idx = N, down = null, moved = false, hover = false, lastTouch = performance.now();
+    // 圓點（手機才顯示）：現在是第幾張
+    var dots = document.createElement('div'); dots.className = 'mq-dots' + (N > 10 ? ' many' : '');   // 太多張（首頁周邊 18 張）就不放圓點
+    dots.innerHTML = new Array(N + 1).join('<i></i>');
+    wrap.appendChild(dots);
     function step() { var c = track.querySelector('.mq-card'); return c.getBoundingClientRect().width + parseFloat(getComputedStyle(c).marginRight); }
+    // 一次只看得到一張大的（手機）：那張置中，左右各露出一點點上一張／下一張
+    function off() { var c = track.querySelector('.mq-card'), w = c.getBoundingClientRect().width; return w > mq.clientWidth * 0.6 ? (mq.clientWidth - w) / 2 : 0; }
     function go(i, anim) {
       idx = i;
       track.style.transition = anim ? EASE : 'none';
-      track.style.transform = 'translateX(' + (-idx * step()) + 'px)';
+      track.style.transform = 'translateX(' + (off() - idx * step()) + 'px)';
+      var k = ((idx % N) + N) % N;
+      Array.prototype.forEach.call(dots.children, function (d, j) { d.classList.toggle('on', j === k); });
     }
     track.addEventListener('transitionend', function () {
       if (idx >= 2 * N) go(idx - N, false); else if (idx < N) go(idx + N, false);
@@ -161,7 +169,7 @@ window.CK_SHOP = {
     mq.addEventListener('pointerleave', function () { hover = false; });
     mq.addEventListener('pointerdown', function (e) {
       moved = false; poke();
-      down = { x: e.clientX, base: -idx * step(), id: e.pointerId };
+      down = { x: e.clientX, base: off() - idx * step(), id: e.pointerId };
     });
     window.addEventListener('pointermove', function (e) {
       if (!down || e.pointerId !== down.id) return;
@@ -172,7 +180,7 @@ window.CK_SHOP = {
     function up(e) {
       if (!down || (e.pointerId != null && e.pointerId !== down.id)) return;
       var dx = (e.clientX || down.x) - down.x;
-      if (moved) { mq.classList.remove('dragging'); go(Math.round(-(down.base + dx) / step()), true); }
+      if (moved) { mq.classList.remove('dragging'); go(Math.round((off() - down.base - dx) / step()), true); }
       down = null; poke();
     }
     window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);

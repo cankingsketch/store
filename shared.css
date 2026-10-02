@@ -15,6 +15,7 @@ img { max-width:100%; }
 .nav ul { list-style:none; margin:0; padding:0 18px; display:flex; flex-wrap:wrap; justify-content:center; gap:2px; }
 .nav a { display:block; padding:9px 13px; font-size:12px; letter-spacing:1px; text-decoration:none; color:#444; cursor:pointer; position:relative; }
 .nav a.on { background:#f3f3f3; }
+.nav-btn, .nav-mask, .nav-top { display:none; }
 .nav a .dot { position:absolute; top:6px; right:4px; width:6px; height:6px; border-radius:50%; background:var(--red2); }
 .page { background:#fafafa; padding:26px 16px 70px; min-height:60vh; }
 .wrap { max-width:960px; margin:0 auto; }
@@ -140,6 +141,14 @@ img { max-width:100%; }
 .buybox .sub + .sub { margin-left:14px; }
 .buybox small { display:block; font-size:12px; color:var(--mute); }
 @media (max-width:640px) { .buybox { text-align:left; width:100%; } }
+/* 手機：購買鈕跟ちいかわ的商品頁一樣，整排寬、一個一行往下疊 */
+@media (max-width:640px) {
+  .buybox .main, .buybox .sub { display:block; box-sizing:border-box; width:100%; margin:0 0 8px; padding:13px 0; text-align:center;
+    font-size:15px; line-height:1; border-radius:999px; }
+  .buybox .sub { border:1.5px solid #ddd; color:#444; }
+  .buybox .sub + .sub { margin-left:0; }
+  .buybox small { margin-top:2px; }
+}
 
 /* ---- 商品燈箱：多圖 ---- */
 .pl .lb-panel { width:min(640px,100%); }

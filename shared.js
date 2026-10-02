@@ -47,14 +47,24 @@
     // links 裡設成 false 的項目不顯示（例如 T 恤頁先隱藏，T 恤只放在周邊頁那一條）
     var items = ['首頁', '課程', '周邊'].concat(extra || [], ['畫冊', 'T恤', '聯名手機殼', '數位賣場', '客製化商品', '實體店寄售'])
       .filter(function (t) { return !(links && links[t] === false); });
-    return '<header class="site-head"><a class="head-contact" title="聯絡我們"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="6" width="17" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 7l8 6 8-6" fill="none" stroke="currentColor" stroke-width="2"/></svg>聯絡我們</a>' +
+    // 手機（≤760px）：頁首縮成一條「≡＋Logo」固定在上面，選單收進左邊滑出的抽屜（照ちいかわマーケット）；電腦版不變
+    return '<header class="site-head"><button class="nav-btn" type="button" aria-label="選單"><i></i></button><div class="nav-mask"></div><a class="head-contact" title="聯絡我們"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="6" width="17" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 7l8 6 8-6" fill="none" stroke="currentColor" stroke-width="2"/></svg>聯絡我們</a>' +
       '<a href="./" aria-label="回首頁"><img class="logo old" src="img/logo.png" alt="空罐商店"><img class="logo new" src="img/logo-canking.png" alt="空罐王 CankingSketch" loading="lazy"></a>' +
-      '<nav class="nav"><ul>' + items.map(function (t) {
+      '<nav class="nav"><div class="nav-top"><img src="img/shop-girl.webp" alt=""><img src="img/shop-can.webp" alt=""><button class="nav-x" type="button" aria-label="關閉選單">✕</button></div><ul>' + items.map(function (t) {
         var href = links && links[t] ? ' href="' + links[t] + '"' : t === '首頁' ? ' href="./"' : '';   // 首頁（他要的）：LOGO 置中不好找，選單最前面再放一個
         // 「新分頁」紅點拿掉了（他要的）
         return '<li><a data-nav="' + esc(t) + '"' + href + ' class="' + (t === active ? 'on' : '') + '">' + esc(t) + '</a></li>';
       }).join('') + '</ul></nav></header>';
   }
+  // 抽屜開關（每頁共用，事件掛在 document 上）
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest && e.target.closest('.nav-btn, .nav-x, .nav-mask');
+    if (t) document.documentElement.classList.toggle('nav-open', t.classList.contains('nav-btn'));
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') document.documentElement.classList.remove('nav-open'); });
+  // 手機、平板沒有滑鼠：提示改成用手指的說法
+  var TOUCH = window.matchMedia && matchMedia('(pointer:coarse)').matches;
+  function touchText(s) { return TOUCH ? String(s).replace(/移動滑鼠/g, '用手指') : s; }
   function hero() {
     return '<img class="hero" src="img/hero.png" alt="周邊一覽">' +
       '<div class="shoprow"><a class="pill" href="' + MYSHIP + '" target="_blank" rel="noopener">711賣貨便</a><a class="pill">蝦皮賣場</a>' +
@@ -115,7 +125,7 @@
     lb = document.createElement('div'); lb.className = 'lb top';
     lb.innerHTML = '<div class="lb-panel" role="dialog" aria-modal="true" aria-label="貼紙 3D 預覽">' +
       '<button class="lb-x" aria-label="關閉">✕</button><button class="lb-arrow prev" aria-label="上一張">‹</button><button class="lb-arrow next" aria-label="下一張">›</button>' +
-      '<div class="lb-stage"><iframe title="貼紙 3D 預覽"></iframe><div class="lb-hint">移動滑鼠看光澤　・　按住邊緣往內拖可以撕起來</div></div>' +
+      '<div class="lb-stage"><iframe title="貼紙 3D 預覽"></iframe><div class="lb-hint">' + touchText('移動滑鼠看光澤　・　按住邊緣往內拖可以撕起來') + '</div></div>' +
       '<div class="lb-strip"></div>' +
       '<div class="lb-foot"><div><h3></h3><small></small></div><div class="buybox"></div></div></div>';
     document.body.appendChild(lb);
@@ -784,7 +794,7 @@
     box.hidden = !on;
     if (!on || !cur3dSpec) return;
     var spec = cur3dSpec, key = spec.art;
-    box.querySelector('.pl-3d-hint').textContent = spec.hint || '移動滑鼠轉動';
+    box.querySelector('.pl-3d-hint').textContent = touchText(spec.hint || '移動滑鼠轉動');
     // 多款式（印章 5 款）：下方一排款式鈕，切換時同一個 viewer 換圖
     var vars = box.querySelector('.pl-3d-vars');
     if (!vars) {

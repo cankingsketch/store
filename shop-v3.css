@@ -20,6 +20,37 @@
 @media (max-width:1180px) { .hd-ch { top:8px; height:96px; } .hd-ch.l { right:calc(50% + 120px); } .hd-ch.r { left:calc(50% + 120px); } }
 @media (max-width:760px) { .hd-ch { height:58px; top:14px; } .hd-ch.l { right:calc(50% + 86px); } .hd-ch.r { left:calc(50% + 86px); } }
 
+/* ---- 手機頁首（照ちいかわマーケット）：一條 64px「≡＋Logo」，往下捲也固定在最上面；選單收進左邊滑出的抽屜 ---- */
+@media (max-width:760px) {
+  .site-head { position:sticky; top:0; z-index:60; height:64px; padding:0; box-shadow:0 2px 8px rgba(190,60,50,.10); }
+  /* 門楣縮成細細一條 */
+  .site-head::before { position:absolute; left:0; right:0; top:0; height:14px;
+    -webkit-mask:linear-gradient(#000 0 0) top / 100% 8px no-repeat, radial-gradient(circle 6px at 6px 0, #000 96%, transparent 100%) 0 8px / 12px 6px repeat-x;
+            mask:linear-gradient(#000 0 0) top / 100% 8px no-repeat, radial-gradient(circle 6px at 6px 0, #000 96%, transparent 100%) 0 8px / 12px 6px repeat-x;
+    background:repeating-linear-gradient(90deg, #f8cfcb 0 12px, #fffaf9 12px 24px); }
+  .site-head .logo { height:44px; margin:14px auto 0; }
+  .hd-ch { height:42px; top:17px; } .hd-ch.l { right:calc(50% + 46px); } .hd-ch.r { left:calc(50% + 46px); }
+  .nav-btn { display:block; position:absolute; left:6px; top:16px; width:44px; height:44px; border:0; background:none; cursor:pointer; padding:0; }
+  .nav-btn i, .nav-btn i::before, .nav-btn i::after { position:absolute; left:11px; width:22px; height:2.5px; border-radius:2px; background:var(--ink); content:""; }
+  .nav-btn i { top:21px; } .nav-btn i::before { left:0; top:-7px; } .nav-btn i::after { left:0; top:7px; }
+  /* 抽屜 */
+  .nav { position:fixed; z-index:81; left:0; top:0; bottom:0; width:min(300px, 82vw); display:block; overflow-y:auto; background:#fffaf9;
+    transform:translateX(-102%); transition:transform .28s cubic-bezier(.2,.8,.2,1); box-shadow:4px 0 20px rgba(0,0,0,.15); text-align:left; }
+  .nav-top { display:flex; justify-content:center; align-items:flex-end; gap:4px; position:relative; padding:26px 0 14px;
+    background:repeating-linear-gradient(90deg, #f6cdc7 0 18px, #fbe0dc 18px 36px); }
+  .nav-top img { height:84px; width:auto; }
+  .nav-x { position:absolute; right:8px; top:8px; width:36px; height:36px; border:0; border-radius:50%; background:rgba(255,255,255,.85); font-size:16px; cursor:pointer; }
+  .nav ul { display:block; padding:0; }
+  .nav li { border-bottom:1px solid #f1dcd8; }
+  .nav a { display:flex; justify-content:space-between; align-items:center; padding:16px 22px; font-size:15px; letter-spacing:.06em; color:var(--ink); }
+  .nav a::after { content:"›"; color:#c9a9a4; font-size:20px; line-height:1; }
+  .nav a.on { background:#fff1ee; color:var(--red2); font-weight:800; }
+  .nav-mask { display:block; position:fixed; z-index:80; inset:0; background:rgba(40,20,20,.38); opacity:0; pointer-events:none; transition:opacity .28s; }
+  html.nav-open .nav { transform:none; }
+  html.nav-open .nav-mask { opacity:1; pointer-events:auto; }
+  html.nav-open, html.nav-open body { overflow:hidden; }
+}
+
 /* 每一區一條滿版的帶子。花紋只用四種（他定的）：
    1 門楣紅白條＋半圓（頁首、頁尾）、2 素白（選單那排）、
    3 淡粉底紅點點（.b-dots）、4 偏紅兩色粉紅直條（.b-stripe，襯托白色內框） */
@@ -81,6 +112,18 @@
 .mq.dragging .mq-card { pointer-events:none; }
 
 @media (orientation:portrait) { .mq-card { border-radius:10px; border-width:2px; } }
+/* 輪播的圓點：手機才顯示 */
+.mq-dots { display:none; }
+/* 手機（照ちいかわ的橫幅）：一次一張大的置中，左右露一點點上一張／下一張；不要箭頭，改用圓點 */
+@media (max-width:760px) {
+  .mq { --w:100vw; --n:1.3; --g:10px; margin-left:calc(50% - 50vw); }
+  .mq-card { border-radius:14px; }
+  .mq-arrow { display:none; }
+  .mq-dots { display:flex; justify-content:center; gap:7px; margin-top:10px; }
+  .mq-dots i { width:7px; height:7px; border-radius:50%; background:rgba(0,0,0,.18); transition:background .2s, transform .2s; }
+  .mq-dots i.on { background:var(--red2); transform:scale(1.25); }
+  .mq-dots.many { display:none; }
+}
 
 /* ---- 其他頁共用的零件（課程以外的 v3 樣品頁：畫冊、手機殼、數位賣場、客製化、寄售、活動） ---- */
 /* 區塊標題：粗體中文＋小英文（跟貼紙頁、課程頁一樣） */
