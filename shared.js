@@ -18,7 +18,8 @@
   function setOf(s) { return SETS.filter(function (t) { return t.id === s.set; })[0]; }
   var NEW_SINCE = '2026-09-01';      // 示意：這天之後上架的算新款
   var MYSHIP = 'https://myship.7-11.com.tw/general/detail/GM2308212736960';
-  var SHOPEE = 'https://shopee.tw/';
+  var SHOPEE = 'https://shopee.tw/canking';                       // 蝦皮賣場首頁（商品沒有自己的蝦皮網址時用）
+  var FORM_OVERSEAS = 'https://forms.gle/o2wVLt5KcqxdsSKd6';       // 海外購買表單（舊周邊頁頂端那顆）
 
   // 現在周邊頁上的商品（照現在的順序，只取前面幾個當示意）
   var PRODUCTS = [
@@ -67,8 +68,10 @@
   function touchText(s) { return TOUCH ? String(s).replace(/移動滑鼠/g, '用手指') : s; }
   function hero() {
     return '<img class="hero" src="img/hero.png" alt="周邊一覽">' +
-      '<div class="shoprow"><a class="pill" href="' + MYSHIP + '" target="_blank" rel="noopener">711賣貨便</a><a class="pill">蝦皮賣場</a>' +
-      '<a class="pill ghost">海外購買</a><a class="pill ghost">實體店面</a></div>';
+      // 四個賣場入口放在一朵白雲裡，只有黑字（他要的）。連結照舊周邊頁頂端那四顆（原本設計稿只有賣貨便有連結）
+      '<div class="shoprow cloud"><a href="' + MYSHIP + '" target="_blank" rel="noopener">711賣貨便</a>' +
+      '<a href="' + SHOPEE + '" target="_blank" rel="noopener">蝦皮賣場</a>' +
+      '<a href="' + FORM_OVERSEAS + '" target="_blank" rel="noopener">海外購買</a><a href="events-883299.html">實體店面</a></div>';
   }
   function hot() {
     return '<div class="sect-title" data-en="RANKING">熱銷推薦</div><div class="hot">' + ['bag', 'coaster', 'anim'].map(function (id) {
