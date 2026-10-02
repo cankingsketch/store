@@ -5,24 +5,17 @@
 .site-head .logo.new, .head-contact { display:none; }
 .back { top:12px; bottom:auto; }
 
-/* 頁首：整條淡紅白直條門楣（像爆米花車的遮雨棚），下緣一排圓角鋸齒垂到下面的點點底上（他要電腦版也跟手機一樣）。
-   鋸齒用兩層 radial-gradient 畫（紅、白各一層），不用 mask——Safari 上 mask 的位置算式不支援，半圓會整排不見。
-   Logo 有白色描邊，放在直條上不會糊在一起 */
-.site-head { position:relative; z-index:20; padding:16px 0 12px; display:flow-root; background:repeating-linear-gradient(90deg, #f8cfcb 0 34px, #fffaf9 34px 68px); }
-.site-head::before { content:none; }
-.site-head::after { content:""; position:absolute; left:0; right:0; top:100%; height:17px; pointer-events:none;
-  background:radial-gradient(circle at 17px 0, #f8cfcb 16.4px, transparent 17px) 0 0 / 68px 17px repeat-x,
-             radial-gradient(circle at 17px 0, #fffaf9 16.4px, transparent 17px) 34px 0 / 68px 17px repeat-x;
-  filter:drop-shadow(0 2px 2px rgba(150,40,30,.2)); }
-.site-head .logo { position:relative; margin-top:0;
+/* 頁首（電腦）：照原本的排法——最上面一條淡紅白直條門楣，Logo 壓在門楣上，下面一排選單。
+   門楣下緣一排圓角鋸齒，往下蓋住選單那排的底一點點（他畫的藍線）；選單那排原本白色，改成淡米色。
+   鋸齒用 radial-gradient 畫（紅、白各一層），不用 mask——Safari 上 mask 的位置算式不支援，半圓會整排不見 */
+.site-head { position:relative; padding-top:0; background:#fbf5ec; }
+.site-head::before { content:""; display:block; height:60px;
+  background:radial-gradient(circle at 17px 0, #f8cfcb 16.4px, transparent 17px) 0 43px / 68px 17px repeat-x,
+             radial-gradient(circle at 17px 0, #fffaf9 16.4px, transparent 17px) 34px 43px / 68px 17px repeat-x,
+             repeating-linear-gradient(90deg, #f8cfcb 0 34px, #fffaf9 34px 68px) 0 0 / 100% 43px no-repeat;
+  filter:drop-shadow(0 2px 2px rgba(150,40,30,.14)); }
+.site-head .logo { position:relative; margin-top:-44px;
   filter:drop-shadow(2.5px 0 0 #fff) drop-shadow(-2.5px 0 0 #fff) drop-shadow(0 2.5px 0 #fff) drop-shadow(0 -2.5px 0 #fff) drop-shadow(0 2px 4px rgba(0,0,0,.08)); }
-/* 選單放在直條上字會花：墊一條半透明白色圓角底 */
-@media (min-width:761px) {
-  .nav ul { background:rgba(255,250,249,.94); border-radius:999px; padding:3px 14px; box-shadow:0 1px 5px rgba(190,60,50,.14); }
-  .nav a.on { background:#fde3df; border-radius:999px; }
-}
-/* 頁首正下方一律一條點點底，讓鋸齒蓋在點點上（44px＝點點花紋 22px 的兩倍，接下面的點點帶子不會有接縫） */
-main.page.bands { padding-top:44px; background:#fff8e6 radial-gradient(rgba(255,45,45,.10) 4.2px, transparent 5px) 0 0 / 22px 22px; }
 
 /* 選單左右兩端外側的兩隻（附屬看板的購物空罐妹妹、購物罐罐）；shop-v3.js 會放進頁首 */
 .hd-ch { position:absolute; z-index:3; top:36px; height:132px; width:auto; pointer-events:none; }
@@ -48,6 +41,8 @@ main.page.bands { padding-top:44px; background:#fff8e6 radial-gradient(rgba(255,
   .hd-ch.r { left:auto; right:2px; top:-4px; height:117px; }   /* 60 → 90 → 117px（他要的，再大 30%），下半身垂出頁首沒關係 */
   /* 頁首正下方一律留一條淺色圓點底，讓門楣的圓角鋸齒蓋在點點上（他要的）。
      高 33px、花紋往下錯開 11px：接到下面的點點帶子時花紋剛好連起來，不會有接縫 */
+  /* 手機的點點底：偏一點點黃、點點放大 3 倍（他要的，只限手機；電腦版維持原本的小點） */
+  .band.b-dots { background:#fff8e6 radial-gradient(rgba(255,45,45,.10) 4.2px, transparent 5px) 0 0 / 22px 22px; }
   main.page.bands { padding-top:33px; background:#fff8e6 radial-gradient(rgba(255,45,45,.10) 4.2px, transparent 5px) 0 11px / 22px 22px; }
   .band.b-hero { padding-top:4px; }
   .nav-btn { display:block; position:absolute; left:6px; top:18px; width:44px; height:44px; border:0; background:none; cursor:pointer; padding:0; }
@@ -78,7 +73,7 @@ main.page.bands { padding-top:44px; background:#fff8e6 radial-gradient(rgba(255,
 .page.bands { padding:0; background:#fff; }
 .band { padding:26px 16px 42px; }
 .band .sect-title { margin-top:6px; }
-.b-dots { background:#fff8e6 radial-gradient(rgba(255,45,45,.10) 4.2px, transparent 5px) 0 0 / 22px 22px; }   /* 淺黃底、大粉紅點（他要的，原本是淡粉底小點） */
+.b-dots { background:#fff7f5 radial-gradient(rgba(255,45,45,.09) 1.4px, transparent 1.8px) 0 0 / 22px 22px; }
 .b-stripe { background:repeating-linear-gradient(90deg, #f6cdc7 0 26px, #fbe0dc 26px 52px); }
 .b-stripe .white-box { border-color:#fff; box-shadow:0 2px 10px rgba(190,60,50,.10); }
 /* 點點底很淡，白框放在上面邊界不明顯 → 細粉紅框線＋淡紅影子 */
