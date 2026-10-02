@@ -23,7 +23,8 @@
 /* ---- 手機頁首（照ちいかわマーケット）：一條 72px「≡＋Logo＋插畫」，往下捲也固定在最上面；選單收進左邊滑出的抽屜 ---- */
 @media (max-width:760px) {
   /* 門楣（紅白直條）鋪滿整個頁首、蓋掉原本的白底；下緣一排半圓垂到下一段的底紋上（他畫的藍線） */
-  .site-head { position:sticky; top:0; z-index:60; height:72px; padding:0; background:repeating-linear-gradient(90deg, #f8cfcb 0 28px, #fffaf9 28px 56px); }
+  /* flow-root：Logo 的上邊距不要穿出頁首（原本整條被往下推 5px，最上面露出一條白線） */
+  .site-head { position:sticky; top:0; z-index:60; height:80px; padding:0; display:flow-root; background:repeating-linear-gradient(90deg, #f8cfcb 0 28px, #fffaf9 28px 56px); }
   .site-head::before { content:none; }
   /* 下緣的圓形鋸齒：每條直條底下垂一個同色的半圓。用兩層 radial-gradient 畫（紅、白各一層），
      不用 mask——iPhone Safari 上 mask 的位置算式不支援，半圓整排不見（他手機上看是一條直線） */
@@ -34,16 +35,17 @@
   /* 手機的點點底：偏一點點黃、點點放大 3 倍（他要的）。頁首正下方那條也是同一種，接起來看不出接縫 */
   .band.b-dots { background:#fff8e6 radial-gradient(rgba(255,45,45,.10) 4.2px, transparent 5px) 0 0 / 22px 22px; }
   /* 左 ≡、中 Logo（放大）、右一張小插畫（購物罐罐）；左邊那隻是電腦版橫向排才放 */
-  .site-head .logo { height:62px; margin:5px auto 0; }
+  .site-head .logo { height:74px; margin:3px auto 0; }   /* 再放大 20%（他要的） */
   .hd-ch.l { display:none; }
   .hd-ch.r { left:auto; right:4px; top:-1px; height:90px; }   /* 放大 1.5 倍（他要的），可以超出頁首一點點 */
   /* 頁首正下方一律留一條淺色圓點底，讓門楣的圓角鋸齒蓋在點點上（他要的）。
      高 33px、花紋往下錯開 11px：接到下面的點點帶子時花紋剛好連起來，不會有接縫 */
   main.page.bands { padding-top:33px; background:#fff8e6 radial-gradient(rgba(255,45,45,.10) 4.2px, transparent 5px) 0 11px / 22px 22px; }
   .band.b-hero { padding-top:4px; }
-  .nav-btn { display:block; position:absolute; left:6px; top:14px; width:44px; height:44px; border:0; background:none; cursor:pointer; padding:0; }
-  .nav-btn i, .nav-btn i::before, .nav-btn i::after { position:absolute; left:11px; width:22px; height:2.5px; border-radius:2px; background:var(--ink); content:""; }
-  .nav-btn i { top:21px; } .nav-btn i::before { left:0; top:-7px; } .nav-btn i::after { left:0; top:7px; }
+  .nav-btn { display:block; position:absolute; left:6px; top:18px; width:44px; height:44px; border:0; background:none; cursor:pointer; padding:0; }
+  /* ≡ 放大 20%（他要的）：線長 22→26、粗 2.5→3、間距 7→8.5 */
+  .nav-btn i, .nav-btn i::before, .nav-btn i::after { position:absolute; left:9px; width:26px; height:3px; border-radius:2px; background:var(--ink); content:""; }
+  .nav-btn i { top:20.5px; } .nav-btn i::before { left:0; top:-8.5px; } .nav-btn i::after { left:0; top:8.5px; }
   /* 抽屜 */
   .nav { position:fixed; z-index:81; left:0; top:0; bottom:0; width:min(300px, 82vw); display:block; overflow-y:auto; background:#fffaf9;
     transform:translateX(-102%); transition:transform .28s cubic-bezier(.2,.8,.2,1); box-shadow:4px 0 20px rgba(0,0,0,.15); text-align:left; }
@@ -114,7 +116,8 @@
 
 .mq::-webkit-scrollbar { display:none; }
 .mq-track { display:flex; width:max-content; }
-.mq-card { flex:0 0 auto; display:block; width:calc((var(--w) - (var(--n) - 1) * var(--g)) / var(--n)); aspect-ratio:1 / 1; margin-right:var(--g);
+/* 卡片 4:5（他選的）：熱銷宣傳圖多是 IG 直式，正方形會把上下的字裁掉 */
+.mq-card { flex:0 0 auto; display:block; width:calc((var(--w) - (var(--n) - 1) * var(--g)) / var(--n)); aspect-ratio:4 / 5; margin-right:var(--g);
   border-radius:16px; overflow:hidden; background:#fff;
   border:3px solid #fff; box-shadow:0 2px 12px rgba(0,0,0,.09); cursor:pointer; }
 .mq-card img { display:block; width:100%; height:100%; object-fit:cover; transition:transform .35s; }
@@ -128,6 +131,8 @@
 /* 手機（照ちいかわ的橫幅）：一次一張大的置中，左右露一點點上一張／下一張；不要箭頭，改用圓點 */
 @media (max-width:760px) {
   .mq { --w:100vw; --n:1.3; --g:10px; margin-left:calc(50% - 50vw); }
+  /* 滿版輪播用 100vw：有實體捲軸的瀏覽器會多出捲軸寬度 → 裁掉，不要整頁可以左右捲（clip 不影響頁首固定） */
+  main.page.bands { overflow-x:clip; }
   .mq-card { border-radius:14px; }
   .mq-arrow { display:none; }
   .mq-dots { display:flex; justify-content:center; gap:7px; margin-top:10px; }
