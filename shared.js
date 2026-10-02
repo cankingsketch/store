@@ -68,10 +68,11 @@
   function touchText(s) { return TOUCH ? String(s).replace(/移動滑鼠/g, '用手指') : s; }
   function hero() {
     return '<img class="hero" src="img/hero.png" alt="周邊一覽">' +
-      // 四個賣場入口放在一朵白雲裡，只有黑字（他要的）。連結照舊周邊頁頂端那四顆（原本設計稿只有賣貨便有連結）
-      '<div class="shoprow cloud"><a href="' + MYSHIP + '" target="_blank" rel="noopener">711賣貨便</a>' +
-      '<a href="' + SHOPEE + '" target="_blank" rel="noopener">蝦皮賣場</a>' +
-      '<a href="' + FORM_OVERSEAS + '" target="_blank" rel="noopener">海外購買</a><a href="events-883299.html">實體店面</a></div>';
+      // 四個賣場入口：四段不同花色的紙膠帶（他選的 2B）。連結照舊周邊頁頂端那四顆（原本設計稿只有賣貨便有連結）
+      '<div class="shoprow tapes"><span class="t"><a href="' + MYSHIP + '" target="_blank" rel="noopener">711賣貨便</a></span>' +
+      '<span class="t"><a href="' + SHOPEE + '" target="_blank" rel="noopener">蝦皮賣場</a></span>' +
+      '<span class="t"><a href="' + FORM_OVERSEAS + '" target="_blank" rel="noopener">海外購買</a></span>' +
+      '<span class="t"><a href="events-883299.html">實體店面</a></span></div>';
   }
   function hot() {
     return '<div class="sect-title" data-en="RANKING">熱銷推薦</div><div class="hot">' + ['bag', 'coaster', 'anim'].map(function (id) {

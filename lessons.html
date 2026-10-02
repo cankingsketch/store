@@ -15,16 +15,34 @@
   .lsn-head h2 { font-size:30px; margin:0; font-weight:900; letter-spacing:.06em; color:var(--ink); }
   .lsn-head p.en { margin:4px 0 0; color:var(--mute); font-size:12px; font-weight:700; letter-spacing:.18em; }
 
-  /* 開場（直條紋）：原本那張「想要學畫畫嗎？」圖＋折扣碼小白框 */
+  /* 開場（直條紋）：原本那張「想要學畫畫嗎？」圖＋折扣碼優惠券 */
   .lsn-top { padding:56px 16px 50px; }
   .lsn-top .intro { display:block; width:min(638px, 100%); height:auto; margin:0 auto; }
-  .promo { width:min(440px, 100%); margin:26px auto 0; padding:14px 20px; border-radius:24px; text-align:center; box-sizing:border-box; }
-  .promo .t { margin:0 0 8px; font-size:13px; font-weight:700; color:var(--red2); letter-spacing:.04em; }
-  .promo .code { display:inline-flex; align-items:center; gap:12px; }
-  .promo .code b { font-size:20px; font-weight:900; letter-spacing:.06em; color:var(--ink); }
+  /* 折扣碼做成優惠券（他選的 A1）：左邊票根「95折」、中間虛線撕線、撕線上下各一個半圓缺口，右邊說明＋折扣碼置中；寬度剛好包住內容。
+     色彩課 HAHOW、PressPlay 兩邊都有開，折扣碼只能用在 HAHOW → 票根上放 HAHOW 綠色小標、說明寫「HAHOW 專用」（他怕有人搞混） */
+  .promo-wrap { margin:26px auto 0; text-align:center; }
+  .promo { --c:#fffaf3; --cut:96px; display:inline-flex; align-items:stretch; max-width:100%; border-radius:14px; text-align:center;
+    background:radial-gradient(circle at var(--cut) 0, transparent 10px, var(--c) 10.5px) top / 100% 51% no-repeat,
+               radial-gradient(circle at var(--cut) 100%, transparent 10px, var(--c) 10.5px) bottom / 100% 51% no-repeat;
+    filter:drop-shadow(0 0 1px rgba(170,90,80,.5)) drop-shadow(0 4px 6px rgba(150,60,50,.16)); }
+  .promo .stub { flex:0 0 96px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px 0; }
+  .promo .stub b { font-size:30px; font-weight:900; line-height:1; color:var(--red2); letter-spacing:-.02em; }
+  .promo .stub b small { font-size:15px; margin-left:1px; }
+  .promo .hh { margin-top:6px; padding:3px 8px; border-radius:999px; background:#16a89a; color:#fff; font-size:10.5px; font-weight:900; letter-spacing:.12em; line-height:1.2; }
+  .promo .main { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:14px 22px; border-left:2px dashed #ecc3bc; }
+  .promo .t { margin:0; font-size:12.5px; font-weight:700; color:#8a706b; letter-spacing:.04em; white-space:nowrap; }
+  .promo .t em { font-style:normal; font-weight:900; color:#16a89a; }
+  .promo .code { display:inline-flex; align-items:center; gap:10px; }
+  .promo .code b { font-size:19px; font-weight:900; letter-spacing:.05em; color:var(--ink); white-space:nowrap; }
   .promo button { font:inherit; font-size:13px; font-weight:800; color:#fff; background:var(--red2); border:0; border-radius:999px;
-    padding:6px 16px; cursor:pointer; transition:transform .15s; }
+    padding:6px 14px; cursor:pointer; transition:transform .15s; white-space:nowrap; }
   .promo button:hover { transform:translateY(-2px); }
+  /* 手機：開場這段緊接在頁首下面，頁首的粗紅白直條跟這段的粗粉紅直條太像、接在一起（他反映的）→ 只有這段改成淡粉底＋細白直線（他選的 C） */
+  @media (max-width:760px) {
+    .band.b-stripe.lsn-top { background:#f9d9d4 repeating-linear-gradient(90deg, transparent 0 20px, rgba(255,255,255,.75) 20px 22px); }
+    .promo { --cut:80px; } .promo .stub { flex-basis:80px; } .promo .stub b { font-size:25px; }
+    .promo .main { padding:12px 14px; } .promo .code b { font-size:16px; } .promo .code { gap:8px; }
+  }
 
   /* 課程（點點）：三張白卡，跟貼紙頁組合卡同一種框線＋淡紅影子 */
   .lsn-band { padding:56px 16px 64px; }
@@ -83,12 +101,13 @@
     // 開場：直條紋，原本的介紹圖＋折扣碼
     '<section class="band b-stripe lsn-top">' +
       '<img class="intro" src="' + CK_SHOP.opt('lessontopb.png', 'l') + '" alt="想要學畫畫嗎？目前我們有適合新手的三階段課程喔">' +
-      '<div class="promo white-box"><p class="t">HAHOW 結帳輸入・95 折</p>' +
-        '<div class="code"><b id="ck-code">HHcankingstore</b><button type="button" id="ck-copy">複製</button></div></div>' +
+      '<div class="promo-wrap"><div class="promo"><div class="stub"><b>95<small>折</small></b><span class="hh">HAHOW</span></div>' +
+        '<div class="main"><p class="t"><em>HAHOW 專用</em>・結帳時輸入</p>' +
+        '<div class="code"><b id="ck-code">HHcankingstore</b><button type="button" id="ck-copy">複製</button></div></div></div></div>' +
     '</section>' +
     // 課程：點點底，三張白卡
     '<section class="band b-dots lsn-band"><div class="wrap">' +
-      '<div class="lsn-head"><img class="mascot" src="' + CK_SHOP.opt('lesson_can.gif') + '" alt=""><h2>繪畫課程</h2><p class="en">LESSONS</p></div>' +
+      // 「繪畫課程 LESSONS」標題＋吉祥物拿掉了（他說多餘：上面開場已經講了在賣課程）
       '<div class="courses">' + COURSES.map(function (c) {
         return '<div class="course"><a class="pic" href="' + c[3][0][1] + '"' + ext + '><img src="' + CK_SHOP.opt(c[1]) + '" alt="' + c[0] + '"></a>' +
           '<p class="nm">' + c[0] + '</p><p class="tip">' + c[2] + '</p>' +
