@@ -9,12 +9,12 @@
    門楣下緣一排圓角鋸齒，往下蓋住選單那排的底一點點（他畫的藍線）；選單那排原本白色，改成淡米色。
    鋸齒用 radial-gradient 畫（紅、白各一層），不用 mask——Safari 上 mask 的位置算式不支援，半圓會整排不見 */
 .site-head { position:relative; padding-top:0; background:#fbf5ec; }
-.site-head::before { content:""; display:block; height:60px;
-  background:radial-gradient(circle at 17px 0, #f8cfcb 16.4px, transparent 17px) 0 43px / 68px 17px repeat-x,
-             radial-gradient(circle at 17px 0, #fffaf9 16.4px, transparent 17px) 34px 43px / 68px 17px repeat-x,
-             repeating-linear-gradient(90deg, #f8cfcb 0 34px, #fffaf9 34px 68px) 0 0 / 100% 43px no-repeat;
+.site-head::before { content:""; display:block; height:88px;   /* 鋸齒尖端到 Logo 下緣（他畫的線，2026-10-03） */
+  background:radial-gradient(circle at 17px 0, #f8cfcb 16.4px, transparent 17px) 0 71px / 68px 17px repeat-x,
+             radial-gradient(circle at 17px 0, #fffaf9 16.4px, transparent 17px) 34px 71px / 68px 17px repeat-x,
+             repeating-linear-gradient(90deg, #f8cfcb 0 34px, #fffaf9 34px 68px) 0 0 / 100% 71px no-repeat;
   filter:drop-shadow(0 2px 2px rgba(150,40,30,.14)); }
-.site-head .logo { position:relative; margin-top:-44px;
+.site-head .logo { position:relative; margin-top:-72px;
   filter:drop-shadow(2.5px 0 0 #fff) drop-shadow(-2.5px 0 0 #fff) drop-shadow(0 2.5px 0 #fff) drop-shadow(0 -2.5px 0 #fff) drop-shadow(0 2px 4px rgba(0,0,0,.08)); }
 
 /* 選單左右兩端外側的兩隻（附屬看板的購物空罐妹妹、購物罐罐）；shop-v3.js 會放進頁首 */
