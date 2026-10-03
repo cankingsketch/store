@@ -27,7 +27,9 @@ function heightField(img, nx, ny) {
   for (let i = 0; i < nx * ny; i++) {
     const inside = a[i * 4 + 3] / 255;
     const v = Math.min(1, Math.max(0, (bl[i * 4 + 3] / 255 - 0.5) * 2));
-    h[i] = inside * Math.sqrt(v);
+    // 邊緣的鼓法：原本開根號，貼近外形邊緣幾乎是垂直的小牆，轉到側面時牆上的貼圖被拉成一條條橫紋（他手機上看到破圖）。
+    // 改成 sin：邊緣斜度有限、一樣是圓弧，正中間的厚度不變
+    h[i] = inside * Math.sin(v * Math.PI / 2);
   }
   return h;
 }
@@ -40,7 +42,8 @@ function panel(img, tex, w, h, hf, nx, ny) {
     p.setZ(k, hf[k] * PUFF);
   }
   g.computeVertexNormals();
-  const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95, metalness: 0, alphaTest: 0.5, alphaToCoverage: true, side: THREE.FrontSide });
+  // 不用 alphaToCoverage：iPhone 的 GPU 上會把衣服外緣變成一條條雜訊紋（破圖）；alphaTest 直接切出外形就好
+  const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95, metalness: 0, alphaTest: 0.5, side: THREE.FrontSide });
   return new THREE.Mesh(g, mat);
 }
 
@@ -94,6 +97,8 @@ export function create(frontUrl, backUrl) {
       // 衣服全寬約佔畫面寬的八成、高度不超過畫面
       const t = 2 * Math.tan(THREE.MathUtils.degToRad(14));
       camera.position.z = Math.max(WIDTH * 1.2 / (t * camera.aspect), WIDTH * 1.15 / t);
+      // 深度範圍只包住衣服（原本 10～2000）：手機的深度精度比較低，範圍太大時前後片的邊緣會互相打架
+      camera.near = Math.max(1, camera.position.z - WIDTH); camera.far = camera.position.z + WIDTH;
       camera.updateProjectionMatrix();
       flip = flipNow = 0;                    // 每次打開都從正面開始
       dirty = true;

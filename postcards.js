@@ -41,9 +41,10 @@
       var k = e.target.closest('[data-pk]');
       if (k) return zoom(+k.dataset.pk);
       if (e.target.closest('.pw-back')) return zoom(-1);
-      if (e.target.closest('.prev')) return zoom((at - 1 + list.length) % list.length);
-      if (e.target.closest('.next')) return zoom((at + 1) % list.length);
-      if (e.target.closest('.pw-card')) return turn();          // 點卡片本身就翻面（不放按鈕，照ちいかわ的少字原則）
+      if (e.target.closest('.prev')) return slide(-1);
+      if (e.target.closest('.next')) return slide(1);
+      // 點卡片本身就翻面（不放按鈕，照ちいかわ的少字原則）；剛剛是滑動換張的那一下不算點
+      if (e.target.closest('.pw-card')) { if (Date.now() - swipedAt < 450) return; return turn(); }
     });
     // 放大的那張跟著游標微微傾斜
     pw.querySelector('.pw-zoom').addEventListener('pointermove', function (e) {
@@ -53,9 +54,59 @@
     document.addEventListener('keydown', function (e) {
       if (!pw.classList.contains('open')) return;
       if (e.key === 'Escape') { if (at >= 0) zoom(-1); else close(); }
-      else if (at >= 0 && e.key === 'ArrowLeft') zoom((at - 1 + list.length) % list.length);
-      else if (at >= 0 && e.key === 'ArrowRight') zoom((at + 1) % list.length);
+      else if (at >= 0 && e.key === 'ArrowLeft') slide(-1);
+      else if (at >= 0 && e.key === 'ArrowRight') slide(1);
     });
+
+    // 手機：放大的明信片可以左右滑換上一張／下一張（他要的；原本只能點了翻面）。
+    // 一開始動就判方向：偏左右 → 卡片跟著手指走、擋掉頁面捲動；偏上下 → 不管。
+    // 放開時滑超過 40px，或 0.3 秒內快速一撥超過 15px，就換張；不夠就彈回原位。輕點還是翻面
+    var z = pw.querySelector('.pw-zoom'), tch = null;
+    z.style.touchAction = 'pan-y';
+    z.addEventListener('touchstart', function (e) {
+      if (at < 0 || e.touches.length !== 1) return;
+      var t = e.touches[0];
+      tch = { x: t.clientX, y: t.clientY, t: performance.now(), dir: '', dx: 0 };
+    }, { passive: true });
+    z.addEventListener('touchmove', function (e) {
+      if (!tch) return;
+      var t = e.touches[0], dx = t.clientX - tch.x, dy = t.clientY - tch.y;
+      if (!tch.dir) { if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return; tch.dir = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v'; }
+      if (tch.dir !== 'h') return;
+      e.preventDefault();
+      tch.dx = dx;
+      var card = pw.querySelector('.pw-card');
+      card.style.transition = 'none'; card.style.translate = dx + 'px 0';
+    }, { passive: false });
+    function tend() {
+      if (!tch) return;
+      var t = tch; tch = null;
+      if (t.dir !== 'h') return;
+      swipedAt = Date.now();
+      var quick = performance.now() - t.t < 300;
+      if (Math.abs(t.dx) > 40 || (quick && Math.abs(t.dx) > 15)) return slide(t.dx < 0 ? 1 : -1, t.dx);
+      var card = pw.querySelector('.pw-card');               // 不夠遠：彈回原位
+      card.style.transition = 'translate .2s ease-out'; card.style.translate = '0 0';
+      setTimeout(function () { card.style.transition = ''; }, 220);
+    }
+    z.addEventListener('touchend', tend); z.addEventListener('touchcancel', tend);
+  }
+  // 換張的動畫：目前這張往滑的方向滑出去、淡掉，下一張從另一邊滑進來（滑動、左右箭頭、鍵盤共用）
+  var swipedAt = 0, sliding = false;
+  function slide(dir) {
+    if (sliding || at < 0) return;
+    sliding = true;
+    var card = pw.querySelector('.pw-card');
+    card.style.transition = 'translate .18s ease-in, opacity .18s ease-in';
+    card.style.translate = (-dir * 70) + '% 0'; card.style.opacity = '0';
+    setTimeout(function () {
+      zoom((at + dir + list.length) % list.length);
+      card.style.transition = 'none'; card.style.translate = (dir * 45) + '% 0';
+      void card.offsetWidth;                                  // 讓瀏覽器先畫出起點，再滑進來
+      card.style.transition = 'translate .26s cubic-bezier(.2,.8,.2,1), opacity .26s ease-out';
+      card.style.translate = '0 0'; card.style.opacity = '1';
+      setTimeout(function () { card.style.transition = ''; sliding = false; }, 280);
+    }, 180);
   }
   function wallHtml() {
     return '<div class="pw-row">' + list.map(function (c, i) {
