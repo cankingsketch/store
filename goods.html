@@ -272,7 +272,8 @@
       '<span class="tx"><b>' + CK.esc(t.name) + '</b><span class="pr">' + CK.priceText(t.price) + '</span></span></button>';
   }
   // 畫冊（資料跟畫冊頁共用 books-data.js）：實體畫冊在前，電子版接在後面、左上角標「電子版」（他要的）；價格先不放
-  var BOOKS = window.CK_BOOKS.PRINT.map(function (b) { return [b, 0]; })
+  // FGO 卡片組合不是畫冊，這一條不放（他說的；畫冊頁照舊有）
+  var BOOKS = window.CK_BOOKS.PRINT.filter(function (b) { return b[0] !== 'FGO 卡片組合'; }).map(function (b) { return [b, 0]; })
     .concat(window.CK_BOOKS.DIGI.map(function (b) { return [b, 1]; }));
   function bookCard(x, k) {
     var b = x[0];
