@@ -143,7 +143,7 @@
       "date": "2026-07-07",
       "view3d": {
         "module": "charm3d.js",
-        "art": "assets/charm-draw-base.webp",
+        "art": "assets/charm-draw-front.webp",
         "uv": "assets/charm-draw-pointer.webp",
         "thumb": "img/opt/charm-draw2-s.webp",
         "hint": ""
