@@ -103,7 +103,8 @@ export function create(dir) {
       '.sd-vars button{border:1px solid #ddd;background:#fff;border-radius:999px;padding:5px 13px;font-size:13px;cursor:pointer;color:#555}' +
       '.sd-vars button.on{border-color:var(--red2,#e5483d);background:var(--red2,#e5483d);color:#fff;font-weight:700}' +
       '.sd-vars button.hid{border-style:dashed}' +
-      '.sd-tag{position:absolute;left:12px;top:12px;padding:4px 10px;border-radius:999px;background:#2b2f45;color:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}' +
+      // 隱藏款的機率：左上角一行細字（他要的，不要膠囊底）
+      '.sd-tag{position:absolute;left:14px;top:12px;color:#8a8780;font-size:12px;font-weight:400;letter-spacing:.04em;pointer-events:none}' +
       '.sd-reveal{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);padding:8px 18px;border-radius:999px;background:rgba(43,47,69,.88);' +
         'color:#fff;font-size:15px;font-weight:800;letter-spacing:.08em;pointer-events:none;animation:sd-pulse 1.6s ease-in-out infinite}' +
       '@keyframes sd-pulse{50%{transform:translate(-50%,-50%) scale(1.06)}}' +
@@ -213,7 +214,7 @@ export function create(dir) {
     cur = k;
     const it = list[k];
     Array.prototype.forEach.call(varsBox.children, (b, i) => b.classList.toggle('on', i === k));
-    tagEl.hidden = !it.hidden; tagEl.textContent = '隱藏款・數量很少';
+    tagEl.hidden = !it.hidden; tagEl.textContent = '隱藏款機率為 1/64';
     revealEl.hidden = !(it.hidden && !revealed);
     yaw = YAW0; yawVel = 0;
     load(root0 + it.id + '/');
