@@ -7,7 +7,7 @@
   window.CK_bgClick = function (el, e) { return e.target === el && lastDown === el; };
   // 點開才載入的 3D 程式（xxx3d.js）的網址：後面帶版本號，程式改了網址就變，瀏覽器不會拿快取的舊版
   // （Cloudflare 給 JS 快取 4 小時）。版本表由 build_site.py 發布時填進來；設計稿裡是空的，照原檔名載
-  var MODV = {"album3d.js": "0436370b", "badge3d.js": "32305ec9", "bottles3d.js": "6be0267a", "charm3d.js": "10c0e77d", "coaster3d.js": "273b0430", "stamp3d.js": "ccfb8521", "standee3d.js": "919a1fcd", "tshirt3d.js": "bf201bd1"};
+  var MODV = {"album3d.js": "0436370b", "badge3d.js": "32305ec9", "bottles3d.js": "6be0267a", "charm3d.js": "10c0e77d", "coaster3d.js": "273b0430", "stamp3d.js": "ccfb8521", "standee3d.js": "fca3a5fb", "tshirt3d.js": "bf201bd1"};
   window.CK_MOD = function (name) { return './' + name + (MODV[name] ? '?v=' + MODV[name] : ''); };
 })();
 (function () {

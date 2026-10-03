@@ -1,127 +1,188 @@
-// 小立牌盲盒・通學路：可以轉著看的預覽（2026-10-04 他要的，先做妹妹這組）。
+// 小立牌盲盒・通學路：可以轉著看的 3D 預覽（2026-10-04 他要的，先做妹妹這組）。
 // 實品：一塊壓克力底座（斑馬線，上面挖 3～4 個插孔），每片小壓克力底下有插腳，插進不同的孔，所以前後錯開。
-// 跟轉盤一樣用平面圖層疊出來、不用 three.js：底座平躺，每片照它插的孔立在對應的位置和深度；
-// 厚度＝外形剪影一層一層疊（跟轉盤同一招），翻到背後看到的是鏡像的圖（實品雙面印，背面就是左右相反）。
+// three.js 版（他看了平面圖層版之後說反光不夠好看，印章那種透明感要用 three.js 才做得出來）：
+//   ・底座、每一片都照工廠刀模的外形擠出 3mm 厚的壓克力（transmission 透明材質＋切邊導一點圓角，邊緣會亮）
+//   ・印刷圖貼在正反兩面的表面上（實品是 UV 直噴在表面）。原本夾在中間，但透過 transmission 看會被降解析度、
+//     顏色變淡，改貼表面後清楚；印刷上面加一層亮面清漆（clearcoat），一樣會反光。背面那張用 BackSide＝鏡像
+//   ・環境光照抄印章的攝影棚（上方柔光、左右窗光、地平線暗板），轉動時反光會在表面和切邊上滑過
 //   ・左右拖：整組轉（放開帶慣性，可以轉一整圈）；上下拖：從比較高或比較低的角度看
-// 素材由 tools/sticker-preview/build_standee.py 從工廠排版產生：每組一個資料夾，set.json 是尺寸和插孔（單位 mm）。
+// 素材由 tools/sticker-preview/build_standee.py 從工廠排版產生：每組一個資料夾，set.json 是尺寸、插孔、外形（單位 mm）。
 // 介面跟其他 3D 模組一樣：create(資料夾) → { mount(host), pointer(x, y), setArt(資料夾) }
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 
 const PIECE_T = 3;                // 小片壓克力厚度（mm）
 const BASE_T = 3;                 // 底座厚度（mm；插腳高 2.9mm，跟底座一樣厚）
-const MM_PER_SLICE = 0.45;        // 厚度每幾 mm 疊一層剪影
-const TILT_MIN = 6, TILT_MAX = 42, TILT0 = 16, YAW0 = -24;   // 俯角範圍、一打開的角度
+const BEVEL = 0.3;                // 切邊導圓角（mm），邊緣才會反光
+const TILT_MIN = 4, TILT_MAX = 40, TILT0 = 14, YAW0 = -24;   // 俯角範圍、一打開的角度
+const BG = new THREE.Color(0.965, 0.962, 0.952);             // 燈箱背景色（.pl-3d 的漸層中間值），跟印章一樣
 
-let styled = false;
-function addStyle() {
-  if (styled) return;
-  styled = true;
-  const st = document.createElement('style');
-  st.textContent =
-    '.standee3d{position:absolute;inset:0;perspective:1500px;perspective-origin:50% 40%;touch-action:none;cursor:grab;' +
-      '-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;overflow:hidden}' +
-    '.standee3d.drag{cursor:grabbing}' +
-    '.standee3d .sd-stage{position:absolute;left:50%;top:70%;width:0;height:0;transform-style:preserve-3d;will-change:transform}' +
-    // 裡面每一張都是平的（transform-style 不能設 preserve-3d：Chrome 會把厚度那疊層畫到正面上面，整片變白白的）
-    '.standee3d .sd-stage *{position:absolute;left:0;top:0;transform-origin:0 0}' +
-    // max-width:none：全站的 img{max-width:100%} 會把圖縮成舞台的寬（舞台是 0 寬的原點），整片變不見
-    '.standee3d img{display:block;max-width:none;max-height:none;pointer-events:none;-webkit-user-drag:none}' +
-    // 底座的四面側邊（透明壓克力的切邊：亮一點、帶一點藍綠）
-    '.standee3d .sd-wall{background:linear-gradient(rgba(240,247,250,.92),rgba(196,214,222,.8));box-shadow:inset 0 1px 0 rgba(255,255,255,.9)}' +
-    '.standee3d .sd-shadow{border-radius:50%;background:radial-gradient(closest-side,rgba(20,25,45,.35),rgba(20,25,45,0))}';
-  document.head.appendChild(st);
+// ---- 攝影棚環境（照 stamp3d.js 的 env()）：畫成一張全景圖，給壓克力反射、折射用 ----
+function studio(renderer) {
+  const W = 512, H = 256, c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const g = c.getContext('2d'), im = g.createImageData(W, H), bg = [BG.r, BG.g, BG.b];
+  const ss = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  for (let y = 0; y < H; y++) {
+    const lat = (0.5 - (y + 0.5) / H) * Math.PI, dy = Math.sin(lat);
+    for (let x = 0; x < W; x++) {
+      const az = ((x + 0.5) / W - 0.5) * 2 * Math.PI;
+      let col;
+      if (dy < -0.02) col = bg.slice();
+      else {
+        const k = ss(0.2, 0.75, dy);
+        col = bg.map(v => v * 0.97 * (1 - k) + 1.0 * k);
+        const band = ss(-0.12, -0.02, dy) * (1 - ss(0.35, 0.5, dy));
+        const fr = az * 0.6366 + 0.2, flag = 1 - ss(0.13, 0.17, Math.abs(fr - Math.floor(fr) - 0.5));
+        col = col.map((v, i) => v + ([0.45, 0.46, 0.48][i] - v) * band * flag * 0.6);
+        const win = (1 - ss(0.16, 0.22, Math.abs(Math.abs(az) - 1.15))) * ss(-0.05, 0.05, dy) * (1 - ss(0.55, 0.7, dy));
+        col = col.map(v => v + (1.12 - v) * win);
+      }
+      const o = (y * W + x) * 4;
+      im.data[o] = Math.min(255, col[0] * 255); im.data[o + 1] = Math.min(255, col[1] * 255); im.data[o + 2] = Math.min(255, col[2] * 255); im.data[o + 3] = 255;
+    }
+  }
+  g.putImageData(im, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.mapping = THREE.EquirectangularReflectionMapping; t.colorSpace = THREE.SRGBColorSpace;
+  const pm = new THREE.PMREMGenerator(renderer), env = pm.fromEquirectangular(t).texture;
+  t.dispose(); pm.dispose();
+  return env;
 }
 
-const norm = a => ((a % 360) + 540) % 360 - 180;
+// 壓克力：正反面幾乎全透明、很亮的反光；切邊另外一種，透明度低一點、帶一點藍綠（實品切邊看起來就是這樣）
+function acrylicMats(env) {
+  const face = new THREE.MeshPhysicalMaterial({
+    color: 0xffffff, metalness: 0, roughness: 0.03, transmission: 1, thickness: PIECE_T, ior: 1.49,
+    envMap: env, envMapIntensity: 1.25, clearcoat: 1, clearcoatRoughness: 0.02, specularIntensity: 1,
+    attenuationColor: new THREE.Color(0.86, 0.95, 0.95), attenuationDistance: 80
+  });
+  const side = new THREE.MeshPhysicalMaterial({
+    color: 0xeef8f8, metalness: 0, roughness: 0.08, transmission: 0.82, thickness: 8, ior: 1.49,
+    envMap: env, envMapIntensity: 1.7, clearcoat: 1, clearcoatRoughness: 0.05,
+    attenuationColor: new THREE.Color(0.7, 0.9, 0.9), attenuationDistance: 20
+  });
+  return [face, side];
+}
+
+// 外形多邊形 → 擠出厚 t 的板子（z 從 -t/2 到 t/2），切邊導圓角
+function slab(pts, t, mats) {
+  const sh = new THREE.Shape(pts.map(p => new THREE.Vector2(p[0], p[1])));
+  const geo = new THREE.ExtrudeGeometry(sh, { depth: t - 2 * BEVEL, bevelEnabled: true, bevelThickness: BEVEL, bevelSize: BEVEL * 0.6, bevelSegments: 2, curveSegments: 1 });
+  geo.translate(0, 0, -(t - 2 * BEVEL) / 2);
+  geo.computeVertexNormals();
+  return new THREE.Mesh(geo, mats);                      // ExtrudeGeometry：群組 0＝正反面、1＝切邊
+}
 
 export function create(dir) {
-  addStyle();
-  const el = document.createElement('div'); el.className = 'standee3d';
-  const stage = document.createElement('div'); stage.className = 'sd-stage';
-  el.appendChild(stage);
+  const el = document.createElement('div');
+  el.style.cssText = 'position:absolute;inset:0;touch-action:none;cursor:grab;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none';
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.setClearColor(BG, 1);
+  const canvas = renderer.domElement;
+  canvas.style.cssText = 'display:block;width:100%;height:100%';
+  el.appendChild(canvas);
 
-  let host = null, set = null, S = 4;                    // S＝每 mm 幾 px（照畫面大小算）
-  let pieces = [];                                       // 每片：{ box（整片一張平的）, layers:[{el, d}]（d＝離片中線多深，正＝往前）, front, back }
-  let walls = [];                                        // 底座四面側邊：[元素, 朝向角]，只顯示朝向觀眾的
-  let base = '';
+  const scene = new THREE.Scene();
+  scene.background = BG;
+  const env = studio(renderer);
+  scene.environment = env;
+  const [faceMat, sideMat] = acrylicMats(env);
+  const camera = new THREE.PerspectiveCamera(26, 1, 5, 2000);
+  const root = new THREE.Group(); scene.add(root);
+  const loader = new THREE.TextureLoader();
+  let host = null, set = null, base = '', target = new THREE.Vector3(), dist = 300;
 
-  function load(d) {
-    base = d.replace(/\/?$/, '/');
-    set = null;
-    return fetch(base + 'set.json').then(r => r.json()).then(j => { set = j; build(); });
+  const tex = src => {
+    const t = loader.load(src, () => kick());
+    t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+    return t;
+  };
+  // 印刷：顏色照原圖（用 emissive 發光，不受打光影響變暗），上面一層亮面清漆反射攝影棚的光。
+  // color 設黑＝不吃漫射光，map 只拿來給 alpha（透明的地方挖掉）。alphaToCoverage：邊緣才不會鋸齒
+  const printMat = (map, side) => new THREE.MeshPhysicalMaterial({
+    color: 0x000000, map, emissive: 0xffffff, emissiveMap: map, side, alphaTest: 0.5, alphaToCoverage: true,
+    roughness: 0.25, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.04, envMapIntensity: 0.9
+  });
+
+  function clear() {
+    root.traverse(o => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material && o.material.map) { o.material.map.dispose(); o.material.dispose(); }   // 正反面共用一張圖，dispose 兩次沒關係
+    });
+    root.clear();
   }
 
-  // 一張圖立在 (x, y, z)，寬 w、高 h（mm），可以再加旋轉
-  const place = (node, x, y, z, w, h, extra) => {
-    node.style.width = (w * S) + 'px'; node.style.height = (h * S) + 'px';
-    node.style.transform = 'translate3d(' + (x * S).toFixed(2) + 'px,' + (y * S).toFixed(2) + 'px,' + (z * S).toFixed(2) + 'px)' + (extra || '');
-    return node;
-  };
-  const img = (src, cls) => { const i = new Image(); i.src = src; i.alt = ''; if (cls) i.className = cls; i.decoding = 'async'; return i; };
-
   function build() {
-    if (!set || !host) return;
-    const W = host.clientWidth, H = host.clientHeight, b = set.base;
-    const tallest = Math.max.apply(null, set.pieces.map(p => p.h));
-    const diag = Math.hypot(b.w, b.d);
-    // 轉一圈都要塞得下：寬看底座對角線，高看最高的那片＋底座往前斜的深度
-    S = Math.min(W * 0.96 / diag, H * 0.9 / (tallest + b.d * 0.5));
-    stage.innerHTML = ''; pieces = []; walls = [];
-    const ox = -b.w / 2, oz = -b.d / 2;                  // 底座中心在原點
+    clear();
+    const b = set.base, hw = b.w / 2, hd = b.d / 2;
+    // ---- 底座：外形擠出（圖的 y 往下＝往觀眾），平躺，頂面在 y=0 ----
+    const bs = slab(b.outline.map(p => [p[0] - hw, -(p[1] - hd)]), BASE_T, [faceMat, sideMat]);
+    bs.rotation.x = -Math.PI / 2; bs.position.y = -BASE_T / 2;
+    root.add(bs);
+    const bp = new THREE.Mesh(new THREE.PlaneGeometry(b.w, b.d), printMat(tex(base + 'base.webp'), THREE.FrontSide));
+    bp.rotation.x = -Math.PI / 2; bp.position.y = 0.03;          // 印在底座頂面
+    root.add(bp);
+    // 底下一片淡淡的影子
+    const sc = document.createElement('canvas'); sc.width = sc.height = 128;
+    const sg = sc.getContext('2d'), gr = sg.createRadialGradient(64, 64, 8, 64, 64, 64);
+    gr.addColorStop(0, 'rgba(40,35,30,.28)'); gr.addColorStop(1, 'rgba(40,35,30,0)');
+    sg.fillStyle = gr; sg.fillRect(0, 0, 128, 128);
+    const sh = new THREE.Mesh(new THREE.PlaneGeometry(b.w * 1.5, b.d * 1.7), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sc), transparent: true, depthWrite: false }));
+    sh.rotation.x = -Math.PI / 2; sh.position.y = -BASE_T - 0.4;
+    root.add(sh);
 
-    // ---- 底座：平躺（rotateX 90 讓圖的往下＝往觀眾） ----
-    stage.appendChild(place(img(base + 'base.webp'), ox, 0, oz, b.w, b.d, ' rotateX(90deg)'));
-    // 厚度＝四面側邊（不用剪影往下疊：平躺的一疊層 Chrome 會排錯前後，蓋到底座上面）。
-    // 角是圓的，側邊兩頭各縮一點，轉角不會凸出去
-    const r = 2.6, wall = (x, z, w, rot, face) => {
-      const d = place(Object.assign(document.createElement('div'), { className: 'sd-wall' }), x, 0, z, w, BASE_T, rot);
-      stage.appendChild(d); walls.push([d, face]);
-    };
-    wall(ox + r, oz + b.d, b.w - 2 * r, '', 0);                              // 前
-    wall(ox + b.w - r, oz, b.w - 2 * r, ' rotateY(180deg)', 180);           // 後
-    wall(ox, oz + b.d - r, b.d - 2 * r, ' rotateY(90deg)', -90);            // 左
-    wall(ox + b.w, oz + r, b.d - 2 * r, ' rotateY(-90deg)', 90);            // 右
-
-    // ---- 每一片：插腳中心對準插孔，站在底座上面 ----
-    // 一片＝一張「平的」板子（立在片的中線），正面、背面、厚度那疊剪影都畫在這張板子裡面，
-    // 用 2D 位移做出前後錯開（frame() 裡照角度算）。不讓每一層各自做 3D：
-    // 層和層只差零點幾 mm，Chrome 的前後排序會亂，剪影蓋到正面上，整片白白的（2026-10-04 踩到）。
-    // 板子裡面是平的，畫的順序就是 z-index，正面一定在最上面。
+    // ---- 每一片：插腳中心對準插孔，站在底座上面（插腳插進底座那段不做） ----
     set.pieces.forEach(p => {
-      const x = ox + p.x, z = oz + p.y, y = -p.h;
-      // 影子：片底下一圈淡淡的
-      stage.appendChild(place(Object.assign(document.createElement('div'), { className: 'sd-shadow' }),
-        x + p.w * 0.1, -0.05, z - 2.2, p.w * 0.8, 4.4, ' rotateX(90deg)'));
-      const box = place(Object.assign(document.createElement('div'), { className: 'sd-piece' }), x, y, z, p.w, p.h);
-      const layers = [];
-      const add = (src, d) => {
-        const i = img(src); i.style.width = (p.w * S) + 'px'; i.style.height = (p.h * S) + 'px';
-        box.appendChild(i); layers.push({ el: i, d }); return i;
-      };
-      const n = Math.max(4, Math.round(PIECE_T / MM_PER_SLICE));
-      const edge = base + p.img.replace('.webp', '-edge.webp');
-      for (let i = 0; i < n; i++) add(edge, -PIECE_T / 2 + PIECE_T * (i + 0.5) / n);
-      // 背面：板子從背後看本來就是左右相反，直接放正面的圖＝背後看到鏡像（跟實品雙面印一樣）
-      const back = add(base + p.img, -PIECE_T / 2), front = add(base + p.img, PIECE_T / 2);
-      stage.appendChild(box);
-      pieces.push({ box, layers, front, back });
+      const g = new THREE.Group();
+      g.position.set(p.x - hw, 0, p.y - hd);
+      g.add(slab(p.outline, PIECE_T, [faceMat, sideMat]));
+      // 正面、背面各一張（背面 BackSide：從背後看是鏡像，跟雙面印的實品一樣）
+      const map = tex(base + p.img), pg = new THREE.PlaneGeometry(p.w, p.h);
+      const pf = new THREE.Mesh(pg, printMat(map, THREE.FrontSide)), pb = new THREE.Mesh(pg, printMat(map, THREE.BackSide));
+      pf.position.set(p.w / 2, p.h / 2, PIECE_T / 2 + 0.03);
+      pb.position.set(p.w / 2, p.h / 2, -PIECE_T / 2 - 0.03);
+      g.add(pf); g.add(pb);
+      root.add(g);
     });
-    shownFront = null;
+
+    // 鏡頭：整組（底座對角線＋最高的那片）都要塞得下，轉一圈也不會出框
+    const tall = Math.max.apply(null, set.pieces.map(p => p.h));
+    target.set(0, tall * 0.36, 0);
+    const R = Math.hypot(Math.hypot(b.w, b.d) / 2, tall * 0.62);
+    const vf = camera.fov * Math.PI / 360;
+    dist = Math.max(R / Math.tan(vf), R / (Math.tan(vf) * (camera.aspect || 1))) * 1.02;
     kick();
   }
 
-  // ---- 轉動：yaw＝左右、tilt＝俯角 ----
-  let yaw = YAW0, tilt = TILT0, yawVel = 0, drag = null, raf = 0, last = 0, shownFront = null, hx = 0, hy = 0;
+  function load(d) {
+    base = d.replace(/\/?$/, '/');
+    return fetch(base + 'set.json').then(r => r.json()).then(j => { set = j; build(); });
+  }
+
+  function resize() {
+    if (!host) return;
+    const w = host.clientWidth, h = host.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+    if (set) build(); else kick();
+  }
+
+  // ---- 轉動：yaw＝左右、tilt＝俯角（滑鼠移動時微微偏 hx/hy，看得出前後層次） ----
+  let yaw = YAW0, tilt = TILT0, yawVel = 0, drag = null, raf = 0, last = 0, hx = 0, hy = 0;
   el.addEventListener('pointerdown', e => {
     if (e.button) return;
     drag = { x: e.clientX, y: e.clientY, yaw0: yaw, tilt0: tilt, hist: [] };
     yawVel = 0;
     try { el.setPointerCapture(e.pointerId); } catch (err) {}
-    el.classList.add('drag');
+    el.style.cursor = 'grabbing';
   });
   el.addEventListener('pointermove', e => {
     if (!drag) return;
     const now = performance.now(), w = el.clientWidth || 400;
-    const ny = drag.yaw0 + (e.clientX - drag.x) / w * 220;   // 拖過整個寬度≈轉 220 度
+    const ny = drag.yaw0 - (e.clientX - drag.x) / w * 220;   // 拖過整個寬度≈轉 220 度
     drag.hist.push([now, ny - yaw]);
     while (drag.hist.length && now - drag.hist[0][0] > 90) drag.hist.shift();
     yaw = ny;
@@ -130,9 +191,9 @@ export function create(dir) {
   });
   function up() {
     if (!drag) return;
-    const d = drag; drag = null; el.classList.remove('drag');
+    const d = drag; drag = null; el.style.cursor = 'grab';
     const sum = d.hist.reduce((s, h) => s + h[1], 0), span = d.hist.length > 1 ? d.hist[d.hist.length - 1][0] - d.hist[0][0] : 0;
-    yawVel = span > 8 ? Math.max(-900, Math.min(900, sum / span * 1000)) : 0;   // 放開帶一點慣性
+    yawVel = span > 8 ? Math.max(-600, Math.min(600, sum / span * 1000)) : 0;   // 放開帶一點慣性
     kick();
   }
   el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
@@ -140,39 +201,22 @@ export function create(dir) {
   function kick() { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } }
   function frame(now) {
     raf = 0;
-    if (!el.isConnected) return;
+    if (!el.isConnected || !host) return;
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     if (!drag && yawVel) {
       yaw += yawVel * dt;
       yawVel *= Math.pow(0.04, dt);
       if (Math.abs(yawVel) < 2) yawVel = 0;
     }
-    const y = yaw + hx, t = tilt + hy;
-    // 正面朝外（-90～90 度）看正面，其他看背面。不用 backface-visibility：Chrome 會跟厚度層排錯前後
-    const ff = Math.abs(norm(y)) < 90;
-    if (ff !== shownFront) {
-      shownFront = ff;
-      pieces.forEach(p => {
-        p.front.style.visibility = ff ? '' : 'hidden';
-        p.back.style.visibility = ff ? 'hidden' : '';
-        // 離觀眾近的畫在上面：照深度 d 排，看正面時 d 大（往前）的在上，看背面時 d 小的在上
-        p.layers.slice().sort((a, c) => ff ? a.d - c.d : c.d - a.d).forEach((l, i) => { l.el.style.zIndex = i; });
-      });
-    }
-    // 每一層在板子裡的位移：深 d 的點投影到板子上，水平差 d·tan(yaw)、垂直差 d·tan(俯角)/cos(yaw)
-    const ry = y * Math.PI / 180, rt = t * Math.PI / 180;
-    let cy = Math.cos(ry); if (Math.abs(cy) < 0.08) cy = cy < 0 ? -0.08 : 0.08;   // 正側面時別除到無限大
-    const kx = Math.sin(ry) / cy * S, ky = Math.tan(rt) / cy * S;
-    pieces.forEach(p => p.layers.forEach(l => {
-      l.el.style.transform = 'translate(' + (l.d * kx).toFixed(2) + 'px,' + (l.d * ky).toFixed(2) + 'px)';
-    }));
-    // 側邊：朝向觀眾的才顯示（法線轉了 yaw 之後朝 +z）
-    walls.forEach(w => { w[0].style.visibility = Math.cos((y + w[1]) * Math.PI / 180) > 0.02 ? '' : 'hidden'; });
-    stage.style.transform = 'rotateX(' + (-t).toFixed(2) + 'deg) rotateY(' + y.toFixed(2) + 'deg)';
+    const ry = (yaw + hx) * Math.PI / 180, rt = (tilt + hy) * Math.PI / 180;
+    camera.position.set(target.x + dist * Math.cos(rt) * Math.sin(ry), target.y + dist * Math.sin(rt), target.z + dist * Math.cos(rt) * Math.cos(ry));
+    camera.lookAt(target);
+    renderer.render(scene, camera);
     if (drag || yawVel) kick();
   }
 
-  window.addEventListener('resize', () => { if (host) build(); });
+  window.addEventListener('resize', resize);
+  el.dataset.sd = '1'; el.sdState = () => ({ yaw, tilt, hx, hy, dist, yawVel, drag: !!drag });   // 除錯用：目前的角度
   load(dir);
 
   return {
@@ -181,10 +225,9 @@ export function create(dir) {
       host = h;
       if (el.parentNode !== h) { h.innerHTML = ''; h.appendChild(el); }
       yaw = YAW0; tilt = TILT0; yawVel = 0; hx = hy = 0;
-      build(); kick();
+      resize(); kick();
     },
-    // 滑鼠移動時微微偏一點（不拖的時候），看得出前後層次
-    pointer(x, y) { if (drag) return; hx = (x - 0.5) * 16; hy = (y - 0.5) * -6; kick(); },
+    pointer(x, y) { if (drag) return; hx = -(x - 0.5) * 16; hy = (y - 0.5) * 6; kick(); },
     setArt(d) { return load(d); }
   };
 }
