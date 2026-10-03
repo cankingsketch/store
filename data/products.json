@@ -53,7 +53,14 @@
       ],
       "video": "https://youtube.com/shorts/HTc5Pq8Wo04",
       "shopee": "https://shopee.tw/product/12223072/25345295131",
-      "date": "2026-07-07"
+      "date": "2026-07-07",
+      "view3d": {
+        "module": "standee3d.js",
+        "art": "assets/standee/sister/",
+        "uv": "",
+        "thumb": "img/opt/1240798645_orig-s.webp",
+        "hint": ""
+      }
     },
     {
       "id": "blind2",
