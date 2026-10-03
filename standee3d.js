@@ -6,8 +6,10 @@
 //     顏色變淡，改貼表面後清楚；印刷上面加一層亮面清漆（clearcoat），一樣會反光。背面那張用 BackSide＝鏡像
 //   ・環境光照抄印章的攝影棚（上方柔光、左右窗光、地平線暗板），轉動時反光會在表面和切邊上滑過
 //   ・左右拖：整組轉（放開帶慣性，可以轉一整圈）；上下拖：從比較高或比較低的角度看
-// 素材由 tools/sticker-preview/build_standee.py 從工廠排版產生：每組一個資料夾，set.json 是尺寸、插孔、外形（單位 mm）。
-// 介面跟其他 3D 模組一樣：create(資料夾) → { mount(host), pointer(x, y), setArt(資料夾) }
+//   ・下面一排按鈕切換 7 組；隱藏款先是黑色剪影＋「點一下揭曉」，點了轉一圈揭曉（他選的方式，2026-10-04）
+// 素材由 tools/sticker-preview/build_standee.py 從工廠排版產生：index.json＝有哪幾組，每組一個資料夾，
+// set.json 是尺寸、插孔、外形（單位 mm）。
+// 介面跟其他 3D 模組一樣：create(素材根目錄) → { mount(host), pointer(x, y) }
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 
 const PIECE_T = 3;                // 小片壓克力厚度（mm）
@@ -90,9 +92,34 @@ export function create(dir) {
   scene.environment = env;
   const [faceMat, sideMat] = acrylicMats(env);
   const camera = new THREE.PerspectiveCamera(26, 1, 5, 2000);
+  // 切換按鈕＋隱藏款的提示（疊在畫面上）
+  const ui = document.createElement('div');
+  ui.innerHTML = '<div class="sd-tag" hidden></div><div class="sd-reveal" hidden>點一下揭曉</div><div class="sd-vars"></div>';
+  el.appendChild(ui);
+  if (!document.getElementById('sd-style')) {
+    const st = document.createElement('style'); st.id = 'sd-style';
+    st.textContent =
+      '.sd-vars{position:absolute;left:0;right:0;bottom:10px;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;padding:0 10px}' +
+      '.sd-vars button{border:1px solid #ddd;background:#fff;border-radius:999px;padding:5px 13px;font-size:13px;cursor:pointer;color:#555}' +
+      '.sd-vars button.on{border-color:var(--red2,#e5483d);background:var(--red2,#e5483d);color:#fff;font-weight:700}' +
+      '.sd-vars button.hid{border-style:dashed}' +
+      '.sd-tag{position:absolute;left:12px;top:12px;padding:4px 10px;border-radius:999px;background:#2b2f45;color:#fff;font-size:12px;font-weight:700;letter-spacing:.04em}' +
+      '.sd-reveal{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);padding:8px 18px;border-radius:999px;background:rgba(43,47,69,.88);' +
+        'color:#fff;font-size:15px;font-weight:800;letter-spacing:.08em;pointer-events:none;animation:sd-pulse 1.6s ease-in-out infinite}' +
+      '@keyframes sd-pulse{50%{transform:translate(-50%,-50%) scale(1.06)}}' +
+      '.sd-tag[hidden],.sd-reveal[hidden]{display:none}';
+    document.head.appendChild(st);
+  }
+  const varsBox = ui.querySelector('.sd-vars'), tagEl = ui.querySelector('.sd-tag'), revealEl = ui.querySelector('.sd-reveal');
+  varsBox.addEventListener('pointerdown', e => e.stopPropagation());      // 按按鈕不要變成拖曳
+  varsBox.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    pick(+b.dataset.k);
+  });
+  let list = [], cur = -1, revealed = false, prints = [];
   const root = new THREE.Group(); scene.add(root);
   const loader = new THREE.TextureLoader();
-  let host = null, set = null, base = '', target = new THREE.Vector3(), dist = 300;
+  let host = null, set = null, base = '', root0 = '', target = new THREE.Vector3(), dist = 300;
 
   const tex = src => {
     const t = loader.load(src, () => kick());
@@ -106,12 +133,29 @@ export function create(dir) {
     roughness: 0.35, metalness: 0, clearcoat: 0.35, clearcoatRoughness: 0.05, envMapIntensity: 0.25
   });
 
+  // 隱藏款還沒揭曉：印刷只留形狀（全黑），壓克力照常透明
+  const silMat = map => new THREE.MeshBasicMaterial({ color: 0x1f2233, map, side: THREE.DoubleSide, alphaTest: 0.5, alphaToCoverage: true });
+  function setPrints(show) {
+    prints.forEach(p => {
+      if (!p.real) p.real = p.mesh.material;
+      if (!p.sil) p.sil = silMat(p.real.map);
+      p.mesh.material = show ? p.real : p.sil;
+    });
+    kick();
+  }
+
   function clear() {
     root.traverse(o => {
       if (o.geometry) o.geometry.dispose();
-      if (o.material && o.material.map) { o.material.map.dispose(); o.material.dispose(); }   // 正反面共用一張圖，dispose 兩次沒關係
+      // 壓克力的材質是 [正反面, 切邊] 陣列、整個模組共用，不丟（陣列也有 .map，別當成貼圖）；印刷、影子的才丟
+      if (o.material && !Array.isArray(o.material)) {
+        if (o.material.map) o.material.map.dispose();       // 正反面共用一張圖，dispose 兩次沒關係
+        o.material.dispose();
+      }
     });
     root.clear();
+    prints.forEach(p => { if (p.sil) p.sil.dispose(); });   // 剪影材質不在場景裡時（已揭曉）上面丟不到
+    prints = [];
   }
 
   function build() {
@@ -141,6 +185,7 @@ export function create(dir) {
       // 正面、背面各一張（背面 BackSide：從背後看是鏡像，跟雙面印的實品一樣）
       const map = tex(base + p.img), pg = new THREE.PlaneGeometry(p.w, p.h);
       const pf = new THREE.Mesh(pg, printMat(map, THREE.FrontSide)), pb = new THREE.Mesh(pg, printMat(map, THREE.BackSide));
+      prints.push({ mesh: pf }, { mesh: pb });
       pf.position.set(p.w / 2, p.h / 2, PIECE_T / 2 + 0.03);
       pb.position.set(p.w / 2, p.h / 2, -PIECE_T / 2 - 0.03);
       g.add(pf); g.add(pb);
@@ -152,13 +197,41 @@ export function create(dir) {
     target.set(0, tall * 0.36, 0);
     const R = Math.hypot(Math.hypot(b.w, b.d) / 2, tall * 0.62);
     const vf = camera.fov * Math.PI / 360;
-    dist = Math.max(R / Math.tan(vf), R / (Math.tan(vf) * (camera.aspect || 1))) * 1.02;
+    dist = Math.max(R / Math.tan(vf), R / (Math.tan(vf) * (camera.aspect || 1))) * 1.06;   // 下面留給按鈕
+    const hid = list[cur] && list[cur].hidden;
+    if (hid && !revealed) setPrints(false);
     kick();
   }
 
   function load(d) {
     base = d.replace(/\/?$/, '/');
     return fetch(base + 'set.json').then(r => r.json()).then(j => { set = j; build(); });
+  }
+  // 換一組：按鈕狀態、隱藏款的標籤和提示
+  function pick(k) {
+    if (k === cur || !list[k]) return;
+    cur = k;
+    const it = list[k];
+    Array.prototype.forEach.call(varsBox.children, (b, i) => b.classList.toggle('on', i === k));
+    tagEl.hidden = !it.hidden; tagEl.textContent = '隱藏款・數量很少';
+    revealEl.hidden = !(it.hidden && !revealed);
+    yaw = YAW0; yawVel = 0;
+    load(root0 + it.id + '/');
+  }
+  function reveal() {
+    revealed = true; revealEl.hidden = true;
+    yawVel = -720;                                       // 轉一圈，轉到一半換成真的圖
+    setTimeout(() => setPrints(true), 280);
+    kick();
+  }
+  function start(d) {
+    root0 = d.replace(/\/?$/, '/');
+    fetch(root0 + 'index.json').then(r => r.json()).then(j => {
+      list = j;
+      varsBox.innerHTML = list.map((it, i) => '<button data-k="' + i + '"' + (it.hidden ? ' class="hid"' : '') + '>' +
+        (it.hidden ? '？ ' : '') + it.name + '</button>').join('');
+      cur = -1; pick(0);
+    });
   }
 
   function resize() {
@@ -174,7 +247,7 @@ export function create(dir) {
   let yaw = YAW0, tilt = TILT0, yawVel = 0, drag = null, raf = 0, last = 0, hx = 0, hy = 0;
   el.addEventListener('pointerdown', e => {
     if (e.button) return;
-    drag = { x: e.clientX, y: e.clientY, yaw0: yaw, tilt0: tilt, hist: [] };
+    drag = { x: e.clientX, y: e.clientY, yaw0: yaw, tilt0: tilt, hist: [], moved: false };
     yawVel = 0;
     try { el.setPointerCapture(e.pointerId); } catch (err) {}
     el.style.cursor = 'grabbing';
@@ -182,6 +255,7 @@ export function create(dir) {
   el.addEventListener('pointermove', e => {
     if (!drag) return;
     const now = performance.now(), w = el.clientWidth || 400;
+    if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 6) drag.moved = true;
     const ny = drag.yaw0 - (e.clientX - drag.x) / w * 220;   // 拖過整個寬度≈轉 220 度
     drag.hist.push([now, ny - yaw]);
     while (drag.hist.length && now - drag.hist[0][0] > 90) drag.hist.shift();
@@ -192,6 +266,8 @@ export function create(dir) {
   function up() {
     if (!drag) return;
     const d = drag; drag = null; el.style.cursor = 'grab';
+    // 隱藏款還沒揭曉時，輕點一下＝揭曉
+    if (!d.moved && list[cur] && list[cur].hidden && !revealed) { reveal(); return; }
     const sum = d.hist.reduce((s, h) => s + h[1], 0), span = d.hist.length > 1 ? d.hist[d.hist.length - 1][0] - d.hist[0][0] : 0;
     yawVel = span > 8 ? Math.max(-600, Math.min(600, sum / span * 1000)) : 0;   // 放開帶一點慣性
     kick();
@@ -220,8 +296,8 @@ export function create(dir) {
   }
 
   window.addEventListener('resize', resize);
-  el.dataset.sd = '1'; el.sdState = () => ({ yaw, tilt, hx, hy, dist, yawVel, drag: !!drag });   // 除錯用：目前的角度
-  load(dir);
+  el.dataset.sd = '1'; el.sdState = () => ({ yaw, tilt, hx, hy, dist, yawVel, drag: !!drag }); el.sdScene = () => ({ root, prints, set, kick });   // 除錯用
+  start(dir);
 
   return {
     canvas: el,
@@ -231,7 +307,6 @@ export function create(dir) {
       yaw = YAW0; tilt = TILT0; yawVel = 0; hx = hy = 0; drag = null; el.style.cursor = 'grab';
       resize(); kick();
     },
-    pointer(x, y) { if (drag) return; hx = -(x - 0.5) * 16; hy = (y - 0.5) * 6; kick(); },
-    setArt(d) { return load(d); }
+    pointer(x, y) { if (drag) return; hx = -(x - 0.5) * 16; hy = (y - 0.5) * 6; kick(); }
   };
 }
