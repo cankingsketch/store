@@ -109,6 +109,8 @@
     /* 近期活動的吉祥物：放在「近期活動」標題右側（他要的），大小是上一版的 0.9 倍（寬約 94px），中線對齊標題那一行。
        用畫面中線定位（標題置中），各種寬度的手機都貼在標題右邊 */
     .sec.white-box .mascot { left:calc(50% + 52px) !important; top:0 !important; transform:scale(.585); }
+    /* 插畫作品的吉祥物：放大 1.2 倍（.5→.6）、往下移，中線對齊「插畫作品」那行字（他要的） */
+    .sec.plain .mascot[src*="illust_can"] { transform:translate(0, 49px) scale(.6); }
     .ev { grid-template-columns:1fr 1fr; gap:8px; padding:0; margin-top:16px; }
     .ev li { flex-direction:column; align-items:center; gap:6px; padding:12px 8px; border-radius:16px; text-align:center; }
     .ev li:last-child:nth-child(odd) { grid-column:1 / -1; }
