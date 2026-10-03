@@ -29,11 +29,12 @@ function studio(renderer) {
       let col;
       if (dy < -0.02) col = bg.slice();
       else {
+        // 天空只到淡灰（原本到純白，整片反光都是白的，看起來霧霧的、太亮；他 10-04 說太亮），窗光留著當亮帶
         const k = ss(0.2, 0.75, dy);
-        col = bg.map(v => v * 0.97 * (1 - k) + 1.0 * k);
+        col = bg.map(v => v * 0.8 * (1 - k) + 0.86 * k);
         const band = ss(-0.12, -0.02, dy) * (1 - ss(0.35, 0.5, dy));
         const fr = az * 0.6366 + 0.2, flag = 1 - ss(0.13, 0.17, Math.abs(fr - Math.floor(fr) - 0.5));
-        col = col.map((v, i) => v + ([0.45, 0.46, 0.48][i] - v) * band * flag * 0.6);
+        col = col.map((v, i) => v + ([0.32, 0.33, 0.35][i] - v) * band * flag * 0.75);   // 暗板深一點：切邊才有明暗
         const win = (1 - ss(0.16, 0.22, Math.abs(Math.abs(az) - 1.15))) * ss(-0.05, 0.05, dy) * (1 - ss(0.55, 0.7, dy));
         col = col.map(v => v + (1.12 - v) * win);
       }
@@ -52,14 +53,13 @@ function studio(renderer) {
 // 壓克力：正反面幾乎全透明、很亮的反光；切邊另外一種，透明度低一點、帶一點藍綠（實品切邊看起來就是這樣）
 function acrylicMats(env) {
   const face = new THREE.MeshPhysicalMaterial({
-    color: 0xffffff, metalness: 0, roughness: 0.03, transmission: 1, thickness: PIECE_T, ior: 1.49,
-    envMap: env, envMapIntensity: 1.25, clearcoat: 1, clearcoatRoughness: 0.02, specularIntensity: 1,
-    attenuationColor: new THREE.Color(0.86, 0.95, 0.95), attenuationDistance: 80
+    color: 0xffffff, metalness: 0, roughness: 0.02, transmission: 1, thickness: PIECE_T, ior: 1.49,
+    envMap: env, envMapIntensity: 0.7, clearcoat: 0.5, clearcoatRoughness: 0.02, specularIntensity: 0.8
   });
   const side = new THREE.MeshPhysicalMaterial({
-    color: 0xeef8f8, metalness: 0, roughness: 0.08, transmission: 0.82, thickness: 8, ior: 1.49,
-    envMap: env, envMapIntensity: 1.7, clearcoat: 1, clearcoatRoughness: 0.05,
-    attenuationColor: new THREE.Color(0.7, 0.9, 0.9), attenuationDistance: 20
+    color: 0xf2f8f8, metalness: 0, roughness: 0.06, transmission: 0.9, thickness: 6, ior: 1.49,
+    envMap: env, envMapIntensity: 1.0, clearcoat: 0.6, clearcoatRoughness: 0.05,
+    attenuationColor: new THREE.Color(0.82, 0.93, 0.93), attenuationDistance: 30
   });
   return [face, side];
 }
@@ -103,7 +103,7 @@ export function create(dir) {
   // color 設黑＝不吃漫射光，map 只拿來給 alpha（透明的地方挖掉）。alphaToCoverage：邊緣才不會鋸齒
   const printMat = (map, side) => new THREE.MeshPhysicalMaterial({
     color: 0x000000, map, emissive: 0xffffff, emissiveMap: map, side, alphaTest: 0.5, alphaToCoverage: true,
-    roughness: 0.25, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.04, envMapIntensity: 0.9
+    roughness: 0.35, metalness: 0, clearcoat: 0.35, clearcoatRoughness: 0.05, envMapIntensity: 0.25
   });
 
   function clear() {
@@ -196,7 +196,11 @@ export function create(dir) {
     yawVel = span > 8 ? Math.max(-600, Math.min(600, sum / span * 1000)) : 0;   // 放開帶一點慣性
     kick();
   }
+  // 放開可能發生在框外、或燈箱已經關掉（pointer capture 沒抓到時 el 收不到）：整頁都聽，免得 drag 卡在 true，
+  // 之後滑鼠一動就跟著轉（2026-10-04 踩到）
   el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+  el.addEventListener('lostpointercapture', up);
 
   function kick() { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } }
   function frame(now) {
@@ -224,7 +228,7 @@ export function create(dir) {
     mount(h) {
       host = h;
       if (el.parentNode !== h) { h.innerHTML = ''; h.appendChild(el); }
-      yaw = YAW0; tilt = TILT0; yawVel = 0; hx = hy = 0;
+      yaw = YAW0; tilt = TILT0; yawVel = 0; hx = hy = 0; drag = null; el.style.cursor = 'grab';
       resize(); kick();
     },
     pointer(x, y) { if (drag) return; hx = -(x - 0.5) * 16; hy = (y - 0.5) * 6; kick(); },
