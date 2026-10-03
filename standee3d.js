@@ -21,9 +21,12 @@ function addStyle() {
       '-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;overflow:hidden}' +
     '.standee3d.drag{cursor:grabbing}' +
     '.standee3d .sd-stage{position:absolute;left:50%;top:70%;width:0;height:0;transform-style:preserve-3d;will-change:transform}' +
-    '.standee3d .sd-stage *{position:absolute;left:0;top:0;transform-origin:0 0;transform-style:preserve-3d}' +
+    // 裡面每一張都是平的（transform-style 不能設 preserve-3d：Chrome 會把厚度那疊層畫到正面上面，整片變白白的）
+    '.standee3d .sd-stage *{position:absolute;left:0;top:0;transform-origin:0 0}' +
     // max-width:none：全站的 img{max-width:100%} 會把圖縮成舞台的寬（舞台是 0 寬的原點），整片變不見
     '.standee3d img{display:block;max-width:none;max-height:none;pointer-events:none;-webkit-user-drag:none}' +
+    // 底座的四面側邊（透明壓克力的切邊：亮一點、帶一點藍綠）
+    '.standee3d .sd-wall{background:linear-gradient(rgba(240,247,250,.92),rgba(196,214,222,.8));box-shadow:inset 0 1px 0 rgba(255,255,255,.9)}' +
     '.standee3d .sd-shadow{border-radius:50%;background:radial-gradient(closest-side,rgba(20,25,45,.35),rgba(20,25,45,0))}';
   document.head.appendChild(st);
 }
@@ -37,7 +40,8 @@ export function create(dir) {
   el.appendChild(stage);
 
   let host = null, set = null, S = 4;                    // S＝每 mm 幾 px（照畫面大小算）
-  let fronts = [], backs = [];                           // 每片的正面／背面（轉過 90 度時切換顯示哪一面）
+  let pieces = [];                                       // 每片：{ box（整片一張平的）, layers:[{el, d}]（d＝離片中線多深，正＝往前）, front, back }
+  let walls = [];                                        // 底座四面側邊：[元素, 朝向角]，只顯示朝向觀眾的
   let base = '';
 
   function load(d) {
@@ -61,35 +65,45 @@ export function create(dir) {
     const diag = Math.hypot(b.w, b.d);
     // 轉一圈都要塞得下：寬看底座對角線，高看最高的那片＋底座往前斜的深度
     S = Math.min(W * 0.96 / diag, H * 0.9 / (tallest + b.d * 0.5));
-    stage.innerHTML = ''; fronts = []; backs = [];
+    stage.innerHTML = ''; pieces = []; walls = [];
     const ox = -b.w / 2, oz = -b.d / 2;                  // 底座中心在原點
 
-    // ---- 底座：平躺（rotateX 90 讓圖的往下＝往觀眾），厚度往下疊 ----
-    const nb = Math.max(3, Math.round(BASE_T / MM_PER_SLICE));
-    for (let i = nb; i >= 1; i--) {
-      stage.appendChild(place(img(base + 'base-edge.webp'), ox, BASE_T * i / nb, oz, b.w, b.d, ' rotateX(90deg)'));
-    }
+    // ---- 底座：平躺（rotateX 90 讓圖的往下＝往觀眾） ----
     stage.appendChild(place(img(base + 'base.webp'), ox, 0, oz, b.w, b.d, ' rotateX(90deg)'));
+    // 厚度＝四面側邊（不用剪影往下疊：平躺的一疊層 Chrome 會排錯前後，蓋到底座上面）。
+    // 角是圓的，側邊兩頭各縮一點，轉角不會凸出去
+    const r = 2.6, wall = (x, z, w, rot, face) => {
+      const d = place(Object.assign(document.createElement('div'), { className: 'sd-wall' }), x, 0, z, w, BASE_T, rot);
+      stage.appendChild(d); walls.push([d, face]);
+    };
+    wall(ox + r, oz + b.d, b.w - 2 * r, '', 0);                              // 前
+    wall(ox + b.w - r, oz, b.w - 2 * r, ' rotateY(180deg)', 180);           // 後
+    wall(ox, oz + b.d - r, b.d - 2 * r, ' rotateY(90deg)', -90);            // 左
+    wall(ox + b.w, oz + r, b.d - 2 * r, ' rotateY(-90deg)', 90);            // 右
 
-    // ---- 每一片：插腳中心對準插孔，站在底座上面；先放後面的（深度排序交給瀏覽器，這只是保險） ----
-    set.pieces.slice().sort((a, c) => a.y - c.y).forEach(p => {
+    // ---- 每一片：插腳中心對準插孔，站在底座上面 ----
+    // 一片＝一張「平的」板子（立在片的中線），正面、背面、厚度那疊剪影都畫在這張板子裡面，
+    // 用 2D 位移做出前後錯開（frame() 裡照角度算）。不讓每一層各自做 3D：
+    // 層和層只差零點幾 mm，Chrome 的前後排序會亂，剪影蓋到正面上，整片白白的（2026-10-04 踩到）。
+    // 板子裡面是平的，畫的順序就是 z-index，正面一定在最上面。
+    set.pieces.forEach(p => {
       const x = ox + p.x, z = oz + p.y, y = -p.h;
       // 影子：片底下一圈淡淡的
       stage.appendChild(place(Object.assign(document.createElement('div'), { className: 'sd-shadow' }),
         x + p.w * 0.1, -0.05, z - 2.2, p.w * 0.8, 4.4, ' rotateX(90deg)'));
+      const box = place(Object.assign(document.createElement('div'), { className: 'sd-piece' }), x, y, z, p.w, p.h);
+      const layers = [];
+      const add = (src, d) => {
+        const i = img(src); i.style.width = (p.w * S) + 'px'; i.style.height = (p.h * S) + 'px';
+        box.appendChild(i); layers.push({ el: i, d }); return i;
+      };
       const n = Math.max(4, Math.round(PIECE_T / MM_PER_SLICE));
       const edge = base + p.img.replace('.webp', '-edge.webp');
-      for (let i = 0; i < n; i++) {
-        const t = -PIECE_T / 2 + PIECE_T * (i + 0.5) / n;
-        stage.appendChild(place(img(edge), x, y, z + t, p.w, p.h));
-      }
-      // 正面朝觀眾；背面轉 180 度，圖左右翻（背後看到的是鏡像，跟實品一樣）
-      const f = place(img(base + p.img), x, y, z + PIECE_T / 2, p.w, p.h);
-      const bk = place(img(base + p.img), x + p.w, y, z - PIECE_T / 2, p.w, p.h, ' rotateY(180deg)');
-      const inner = bk;                                  // 背面那張再左右翻一次＝鏡像
-      inner.style.transform += ' translateX(' + (p.w * S) + 'px) scaleX(-1)';
-      stage.appendChild(f); stage.appendChild(bk);
-      fronts.push(f); backs.push(bk);
+      for (let i = 0; i < n; i++) add(edge, -PIECE_T / 2 + PIECE_T * (i + 0.5) / n);
+      // 背面：板子從背後看本來就是左右相反，直接放正面的圖＝背後看到鏡像（跟實品雙面印一樣）
+      const back = add(base + p.img, -PIECE_T / 2), front = add(base + p.img, PIECE_T / 2);
+      stage.appendChild(box);
+      pieces.push({ box, layers, front, back });
     });
     shownFront = null;
     kick();
@@ -138,9 +152,22 @@ export function create(dir) {
     const ff = Math.abs(norm(y)) < 90;
     if (ff !== shownFront) {
       shownFront = ff;
-      fronts.forEach(x => { x.style.visibility = ff ? '' : 'hidden'; });
-      backs.forEach(x => { x.style.visibility = ff ? 'hidden' : ''; });
+      pieces.forEach(p => {
+        p.front.style.visibility = ff ? '' : 'hidden';
+        p.back.style.visibility = ff ? 'hidden' : '';
+        // 離觀眾近的畫在上面：照深度 d 排，看正面時 d 大（往前）的在上，看背面時 d 小的在上
+        p.layers.slice().sort((a, c) => ff ? a.d - c.d : c.d - a.d).forEach((l, i) => { l.el.style.zIndex = i; });
+      });
     }
+    // 每一層在板子裡的位移：深 d 的點投影到板子上，水平差 d·tan(yaw)、垂直差 d·tan(俯角)/cos(yaw)
+    const ry = y * Math.PI / 180, rt = t * Math.PI / 180;
+    let cy = Math.cos(ry); if (Math.abs(cy) < 0.08) cy = cy < 0 ? -0.08 : 0.08;   // 正側面時別除到無限大
+    const kx = Math.sin(ry) / cy * S, ky = Math.tan(rt) / cy * S;
+    pieces.forEach(p => p.layers.forEach(l => {
+      l.el.style.transform = 'translate(' + (l.d * kx).toFixed(2) + 'px,' + (l.d * ky).toFixed(2) + 'px)';
+    }));
+    // 側邊：朝向觀眾的才顯示（法線轉了 yaw 之後朝 +z）
+    walls.forEach(w => { w[0].style.visibility = Math.cos((y + w[1]) * Math.PI / 180) > 0.02 ? '' : 'hidden'; });
     stage.style.transform = 'rotateX(' + (-t).toFixed(2) + 'deg) rotateY(' + y.toFixed(2) + 'deg)';
     if (drag || yawVel) kick();
   }
