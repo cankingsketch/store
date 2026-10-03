@@ -5,6 +5,10 @@
   var lastDown = null;
   document.addEventListener('pointerdown', function (ev) { lastDown = ev.target; }, true);   // 記下每次是在哪裡按下的
   window.CK_bgClick = function (el, e) { return e.target === el && lastDown === el; };
+  // 點開才載入的 3D 程式（xxx3d.js）的網址：後面帶版本號，程式改了網址就變，瀏覽器不會拿快取的舊版
+  // （Cloudflare 給 JS 快取 4 小時）。版本表由 build_site.py 發布時填進來；設計稿裡是空的，照原檔名載
+  var MODV = {"album3d.js": "0436370b", "badge3d.js": "a5125a8d", "bottles3d.js": "6be0267a", "charm3d.js": "5abbcdc1", "coaster3d.js": "1eedf7b7", "stamp3d.js": "d7830851", "tshirt3d.js": "fe0c51f9"};
+  window.CK_MOD = function (name) { return './' + name + (MODV[name] ? '?v=' + MODV[name] : ''); };
 })();
 (function () {
   'use strict';
@@ -363,7 +367,7 @@
   function ensure3d() {
     if (b3dAsked) return;
     b3dAsked = true;
-    import('./bottles3d.js').then(function (m) {
+    import(CK_MOD('bottles3d.js')).then(function (m) {
       b3d = m.create();
       if (sl && sl.classList.contains('open') && cur.kind === 'bottles') { if (opened) place(false); else resetSet(false); }
     }).catch(function () { /* 載不到就維持平面瓶子 */ });
@@ -819,7 +823,7 @@
     if (spec.variants && viewers3d[key]) viewers3d[key].setArt(spec.art, spec.uv);     // 重開燈箱時回到第一款，跟按鈕一致
     function mount(v) { cur3d = v; var host = box.querySelector('.pl-3d-host'); if (!host) { host = document.createElement('div'); host.className = 'pl-3d-host'; box.insertBefore(host, box.firstChild); } v.mount(host); }
     if (viewers3d[key]) return mount(viewers3d[key]);
-    import('./' + spec.module).then(function (m) {
+    import(CK_MOD(spec.module)).then(function (m) {
       viewers3d[key] = m.create(spec.art, spec.uv);
       if (cur3dSpec === spec && !box.hidden) mount(viewers3d[key]);
     });

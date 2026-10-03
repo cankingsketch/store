@@ -227,7 +227,7 @@
 <body>
 <div id="app"></div>
 <script src="stickers.js?v=d05fc16a"></script>
-<script src="shared.js?v=e4b04397"></script>
+<script src="shared.js?v=d20df31e"></script>
 <script src="shop-v3.js?v=4c3521a6"></script>
 <script src="tees-data.js?v=a827bcbf"></script>
 <script src="books-data.js?v=72e1ebcd"></script>
@@ -486,7 +486,7 @@
         '<div class="alb-foot"><div><h3>明信片卡冊</h3><small>15 × 17 cm・厚 3 cm・25 頁，正反面各一張，共 50 張</small></div>' +
           '<div class="buybox">' + CK.buyBox(ALBUM.name, ALBUM.price, { shopee: ALBUM.shopee, noShopee: ALBUM.noShopee, findName: ALBUM.findName }) + '</div></div></div>';
       document.body.appendChild(alb);
-      import('./album3d.js').then(function (m) {
+      import(CK_MOD('album3d.js')).then(function (m) {
         albView = m.create();
         albView.onTap(albUi);
         albView.mount(alb.querySelector('.alb-stage')); albUi();
