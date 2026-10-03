@@ -227,7 +227,7 @@
 <body>
 <div id="app"></div>
 <script src="stickers.js?v=d05fc16a"></script>
-<script src="shared.js?v=6b02001f"></script>
+<script src="shared.js?v=4fbf6175"></script>
 <script src="shop-v3.js?v=212ea9da"></script>
 <script src="tees-data.js?v=a827bcbf"></script>
 <script src="books-data.js?v=72e1ebcd"></script>
@@ -362,7 +362,7 @@
     // 正式站周邊頁最後兩區（之前沒搬到）：手搖動畫機、LINE 貼圖
     '<section class="band b-stripe b-crank"><div class="wrap"><div class="sect-title">手搖動畫機</div>' +
     '<div class="crank">' + CRANK.map(function (v) {
-      return '<a class="white-box" href="https://youtu.be/' + v + '" target="_blank" rel="noopener"><img src="https://i.ytimg.com/vi/' + v + '/hqdefault.jpg" alt="手搖動畫機影片" loading="lazy"><i>▶</i></a>';
+      return '<a class="white-box" data-track-label="手搖動畫機影片" href="https://youtu.be/' + v + '" target="_blank" rel="noopener"><img src="https://i.ytimg.com/vi/' + v + '/hqdefault.jpg" alt="手搖動畫機影片" loading="lazy"><i>▶</i></a>';
     }).join('') + '</div>' +
     '<p class="crank-note">木頭雷雕・跟發條款不同</p>' +
     '<div class="v3-btns"><a class="v3-btn" href="' + CRANK_SHOP + '" target="_blank" rel="noopener">合作蝦皮賣場</a></div>' +

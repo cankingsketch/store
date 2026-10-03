@@ -71,7 +71,8 @@ console.log('\n[2] 送給 Cloudflare 的查詢內容');
   ok('限定本站 siteTag', f.some(x => Array.isArray(x.siteTag_in)), f);
   ok('沒指定 host 時不加 requestHost', !f.some(x => x.requestHost), f);
   ok('排序用 sum_visits_DESC', sentBody.variables.order === 'sum_visits_DESC');
-  ok('排除後台自己的造訪', f.some(x => x.requestPath_neq === '/admin'), f);
+  ok('排除後台自己的造訪', f.some(x => (x.requestPath_notin || []).indexOf('/admin') >= 0), f);
+  ok('排除嵌在頁面裡的貼紙預覽', f.some(x => (x.requestPath_notin || []).indexOf('/sticker-viewer') >= 0), f);
 
   await call('?days=7&host=cankingstore.com');
   const f2 = sentBody.variables.filter.AND;
@@ -133,7 +134,7 @@ console.log('\n[5] 各區塊解析');
   ok('子網域拆得出來',
     d.hosts.length === 2 && d.hosts[0].name === 'cankingstore.com', d.hosts);
   ok('裝置三類都在', d.devices.length === 3, d.devices);
-  ok('回應有標示排除了什麼（別讓行為藏起來）', d.excludes === '/admin', d.excludes);
+  ok('回應有標示排除了什麼（別讓行為藏起來）', /\/admin/.test(d.excludes) && /\/sticker-viewer/.test(d.excludes), d.excludes);
 }
 
 console.log('\n[6] 失敗處理');

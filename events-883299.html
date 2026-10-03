@@ -36,7 +36,7 @@
 <body>
 <div id="app"></div>
 <script src="stickers.js?v=d05fc16a"></script>
-<script src="shared.js?v=6b02001f"></script>
+<script src="shared.js?v=4fbf6175"></script>
 <script src="shop-v3.js?v=212ea9da"></script>
 <script>
 (function () {
@@ -52,7 +52,7 @@
       '<div class="stores">' + STORES.map(function (s) {
         return '<div class="store white-box"><p class="nm">' + s[0] + '</p><div class="tags">' + s[1].map(function (t) { return '<span>' + t + '</span>'; }).join('') + '</div>' +
           '<p class="addr">' + s[2] + '</p>' + (s[3] ? '<p class="note">' + s[3] + '</p>' : '') +
-          '<div class="v3-btns"><a class="v3-btn sub" href="' + MAP + encodeURIComponent(s[4]) + '" target="_blank" rel="noopener">開地圖</a></div></div>';
+          '<div class="v3-btns"><a class="v3-btn sub" data-track-label="地圖・' + s[0] + '" href="' + MAP + encodeURIComponent(s[4]) + '" target="_blank" rel="noopener">開地圖</a></div></div>';
       }).join('') + '</div>' +
     '</div></section>',
     '<section class="band v3 b-dots"><div class="v3-wrap">' + CK_SHOP.head('店內實景', 'IN STORE') +

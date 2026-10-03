@@ -143,7 +143,7 @@
 <script src="events-live.js"></script>
 <script src="events-data.js"></script>
 <script src="stickers.js?v=d05fc16a"></script>
-<script src="shared.js?v=6b02001f"></script>
+<script src="shared.js?v=4fbf6175"></script>
 <script src="shop-v3.js?v=212ea9da"></script>
 <script>
 (function () {
@@ -171,14 +171,22 @@
   var GOODS = ['cartoong02_orig.jpg', 'catoong01_orig.jpg', 'cartoon04s_orig.jpg', 'cartoon03_orig.jpg', '1240798645_orig.png', '2_orig.jpeg',
     '674462185_orig.jpg', 'img-9472_orig.jpeg', '1808148779_orig.jpg', 'dsc01192_orig.jpg', '71221571_orig.jpg', '900918169_orig.jpeg',
     '1068899994_orig.jpg', '148499953_orig.jpg', '937539326.jpg', '2138515468_orig.png', '1416710783_orig.png', '630936751_orig.png'];
-  // 插畫作品（Gumroad）：[商品頁, 封面]
-  var ARTS = [['msivsi', 'k92jvyook3sigzm00km03t1za70q'], ['sqjzcu', 'tgmwtpfsnv9utlmkbfmusa3b00uh'], ['gczft', 'roye61wd3wz7azi5c6ccb4xjcprl'],
-    ['lgprgb', 'n94b2vq43iv8rhusjc7qqd1ku6vl'], ['tzgkym', 'ect7d34yinf6l7philvysc7przi5'], ['gtwdb', 'fxuxgkzoake417srzsk7h3pv6jjw'],
-    ['cjeukp', 'qisihj2ia82f2g3ahd4bjj1txoij'], ['oyzny', 'chtmvbwn0ltoo21a8lde4xsc0647'], ['rpvxx', 'pztfs3cc24dxq5435lvxe8gaph4h'],
-    ['goniog', '34zo5rokuzewor7xspeasnfts8uj']];
+  // 插畫作品（Gumroad）：[商品頁, 封面, 商品名]（商品名給流量統計用，跟數位賣場記的一樣）
+  var ARTS = [
+    ['msivsi', 'k92jvyook3sigzm00km03t1za70q', '2026年9月份會員獎勵-1 雞腿筆刷畫雞腿'],
+    ['sqjzcu', 'tgmwtpfsnv9utlmkbfmusa3b00uh', '2026年8月份會員獎勵-1 盥洗包明信片'],
+    ['gczft', 'roye61wd3wz7azi5c6ccb4xjcprl', '2026年7月份會員獎勵-1 終末地'],
+    ['lgprgb', 'n94b2vq43iv8rhusjc7qqd1ku6vl', '2026年6月份會員獎勵-1 蘋果海灘'],
+    ['tzgkym', 'ect7d34yinf6l7philvysc7przi5', '2026年5月份會員獎勵-1 撐傘罐罐'],
+    ['gtwdb', 'fxuxgkzoake417srzsk7h3pv6jjw', '2026年4月份會員獎勵-1 女僕烤麵包'],
+    ['cjeukp', 'qisihj2ia82f2g3ahd4bjj1txoij', '2026年3月份會員獎勵-1 果醬罐頭'],
+    ['oyzny', 'chtmvbwn0ltoo21a8lde4xsc0647', '2026年2月份會員獎勵-1 草莓吐司'],
+    ['rpvxx', 'pztfs3cc24dxq5435lvxe8gaph4h', '2026年1月份會員獎勵-1 蛇年賀圖'],
+    ['goniog', '34zo5rokuzewor7xspeasnfts8uj', '2025年12月份會員獎勵-1 拉麵破防宣傳圖']
+  ];
   // 繪畫課程（hahow）
   var LESSONS = [['速寫課 1', 'sketchlesson01new_orig.jpg', 'https://hahow.in/cr/comicsketch'],
-    ['速寫課 2', 'sketchlesson02new_orig.jpg', 'https://hahow.in/courses/6061b38984adb3e931d6caa1/main'],
+    ['速寫課 2', 'sketchlesson02new_orig.jpg', 'https://hahow.in/cr/comicsketch2'],
     ['色彩課', 'colorlessonnew_orig.jpg', 'https://hahow.in/cr/cankingcolor1']];
 
   var pct = function (v, of) { return (v / of * 100).toFixed(3) + '%'; };
@@ -224,7 +232,7 @@
       return '<a class="mq-card" href="goods.html"><img src="' + CK_SHOP.opt(g) + '"' + CK_SHOP.fallback(IMG + g) + ' alt="" draggable="false"></a>';
     }), 'goods.html', 0, 1) +
     carouselSec('b-dots', '插畫作品', 'ARTWORK', ['illust_can.gif', 29, -47, 161], ARTS.map(function (a) {
-      return '<a class="mq-card" href="https://cankingsketch.gumroad.com/l/' + a[0] + '" target="_blank" rel="noopener"><img src="' + CK_SHOP.opt('https://public-files.gumroad.com/' + a[1]) + '"' + CK_SHOP.fallback('https://public-files.gumroad.com/' + a[1]) + ' alt="" loading="lazy" draggable="false"></a>';
+      return '<a class="mq-card" data-track-label="' + a[2] + '" href="https://cankingsketch.gumroad.com/l/' + a[0] + '" target="_blank" rel="noopener"><img src="' + CK_SHOP.opt('https://public-files.gumroad.com/' + a[1]) + '"' + CK_SHOP.fallback('https://public-files.gumroad.com/' + a[1]) + ' alt="" loading="lazy" draggable="false"></a>';
     }), 'illusts.html') +
     carouselSec('b-stripe', '繪畫課程', 'LESSONS', ['lesson_can.gif', 525, -45, 175], LESSONS.map(function (l) {
       return '<a class="mq-card" href="' + l[2] + '" target="_blank" rel="noopener"><img src="' + CK_SHOP.opt(l[1]) + '"' + CK_SHOP.fallback(IMG + l[1]) + ' alt="' + l[0] + '" loading="lazy" draggable="false"></a>';

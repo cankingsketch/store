@@ -27,7 +27,7 @@
 <body>
 <div id="app"></div>
 <script src="stickers.js?v=d05fc16a"></script>
-<script src="shared.js?v=6b02001f"></script>
+<script src="shared.js?v=4fbf6175"></script>
 <script src="shop-v3.js?v=212ea9da"></script>
 <script>
 (function () {
@@ -41,14 +41,16 @@
   ]);
   // 名稱「2026年9月份會員獎勵-1  雞腿筆刷畫雞腿」→ 卡片上只放「雞腿筆刷畫雞腿」，小字放「2026.9」
   function split(n) {
-    var m = /^(\d{4})年(\d{1,2})月份?會員獎勵[-－]?\d*\s*(.*)$/.exec(n);
+    // 名稱有好幾種寫法：「…會員獎勵-1  雞腿」「…會員獎勵1-MIKU LIVE」「…會員獎勵-空罐11月速寫練習」「…會員獎勵3-OL生日」
+    var m = /^(\d{4})年(\d{1,2})月份?會員獎勵\s*\d*\s*[-－]?\s*\d*\s*(.*)$/.exec(n);
     return m ? [m[3] || n, m[1] + '.' + m[2]] : [n, ''];
   }
   // 全部排開、不分年份（他要的）：新的在前，年月放卡片小字
   function show(d) {
     document.getElementById('list').innerHTML = d.groups.reduce(function (all, g) { return all.concat(g.products); }, []).map(function (p) {
       var s = split(p.name);
-      return '<a class="v3-card" href="' + esc(p.url) + '" target="_blank" rel="noopener"><img class="pic cover" src="' + CK_SHOP.opt(p.thumb) + '"' + CK_SHOP.fallback(esc(p.thumb)) + ' alt="" loading="lazy">' +
+      // data-track-label：統計記完整商品名（改版前就是這樣記的，前後資料才併得起來）
+      return '<a class="v3-card" data-track-label="' + esc(p.name) + '" href="' + esc(p.url) + '" target="_blank" rel="noopener"><img class="pic cover" src="' + CK_SHOP.opt(p.thumb) + '"' + CK_SHOP.fallback(esc(p.thumb)) + ' alt="" loading="lazy">' +
         '<p class="nm">' + esc(s[0]) + '</p>' + (s[1] ? '<p class="sub mute">' + s[1] + '</p>' : '') + '</a>';
     }).join('');
   }

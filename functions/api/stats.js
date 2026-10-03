@@ -9,6 +9,7 @@ import { requireAccess } from '../../lib/access.js';
 const DEFAULT_DAYS = 7;
 const MAX_DAYS = 365;
 const TOP_N = 10;
+const TOP_N_PAGES = 30;   // 各頁面轉換率要跟造訪數對得起來，頁面多拿一些
 
 function json(data, status) {
   return new Response(JSON.stringify(data), {
@@ -65,15 +66,17 @@ export async function onRequestGet({ request, env }) {
         from
       ),
       // 舊資料裡的 page 帶著 ?fbclid=... 之類的查詢字串（前端已修，但存下來的還在），
-      // 所以這裡先切掉問號後面再分組，同一頁才併得起來
+      // 所以這裡先切掉問號後面再分組，同一頁才併得起來。
+      // 只算購買連結（kind = 'shop'）：後台拿它算「各頁面轉換率」，YouTube、開地圖這類外連不是購買
+      // （2026-10-04 修：實體店寄售頁的「開地圖」被算成點了購買）
       rows(
         `SELECT CASE WHEN instr(page, '?') > 0
                      THEN substr(page, 1, instr(page, '?') - 1)
                      ELSE page END AS page,
                 COUNT(*) AS n
-         FROM clicks WHERE day >= ?
+         FROM clicks WHERE day >= ? AND kind = 'shop'
          GROUP BY 1 ORDER BY n DESC LIMIT ?`,
-        from, TOP_N
+        from, TOP_N_PAGES
       ),
       rows(`SELECT device, COUNT(*) AS n FROM clicks WHERE day >= ? GROUP BY device`, from),
       rows(

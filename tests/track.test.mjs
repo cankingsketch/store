@@ -132,6 +132,7 @@ console.log('\n[6] 彙總統計');
     d.byLabel[0].label === '下雨天杯墊' && d.byLabel[0].n === 3, d.byLabel);
   ok('熱門商品不含社群連結', !d.byLabel.some(x => x.label === 'IG'), d.byLabel);
   ok('頁面排名 /goods 最高', d.byPage[0].page === '/goods' && d.byPage[0].n === 4, d.byPage);
+  ok('每頁點擊只算購買連結（首頁的 IG 不算）', !d.byPage.some(x => x.page === '/'), d.byPage);
   ok('國家有 TW 與 US', d.byCountry.length === 2, d.byCountry);
   ok('裝置分類有兩種', d.byDevice.length === 2, d.byDevice);
   ok('日期區間 to = 今天(台北)', d.to === today, d.to);

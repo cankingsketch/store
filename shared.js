@@ -87,7 +87,7 @@
   // 頁尾：賣場入口＋版權（細修版才顯示，整條紅底）
   function footer() {
     // 跟現在官網頁尾一樣：社群圖示（紅底白圓）＋版權。賣場入口已經在頁面頂端，這裡不重複
-    return '<footer class="site-foot"><div class="sns">' + '<a aria-label="Instagram" title="Instagram"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17.2" cy="6.8" r="1.3" fill="currentColor"/></svg></a>' + '<a aria-label="Facebook" title="Facebook"><svg viewBox="0 0 24 24"><path d="M13.5 21v-7.5h2.6l.4-3h-3V8.6c0-.9.3-1.5 1.5-1.5h1.6V4.4c-.3 0-1.2-.1-2.3-.1-2.3 0-3.8 1.4-3.8 3.9v2.3H8v3h2.5V21z" fill="currentColor"/></svg></a>' + '<a aria-label="YouTube" title="YouTube"><svg viewBox="0 0 24 24"><rect x="2.5" y="5.5" width="19" height="13" rx="4" fill="currentColor"/><path d="M10 9v6l5.2-3z" fill="#fff"/></svg></a>' + '<a aria-label="Email" title="Email"><svg viewBox="0 0 24 24"><rect x="3.5" y="6" width="17" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 7l8 6 8-6" fill="none" stroke="currentColor" stroke-width="2"/></svg></a>' + '<a aria-label="Linktree" title="Linktree"><svg viewBox="0 0 24 24"><path d="M12 3v18M4.5 7.5l15 9M19.5 7.5l-15 9M3.5 12h17" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></a>' + '</div><small>@CankingSketch All rights reserved</small></footer>';
+    return '<footer class="site-foot"><div class="sns">' + '<a aria-label="Instagram" title="Instagram" href="https://www.instagram.com/canking_liu" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17.2" cy="6.8" r="1.3" fill="currentColor"/></svg></a>' + '<a aria-label="Facebook" title="Facebook" href="https://www.facebook.com/canking" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M13.5 21v-7.5h2.6l.4-3h-3V8.6c0-.9.3-1.5 1.5-1.5h1.6V4.4c-.3 0-1.2-.1-2.3-.1-2.3 0-3.8 1.4-3.8 3.9v2.3H8v3h2.5V21z" fill="currentColor"/></svg></a>' + '<a aria-label="YouTube" title="YouTube" href="https://www.youtube.com/c/a12710xxx" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><rect x="2.5" y="5.5" width="19" height="13" rx="4" fill="currentColor"/><path d="M10 9v6l5.2-3z" fill="#fff"/></svg></a>' + '<a aria-label="Email" title="Email" href="mailto:' + ['a12710xxx', 'gmail.com'].join('@') + '"><svg viewBox="0 0 24 24"><rect x="3.5" y="6" width="17" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 7l8 6 8-6" fill="none" stroke="currentColor" stroke-width="2"/></svg></a>' + '<a aria-label="Linktree" title="Linktree" href="https://linktr.ee/cankingsketch" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M12 3v18M4.5 7.5l15 9M19.5 7.5l-15 9M3.5 12h17" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></a>' + '</div><small>@CankingSketch All rights reserved</small></footer>';
   }
   function buyRow() {
     return '<div class="buy"><a class="main" href="' + MYSHIP + '" target="_blank" rel="noopener">賣貨便</a><a class="sub" href="' + SHOPEE + '" target="_blank" rel="noopener">蝦皮</a></div>';
@@ -98,8 +98,9 @@
   // p 可以帶 from（多種價格，顯示「起」）、shopee（該商品自己的蝦皮網址）、soldout（絕版）
   function priceText(price, from) { return price ? money(price) + (from ? ' 起' : '') : ''; }
   // 購買按鈕都標上商品名（data-track-label）：點擊統計（正式站的 track.js）才知道是在買哪個商品
+  // 購買按鈕都帶 data-track-label，流量統計才知道點的是哪個商品；opt.trackLabel 可以另外指定（單張貼紙要記是哪一張）
   function buyBox(name, price, opt) {
-    return buyBoxHtml(name, price, opt).replace(/<a /g, '<a data-track-label="' + esc(name) + '" ');
+    return buyBoxHtml(name, price, opt).replace(/<a /g, '<a data-track-label="' + esc((opt && opt.trackLabel) || name) + '" ');
   }
   function buyBoxHtml(name, price, opt) {
     opt = opt || {};
@@ -166,7 +167,8 @@
     lb.querySelector('h3').innerHTML = esc(s.name) + (!t && isNew(s) ? '<i class="tag new">NEW</i>' : '') + (s.holo ? '<i class="tag holo">雷射</i>' : '');
     lb.querySelector('.prev').style.visibility = lb.querySelector('.next').style.visibility = list.length > 1 ? '' : 'hidden';
     lb.querySelector('small').textContent = s.sheetView ? s.note : s.note + (s.paper ? '' : '・防水貼紙') + (t ? '・' + t.name + '內容物，不單賣' : '');
-    lb.querySelector('.buybox').innerHTML = buyBox(t ? t.name : '防水貼紙', t ? t.price : s.price);
+    // 單張貼紙：畫面上寫「防水貼紙」，統計記成「貼紙・名稱」（原本每一張都記成「防水貼紙」，看不出是哪張，2026-10-04 改）
+    lb.querySelector('.buybox').innerHTML = buyBox(t ? t.name : '防水貼紙', t ? t.price : s.price, t ? null : { trackLabel: '貼紙・' + s.name });
     // 提示只留撕／翻這種不講不會發現的操作，一句話（照ちいかわマーケット的做法，說明越少越好）
     lb.querySelector('.lb-hint').textContent = s.sheetView ? '按住一枚往內拖，可以撕起來' : s.stack ? '往左上拖，可以翻開票根'
       : s.paper ? '' : '按住邊緣往內拖，可以撕起來';

@@ -22,6 +22,7 @@
     ['pressplay.cc', 'PressPlay'],
     ['forms.gle', '訂購表單'],
     ['docs.google.com', '訂購表單'],
+    ['google.com', 'Google 地圖'],     // 站上連到 google.com 的只有實體店的「開地圖」（docs.google.com 在上面先比對掉）
     ['youtube.com', 'YouTube'],
     ['youtu.be', 'YouTube'],
     ['instagram.com', 'Instagram'],
@@ -70,6 +71,9 @@
     }
     var own = (a.textContent || '').replace(/\s+/g, ' ').trim();
     if (own) return own.slice(0, 80);
+    // 只有圖示的連結（頁尾的 Instagram、YouTube…）：用 aria-label
+    var aria = (a.getAttribute('aria-label') || a.getAttribute('title') || '').trim();
+    if (aria) return aria.slice(0, 80);
     var img = a.querySelector && a.querySelector('img');
     return img && img.alt ? String(img.alt).slice(0, 80) : '';
   }

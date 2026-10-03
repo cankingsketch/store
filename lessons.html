@@ -82,7 +82,7 @@
 <body>
 <div id="app"></div>
 <script src="stickers.js?v=d05fc16a"></script>
-<script src="shared.js?v=6b02001f"></script>
+<script src="shared.js?v=4fbf6175"></script>
 <script src="shop-v3.js?v=212ea9da"></script>
 <script>
 (function () {
@@ -109,7 +109,8 @@
     '<section class="band b-dots lsn-band"><div class="wrap">' +
       // 「繪畫課程 LESSONS」標題＋吉祥物拿掉了（他說多餘：上面開場已經講了在賣課程）
       '<div class="courses">' + COURSES.map(function (c) {
-        return '<div class="course"><a class="pic" href="' + c[3][0][1] + '"' + ext + '><img src="' + CK_SHOP.opt(c[1]) + '" alt="' + c[0] + '"></a>' +
+        // data-track-label：圖和下面的 HAHOW／PressPlay 按鈕都記成課名（原本按鈕記成「HAHOW」，同一堂課被拆成兩列）
+        return '<div class="course" data-track-label="' + c[0] + '"><a class="pic" href="' + c[3][0][1] + '"' + ext + '><img src="' + CK_SHOP.opt(c[1]) + '" alt="' + c[0] + '"></a>' +
           '<p class="nm">' + c[0] + '</p><p class="tip">' + c[2] + '</p>' +
           '<div class="go">' + c[3].map(function (b, i) { return '<a' + (i ? ' class="sub"' : '') + ' href="' + b[1] + '"' + ext + '>' + b[0] + '</a>'; }).join('') + '</div></div>';
       }).join('') + '</div>' +

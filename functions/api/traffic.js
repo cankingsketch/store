@@ -23,6 +23,8 @@ const MAX_DAYS = 180;
 const TOP_N = 10;
 const CACHE_MS = 5 * 60 * 1000; // 後台自己看的頁面，5 分鐘新鮮度夠了
 const ADMIN_PATH = '/admin';   // 這一頁的造訪是我們自己，不算進網站流量
+// 不算進網站流量的路徑：後台（我們自己）、貼紙 3D 預覽（嵌在周邊頁裡的 iframe，打開一次貼紙就多算一頁，2026-10-04 加）
+const EXCLUDE_PATHS = [ADMIN_PATH, '/sticker-viewer'];
 
 /* 同一個 isolate 內的短期快取，避免每次切分頁都打一次 API */
 const memo = new Map();
@@ -43,9 +45,9 @@ function taipeiDay(ms) {
   return new Date(ms + 8 * 3600 * 1000).toISOString().slice(0, 10);
 }
 
-/* 每個排行區塊的形狀都一樣，用同一段產生 */
-function topBlock(alias, dimension, limit) {
-  return `${alias}: rumPageloadEventsAdaptiveGroups(filter: $filter, limit: ${limit}, orderBy: [$order]) {
+/* 每個排行區塊的形狀都一樣，用同一段產生。order 不給就照造訪數（$order＝sum_visits_DESC） */
+function topBlock(alias, dimension, limit, order) {
+  return `${alias}: rumPageloadEventsAdaptiveGroups(filter: $filter, limit: ${limit}, orderBy: [${order || '$order'}]) {
       count
       sum { visits }
       dimensions { metric: ${dimension} }
@@ -72,15 +74,21 @@ const QUERY = `query AdminTraffic(
       }
       ${topBlock('referers', 'refererHost', 20)}
       ${topBlock('countries', 'countryName', 30)}
-      ${topBlock('paths', 'requestPath', 20)}
+      ${topBlock('paths', 'requestPath', 30, 'count_DESC')}
       ${topBlock('hosts', 'requestHost', 20)}
       ${topBlock('devices', 'deviceType', 10)}
     }
   }
 }`;
 
-/* GraphQL 回傳的每一列都是 { count, sum: { visits }, dimensions: { metric } } */
-function rows(list, label) {
+/* GraphQL 回傳的每一列都是 { count, sum: { visits }, dimensions: { metric } }
+ *
+ * visits（造訪）只算「從站外進來的第一頁」：從首頁點進課程頁，課程頁只多一次 views（瀏覽），visits 不變。
+ * 所以「各頁面」要用 views 排、用 views 算——用 visits 的話，內頁幾乎都是 0～1，
+ * 轉換率會算出 3700% 這種數字，而且 visits 是 0 的頁面整列被濾掉（2026-10-04 修）。
+ * 其他排行（來源、國家、裝置）講的是「進站的人」，照舊用 visits。 */
+function rows(list, label, by) {
+  by = by || 'visits';
   return (list || [])
     .map(function (r) {
       return {
@@ -89,8 +97,8 @@ function rows(list, label) {
         views: r.count || 0,
       };
     })
-    .filter(function (r) { return r.visits > 0; })
-    .sort(function (a, b) { return b.visits - a.visits; });
+    .filter(function (r) { return r[by] > 0; })
+    .sort(function (a, b) { return b[by] - a[by]; });
 }
 
 export async function onRequestGet({ request, env }) {
@@ -128,7 +136,7 @@ export async function onRequestGet({ request, env }) {
     { siteTag_in: [env.CF_SITE_TAG || SITE_TAG] },
     // 後台是我們自己在用，不是客人。算進去會灌水造訪數、稀釋轉換率，
     // 還會讓 /admin 擠進「熱門頁面」。
-    { requestPath_neq: ADMIN_PATH },
+    { requestPath_notin: EXCLUDE_PATHS },
   ];
   if (host) and.push({ requestHost: host });
 
@@ -185,13 +193,13 @@ export async function onRequestGet({ request, env }) {
       host,
       from: fromDay,
       to: taipeiDay(now),
-      excludes: ADMIN_PATH,
+      excludes: EXCLUDE_PATHS.join('、'),
       visits: (t.sum && t.sum.visits) || 0,
       views: t.count || 0,
       byDay,
       referers: rows(a.referers, '（直接進入）').slice(0, TOP_N),
       countries: rows(a.countries).slice(0, TOP_N),
-      paths: rows(a.paths).slice(0, TOP_N),
+      paths: rows(a.paths, '', 'views'),        // 全部給（最多 30 頁），後台的轉換率表才對得上每一頁
       hosts: rows(a.hosts),
       devices: rows(a.devices),
     };

@@ -712,10 +712,12 @@
     if (!box) return;
     if (!lastTraffic || !lastStats) { box.innerHTML = '<p class="empty">載入中…</p>'; return; }
 
+    // 用瀏覽次數（views），不是造訪（visits）：造訪只算從站外進來的那一頁，
+    // 內頁幾乎都是 0～1，轉換率會算出 3700%（2026-10-04 修）
     var visits = {};
     (lastTraffic.paths || []).forEach(function (r) {
       var k = pageKey(r.name);
-      visits[k] = (visits[k] || 0) + (r.visits || 0);
+      visits[k] = (visits[k] || 0) + (r.views || 0);
     });
     var clicks = {};
     (lastStats.byPage || []).forEach(function (r) {
@@ -735,7 +737,7 @@
     if (!list.length) { box.innerHTML = '<p class="empty">還沒有資料。</p>'; return; }
     var maxRate = Math.max.apply(null, list.map(function (r) { return r.rate || 0; })) || 1;
 
-    var html = '<div class="pc-head"><span>頁面</span><span>造訪</span><span>點了購買</span>'
+    var html = '<div class="pc-head"><span>頁面</span><span>瀏覽</span><span>點了購買</span>'
       + '<span class="pc-r">轉換率</span></div>';
     list.forEach(function (r) {
       var pct = r.rate === null ? 0 : Math.round(r.rate / maxRate * 100);
@@ -745,8 +747,8 @@
         + '<span class="pc-bar"><i style="width:' + pct + '%"></i></span>'
         + '<span class="pc-r">' + (r.rate === null ? '—' : r.rate.toFixed(1) + '%') + '</span></div>';
     });
-    html += '<p class="hint">造訪數來自 Cloudflare、點擊數來自本站紀錄，兩邊統計方式不同，'
-      + '比率看趨勢就好，別當成精確值。</p>';
+    html += '<p class="hint">瀏覽＝這一頁被打開幾次（Cloudflare）；點了購買＝在這一頁點購買連結的次數（本站紀錄，'
+      + '不含 YouTube、地圖這類外連）。同一次瀏覽點了好幾個商品會算好幾次，所以偶爾可能超過 100%，看趨勢就好。</p>';
     box.innerHTML = html;
   }
 
@@ -873,7 +875,7 @@
       '<span>' + (d.byDay[d.byDay.length - 1] || {}).day + '</span></div>');
 
     html += section('從哪個網站來', trafficBars(d.referers));
-    html += section('熱門頁面', trafficBars(d.paths));
+    html += section('熱門頁面（瀏覽次數）', trafficBars((d.paths || []).slice(0, 10), 'views'));
 
     html += '<div class="cols" style="margin-top:4px;"><div>' +
       section('國家地區', trafficBars((d.countries || []).map(function (r) {
