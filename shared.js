@@ -601,6 +601,9 @@
   function setView(v) {
     var photo = sl.querySelector('.sl-photo');
     photo.hidden = v === '3d';
+    // 標籤貼（bottles）的 3D：手機上手指在畫面裡拖是要轉瓶子，不能讓整個視窗跟著捲（他反映的）。
+    // 只在看 3D 那格時擋；切到商品圖／影片就恢復正常捲動
+    sl.querySelector('.sl-stage').style.touchAction = cur.kind === 'bottles' && v === '3d' ? 'none' : '';
     if (v === 'video') photo.innerHTML = '<div class="pl-video' + (/instagram/.test(photo.dataset.video) ? ' ig' : '') + '"><iframe src="' + photo.dataset.video + '" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen title="影片"></iframe></div>';
     else if (v !== '3d') photo.innerHTML = '<img src="' + (cur.photos || [])[+v.slice(1)] + '" alt="' + esc(cur.name) + ' 商品圖">';
     else photo.innerHTML = '';
