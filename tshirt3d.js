@@ -14,7 +14,7 @@ function addStyle() {
   styled = true;
   const st = document.createElement('style');
   st.textContent =
-    '.teeflat{position:absolute;inset:0;perspective:1400px;cursor:pointer;-webkit-tap-highlight-color:transparent}' +
+    '.teeflat{position:absolute;inset:0;perspective:1400px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:none}' +   // 手指拖＝傾斜衣服，不捲動整頁
     '.teeflat .tf-card{position:absolute;left:50%;top:50%;transform-style:preserve-3d;will-change:transform}' +
     '.teeflat img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;' +
       'backface-visibility:hidden;-webkit-backface-visibility:hidden;user-select:none;-webkit-user-drag:none;pointer-events:none;' +

@@ -74,6 +74,8 @@ export function create(artUrl, uvUrl) {
   ANISO = renderer.capabilities.getMaxAnisotropy();
   renderer.setClearColor(0x000000, 0);
   const canvas = renderer.domElement; canvas.className = 'coaster3d';
+  // 手機上手指在畫面裡拖是要轉它，不是捲動整頁（他反映的，跟徽章一起改）
+  canvas.style.touchAction = 'none';
   const scene = new THREE.Scene();
   scene.environment = new THREE.PMREMGenerator(renderer).fromEquirectangular(envTex()).texture;
   scene.add(new THREE.AmbientLight(0xffffff, 0.35));

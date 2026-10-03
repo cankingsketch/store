@@ -162,15 +162,24 @@ window.CK_SHOP = {
     Array.prototype.forEach.call(track.querySelectorAll('img'), function (im) {
       if (!im.complete) im.addEventListener('load', function () { if (!down && !mq.classList.contains('dragging')) go(idx, false); });
     });
+    // 內容排了三份，idx 平常在中間那份（N～2N-1），動畫跑完（transitionend）再無聲接回中間。
+    // 但動畫沒跑完就不會有 transitionend（分頁在背景、連按好幾下「下一張」），idx 會一路加到超過三份，
+    // 找不到卡片就整條輪播卡死、每 3.5 秒報錯一次（2026-10-03 發現）。所以每次要動之前先把 idx 拉回中間那份
+    function mid(j) { return ((j % N) + N) % N + N; }
     function go(i, anim) {
-      idx = i;
+      if (anim && (idx < N || idx >= 2 * N)) {
+        var m = mid(idx); i += m - idx; idx = m;
+        track.style.transition = 'none'; track.style.transform = 'translateX(' + pos(idx) + 'px)';
+        void track.offsetWidth;                   // 先無聲跳到中間那份，再從那裡開始動畫
+      }
+      idx = Math.max(0, Math.min(3 * N - 1, i));
       track.style.transition = anim ? EASE : 'none';
       track.style.transform = 'translateX(' + pos(idx) + 'px)';
       var k = ((idx % N) + N) % N;
       Array.prototype.forEach.call(dots.children, function (d, j) { d.classList.toggle('on', j === k); });
     }
     track.addEventListener('transitionend', function () {
-      if (idx >= 2 * N) go(idx - N, false); else if (idx < N) go(idx + N, false);
+      if (idx >= 2 * N || idx < N) go(mid(idx), false);
     });
     function poke() { lastTouch = performance.now(); }
     wrap.querySelector('.mq-arrow.prev').addEventListener('click', function () { poke(); go(idx - 1, true); });

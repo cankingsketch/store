@@ -190,6 +190,8 @@ export function create(printUrl, rubberUrl) {
   renderer.setPixelRatio(Math.min((window.devicePixelRatio || 1) * 1.5, 3));
   renderer.setClearColor(0x000000, 0);
   const canvas = renderer.domElement; canvas.className = 'stamp3d';
+  // 手機上手指在畫面裡拖是要轉它，不是捲動整頁（他反映的，跟徽章一起改）
+  canvas.style.touchAction = 'none';
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(30, 1, 10, 2000);
   camera.position.set(0, 0, 200);
