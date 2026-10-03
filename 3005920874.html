@@ -10,6 +10,12 @@
   /* 畫冊頁樣品：內容照正式站 3005920874.html，外觀套 v3。
      卡片只放封面＋書名＋一行年份；點了放大看內頁，購買鈕放在放大的視窗裡（卡片保持乾淨） */
   .shoprow.tapes { margin:4px auto 34px; }   /* 頂端四個入口：跟周邊頁同一款紙膠帶（他要的），下面接「實體畫冊」標題 */
+  /* 電腦版也跟手機一樣：四段平均分、整排撐開（他要的），寬 640、字 16px */
+  @media (min-width:761px) {
+    .shoprow.tapes { width:min(640px, 100%); gap:14px; }
+    .shoprow.tapes .t { flex:1 1 0; min-width:0; }
+    .shoprow.tapes a { padding:12px 0; font-size:16px; text-align:center; }
+  }
 </style>
 <meta name="description" content="空罐王的畫冊：實體畫冊與電子版。">
 <link rel="canonical" href="https://cankingstore.com/3005920874">
