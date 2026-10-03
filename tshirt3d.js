@@ -70,8 +70,14 @@ export function create(frontUrl, backUrl) {
     const nx = SEG, ny = Math.round(SEG * img.height / img.width);
     const hf = heightField(img, nx, ny);
     shirt.add(panel(img, tf, W, Hh, hf, nx, ny));
-    // 背面：同一個外形轉 180°（build_tee.py 已經把背面拉成正面的外形），從後面看就是背面圖
-    const back = panel(img, tb, W, Hh, hf, nx, ny);
+    // 背面：整片轉 180° 放到後面，從後面看就是背面圖。
+    // 轉 180° 會讓外形左右顛倒，而衣服照片不是完全左右對稱（差約 1.4%）→ 前後兩片在衣服邊緣接不起來，
+    // 從側面看就從縫隙看穿到背景（他 iPhone 上看到的破圖）。所以背面那片用「左右翻過來的外形」：
+    // 鼓起高度用 hf 的鏡像，背面貼圖的透明範圍也已經改成正面外形的鏡像（2026-10-03 重做 assets/tee-*-back.webp），
+    // 轉 180° 之後兩片外形完全重合，邊緣接成密封的一圈
+    const hfB = new Float32Array(hf.length);
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) hfB[j * nx + i] = hf[j * nx + (nx - 1 - i)];
+    const back = panel(img, tb, W, Hh, hfB, nx, ny);
     back.rotation.y = Math.PI; shirt.add(back);
     ready = true; dirty = true;
   });
