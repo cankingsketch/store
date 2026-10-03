@@ -201,12 +201,13 @@
       '<a class="more" href="' + href + '"' + (ext ? ' target="_blank" rel="noopener"' : '') + '>VIEW ALL →</a></div></section>';
   }
 
-  // 沒有白框的區塊：標題＋吉祥物（位置照原本），下面一條輪播、VIEW ALL
-  function carouselSec(band, zh, en, m, cards, href, ext) {
+  // 沒有白框的區塊：標題＋吉祥物（位置照原本），下面一條輪播、VIEW ALL。
+  // fit＝跟周邊頁頂端一樣：高度統一、寬度照圖的比例，整張不裁（他要周邊這條這樣，2026-10-03）
+  function carouselSec(band, zh, en, m, cards, href, ext, fit) {
     return '<section class="band home ' + band + ' carousel-band"><div class="sec plain">' +
       '<img class="mascot" src="' + CK_SHOP.opt(m[0]) + '" loading="lazy" alt="" style="left:' + m[1] + 'px;top:' + m[2] + 'px;width:' + m[3] + 'px">' +
       '<h2>' + zh + '</h2><p class="en">' + en + '</p></div>' +
-      '<div class="mq-wrap"><button class="mq-arrow prev" aria-label="上一張">‹</button><div class="mq"><div class="mq-track">' + cards.join('') +
+      '<div class="mq-wrap"><button class="mq-arrow prev" aria-label="上一張">‹</button><div class="mq' + (fit ? ' fit' : '') + '"><div class="mq-track">' + cards.join('') +
       '</div></div><button class="mq-arrow next" aria-label="下一張">›</button></div>' +
       '<div class="plain-more"><a class="more" href="' + href + '"' + (ext ? ' target="_blank" rel="noopener"' : '') + '>VIEW ALL →</a></div></section>';
   }
@@ -220,8 +221,8 @@
       }).join('') + '</ul>' : '<p class="empty">敬請期待</p>'), 'events.html', 0, 329) +
     // 周邊、插畫作品、繪畫課程：都不要白框，改成跟周邊頁最上面一樣的輪播（他要的；CK_SHOP.carousel：停一下跳一格、可拖可滑）
     carouselSec('b-stripe', '空罐周邊', 'GOODS', ['goods_can.gif', 474, -53, 233], GOODS.map(function (g) {
-      return '<a class="mq-card" href="goods.html"><img src="' + CK_SHOP.opt(g) + '"' + CK_SHOP.fallback(IMG + g) + ' alt="" loading="lazy" draggable="false"></a>';
-    }), 'goods.html') +
+      return '<a class="mq-card" href="goods.html"><img src="' + CK_SHOP.opt(g) + '"' + CK_SHOP.fallback(IMG + g) + ' alt="" draggable="false"></a>';
+    }), 'goods.html', 0, 1) +
     carouselSec('b-dots', '插畫作品', 'ARTWORK', ['illust_can.gif', 29, -47, 161], ARTS.map(function (a) {
       return '<a class="mq-card" href="https://cankingsketch.gumroad.com/l/' + a[0] + '" target="_blank" rel="noopener"><img src="' + CK_SHOP.opt('https://public-files.gumroad.com/' + a[1]) + '"' + CK_SHOP.fallback('https://public-files.gumroad.com/' + a[1]) + ' alt="" loading="lazy" draggable="false"></a>';
     }), 'illusts.html') +
