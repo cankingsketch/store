@@ -797,7 +797,9 @@
     box.hidden = !on;
     if (!on || !cur3dSpec) return;
     var spec = cur3dSpec, key = spec.art;
-    box.querySelector('.pl-3d-hint').textContent = touchText(spec.hint || '移動滑鼠轉動');
+    // hint 寫空字串＝不要提示字（轉盤吊飾，他說不用寫）；沒寫才用預設
+    var hint = box.querySelector('.pl-3d-hint');
+    hint.textContent = touchText(spec.hint == null ? '移動滑鼠轉動' : spec.hint); hint.hidden = !hint.textContent;
     // 多款式（印章 5 款）：下方一排款式鈕，切換時同一個 viewer 換圖
     var vars = box.querySelector('.pl-3d-vars');
     if (!vars) {

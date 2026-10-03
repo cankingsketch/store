@@ -140,7 +140,14 @@
       ],
       "video": "",
       "shopee": "",
-      "date": "2026-07-07"
+      "date": "2026-07-07",
+      "view3d": {
+        "module": "charm3d.js",
+        "art": "assets/charm-draw-base.webp",
+        "uv": "assets/charm-draw-pointer.webp",
+        "thumb": "img/opt/charm-draw2-s.webp",
+        "hint": ""
+      }
     },
     {
       "id": "coaster",
