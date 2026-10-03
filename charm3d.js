@@ -84,7 +84,7 @@ export function create(baseUrl, ptrUrl) {
     else {                                                    // 拖曳放開：照最後 0.09 秒的速度繼續轉
       const sum = d.hist.reduce((s, h) => s + h[1], 0), span = d.hist.length > 1 ? d.hist[d.hist.length - 1][0] - d.hist[0][0] : 0;
       vel = span > 8 ? sum / span * 1000 : 0;
-      vel = Math.max(-2600, Math.min(2600, vel));
+      vel = Math.max(-6000, Math.min(6000, vel));   // 最高速：原本 2600 他嫌不夠快，拉到 6000（每秒約 17 圈）
     }
     if (Math.abs(vel) < 40) vel = 0; else spinning = true;
     kick();
