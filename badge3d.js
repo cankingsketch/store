@@ -50,7 +50,8 @@ function maps(img) {
 
 export function create(artUrl, goldUrl) {
   const canvas = document.createElement('canvas');
-  canvas.style.cssText = 'display:block;width:100%;height:100%;cursor:pointer';
+  // touch-action:none：手機上手指在徽章上拖是要轉它，不是捲動整頁（他反映的）
+  canvas.style.cssText = 'display:block;width:100%;height:100%;cursor:pointer;touch-action:none';
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
   renderer.toneMapping = THREE.NoToneMapping;
