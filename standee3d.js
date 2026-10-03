@@ -216,13 +216,17 @@ export function create(dir) {
     Array.prototype.forEach.call(varsBox.children, (b, i) => b.classList.toggle('on', i === k));
     tagEl.hidden = !it.hidden; tagEl.textContent = '隱藏款機率為 1/64';
     revealEl.hidden = !(it.hidden && !revealed);
-    yaw = YAW0; yawVel = 0;
+    yaw = YAW0; yawVel = 0; spin = null;
     load(root0 + it.id + '/');
   }
+  // 揭曉：固定的動畫，剛好轉一整圈、停在一打開的斜前方角度（不能用慣性：停在哪不一定，他看到停在側面覺得怪）。
+  // 轉到一半（背對觀眾的時候）換成真的圖
+  let spin = null;
   function reveal() {
     revealed = true; revealEl.hidden = true;
-    yawVel = -720;                                       // 轉一圈，轉到一半換成真的圖
-    setTimeout(() => setPrints(true), 280);
+    yawVel = 0; hx = hy = 0;
+    const to = YAW0 - 360 * Math.ceil((yaw - YAW0 + 300) / 360);   // 往同一方向轉，至少轉 300 度、停在 YAW0
+    spin = { t0: performance.now(), dur: 1400, from: yaw, to, tilt0: tilt, swapped: false };
     kick();
   }
   function start(d) {
@@ -248,6 +252,7 @@ export function create(dir) {
   let yaw = YAW0, tilt = TILT0, yawVel = 0, drag = null, raf = 0, last = 0, hx = 0, hy = 0;
   el.addEventListener('pointerdown', e => {
     if (e.button) return;
+    if (spin) return;                                    // 揭曉動畫中不能拖
     drag = { x: e.clientX, y: e.clientY, yaw0: yaw, tilt0: tilt, hist: [], moved: false };
     yawVel = 0;
     try { el.setPointerCapture(e.pointerId); } catch (err) {}
@@ -284,6 +289,13 @@ export function create(dir) {
     raf = 0;
     if (!el.isConnected || !host) return;
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (spin) {
+      const k = Math.min(1, (now - spin.t0) / spin.dur), e = 1 - Math.pow(1 - k, 3);   // 先快後慢
+      yaw = spin.from + (spin.to - spin.from) * e;
+      tilt = spin.tilt0 + (TILT0 - spin.tilt0) * e;
+      if (!spin.swapped && e > 0.5) { spin.swapped = true; setPrints(true); }
+      if (k >= 1) { spin = null; yaw = YAW0; }
+    }
     if (!drag && yawVel) {
       yaw += yawVel * dt;
       yawVel *= Math.pow(0.04, dt);
@@ -293,7 +305,7 @@ export function create(dir) {
     camera.position.set(target.x + dist * Math.cos(rt) * Math.sin(ry), target.y + dist * Math.sin(rt), target.z + dist * Math.cos(rt) * Math.cos(ry));
     camera.lookAt(target);
     renderer.render(scene, camera);
-    if (drag || yawVel) kick();
+    if (drag || yawVel || spin) kick();
   }
 
   window.addEventListener('resize', resize);
