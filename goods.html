@@ -72,7 +72,7 @@
   /* 框內底色改純白（他要的） */
   .page .stkwall { background:#fff; }
   .b-hero { padding-bottom:30px; }
-  .b-blind { padding-bottom:10px; } .b-stk { padding-top:10px; padding-bottom:10px; } .b-post { padding-top:10px; padding-bottom:10px; } .b-tee { padding-top:10px; }
+  .b-blind { padding-bottom:10px; } .b-stk { padding-top:10px; padding-bottom:10px; } .b-post { padding-top:10px; padding-bottom:10px; } .b-fan { padding-top:10px; padding-bottom:10px; } .b-tee { padding-top:10px; }
   .b-tee { padding-bottom:10px; } .b-book { padding-top:10px; }
   .bookcard .ph img { object-fit:contain; padding:12px; box-sizing:border-box; filter:drop-shadow(0 6px 8px rgba(0,0,0,.14)); }
   .bookcard small { display:block; color:var(--mute); font-size:12px; margin-top:3px; }
@@ -300,6 +300,8 @@
 
   // 明信片有自己的一條（上面），全部周邊的方格裡就不重複放
   var POST = LIST.filter(function (x) { return x.special === 'postcards'; })[0];
+  // 二創明信片不在商品資料裡（後台沒有這一項），名稱、價格寫在這裡；價格先照原創的單張價
+  var FANP = { name: '二創明信片', price: 44, shopee: '' };
   var ALBUM = LIST.filter(function (x) { return x.special === 'album'; })[0];
   // 服飾區的商品（破防襪）接在 T 恤後面；盲盒自己一條（他要的）；其他周邊是下面的方格
   var APPAREL = sect('apparel');
@@ -341,6 +343,10 @@
     '<div class="pcpair white-box' + (ALBUM ? '' : ' solo') + '">' + (ALBUM ? '<button class="albumcard" id="albumcard"><span class="ph"><img src="img/album-3d-v3.jpg" alt="' + CK.esc(ALBUM.name) + '"></span>' +
       '<span class="tx"><b>' + CK.esc(ALBUM.name) + '</b><span class="pr">' + CK.priceText(ALBUM.price, ALBUM.from) + '</span></span></button>' : '') +
     '<div class="stkwall pcwall" id="pcwall"><div class="stkfade"><div class="stkrow pcrow" id="pcrow">' + CK_POSTCARDS.stripHtml() + '</div></div><div class="stkwall-foot"><span class="pr">單張 NT$44</span></div></div></div>' +
+    // 二創明信片：明信片下面自己一條（他要的，2026-10-03），排法跟明信片一樣；單面，點開只放大不翻
+    '</div></section><section class="band b-stripe b-fan"><div class="wrap"><div class="sect-title">二創明信片</div>' +
+    '<div class="pcpair white-box solo"><div class="stkwall pcwall" id="fcwall"><div class="stkfade"><div class="stkrow pcrow" id="fcrow">' + CK_FANCARDS.stripHtml() + '</div></div>' +
+    '<div class="stkwall-foot"><span class="pr">單張 NT$' + FANP.price + '</span></div></div></div>' +
     '</div></section><section class="band b-stripe b-tee"><div class="wrap"><div class="sect-title">服飾</div>' +
     // 服飾也做成跟明信片一樣的一整條白框（他要的），自己左右滑；順序照系列：不想上班→不想加班→破防→拉麵，破防襪放最後，滑到底才看到（點開破防T也看得到）
     '<div class="stkwall teewall white-box" id="teewall"><div class="stkfade"><div class="stkrow teerow" id="teerow">' + ['tee-nowork', 'tee-noot', 'tee-pofang', 'tee-ramen'].map(function (id) { return TEES.filter(function (t) { return t.id === id; })[0]; }).concat(APPAREL).map(teeCard).join('') + '</div></div></div>' +
@@ -435,6 +441,11 @@
   // 畫冊列：點一本開跟畫冊頁一樣的燈箱（封面＋內頁；實體版是賣貨便／海外購買，電子版是電子版賣場）
   document.getElementById('bookwall').addEventListener('click', function (e) {
     var c = e.target.closest('[data-book]'); if (c) { var x = BOOKS[+c.dataset.book]; CK_BOOKS.open(x[0], x[1]); }
+  });
+  // 二創明信片列：跟明信片列一樣，點哪一張放大哪一張、點空白處打開整面牆
+  swipeRow(document.getElementById('fcwall'), document.getElementById('fcrow'), function (e) {
+    var c = e.target.closest('[data-pcs]');
+    CK_FANCARDS.open(FANP, c ? +c.dataset.pcs : null);
   });
   // 明信片列：點哪一張就放大哪一張；點到空白處就打開整面明信片牆
   swipeRow(document.getElementById('pcwall'), document.getElementById('pcrow'), function (e) {

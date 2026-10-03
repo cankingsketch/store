@@ -1,6 +1,8 @@
 // 明信片牆：周邊頁「明信片組合」點開就是這面牆（不是一般的商品燈箱）。要在 shared.js 之後載入。
 // 每一款一張小卡釘在牆上，點了放大，可以翻到背面（直的、橫的各一種背面）。
 // 圖：build_postcards.py 從 NAS「明信片\10x15cm\双面 直／双面 横」裁掉出血做的（designs/img/post/）。
+// 二創明信片（2026-10-03 加）：「明信片\10x15cm\单面」的 A1～A12，單面，所以點了只放大、不翻面。
+// 兩組各自一面牆、各自一條，程式共用：make(清單, 設定) 做出一組。
 (function () {
   var P = 'img/post/';
   // [編號, 名稱, 橫?]，照編號排。牆上不標售完、不分新舊（他在賣貨便上自己調整）
@@ -16,8 +18,16 @@
     var x = TOP.indexOf(a[0]), y = TOP.indexOf(b[0]);
     return (x < 0 ? 99 : x) - (y < 0 ? 99 : y) || a[0] - b[0];
   });
+  // 二創（单面資料夾的 A 編號）：[編號, 角色名, 橫?]
+  var FAN = [
+    [1, '靜謐'], [2, '凜'], [3, '雙貞德', 1], [4, '虞美人', 1], [5, '黑貞'], [6, '小霞'],
+    [7, '莉佳'], [8, '娜姿'], [9, '戀雪'], [10, '林克'], [11, '露西'], [12, 'DVA']
+  ];
+
+  // O：pre＝圖檔開頭（p／a）、single＝單面（不翻）、buyName＝賣貨便上找的名字、more＝牆最下面的一行小字
+  function make(CARDS, O) {
   var list = CARDS.map(function (c, i) {
-    var id = 'p' + (c[0] < 10 ? '0' : '') + c[0];
+    var id = O.pre + (c[0] < 10 ? '0' : '') + c[0];
     return { no: c[0], name: c[1], wide: !!c[2], s: P + id + '-s.webp', l: P + id + '-l.webp', rot: ((i * 37) % 9 - 4) * 0.6 };
   });
   var pw, at = -1, prod = null;
@@ -112,7 +122,7 @@
     return '<div class="pw-row">' + list.map(function (c, i) {
       return '<button class="pc' + (c.wide ? ' wide' : '') + '" data-pc="' + i + '" style="--r:' + c.rot + 'deg" title="' + esc(c.name) + '">' +
         '<img src="' + c.s + '" alt="' + esc(c.name) + '" loading="lazy"></button>';
-    }).join('') + '</div><p class="pw-more">另有二創明信片 7 款、FGO 明信片組（5 張 NT$200），請到賣貨便看</p>';
+    }).join('') + '</div>' + (O.more ? '<p class="pw-more">' + O.more + '</p>' : '');
   }
   function zoom(i) {
     at = i;
@@ -126,10 +136,12 @@
     var c = list[i], card = pw.querySelector('.pw-card');
     card.classList.toggle('wide', c.wide); card.classList.remove('flipped');
     card.querySelector('.f').src = c.l;
-    card.querySelector('.b').src = P + (c.wide ? 'back-h.webp' : 'back-v.webp');
+    if (O.single) card.querySelector('.b').removeAttribute('src');      // 單面：沒有背面
+    else card.querySelector('.b').src = P + (c.wide ? 'back-h.webp' : 'back-v.webp');
     pw.querySelector('.pw-cap b').textContent = c.name;
   }
   function turn() {
+    if (O.single) return;                                     // 單面的點了不翻
     pw.querySelector('.pw-card').classList.toggle('flipped');
   }
   // 周邊頁的明信片列：一排小卡（點了直接放大那一張）
@@ -147,12 +159,16 @@
     }).join('');
     pw.querySelector('.lb-foot h3').innerHTML = esc(p.name) + '<i class="tag setc">' + list.length + ' 款</i>';
     pw.querySelector('.lb-foot small').textContent ='單張 NT$44・10 × 15 cm';
-    pw.querySelector('.buybox').innerHTML = CK.buyBox('空罐原創明信片', p.price, { from: 1, shopee: p.shopee });
+    pw.querySelector('.buybox').innerHTML = CK.buyBox(O.buyName, p.price, { from: 1, shopee: p.shopee });
     zoom(-1);
     pw.classList.add('open'); document.body.style.overflow = 'hidden';
     pw.querySelector('.pw-wall').scrollTop = 0;
     if (startAt != null) zoom(startAt);
   }
   function close() { pw.classList.remove('open'); document.body.style.overflow = ''; }
-  window.CK_POSTCARDS = { open: open, list: list, stripHtml: stripHtml };
+  return { open: open, list: list, stripHtml: stripHtml };
+  }
+
+  window.CK_POSTCARDS = make(CARDS, { pre: 'p', buyName: '空罐原創明信片', more: 'FGO 明信片組（5 張 NT$200）請到賣貨便看' });
+  window.CK_FANCARDS = make(FAN, { pre: 'a', single: true, buyName: '二創明信片' });
 })();
