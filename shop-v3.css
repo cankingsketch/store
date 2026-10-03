@@ -25,10 +25,10 @@
 .shoprow.tapes a { display:block; padding:10px 22px; font-size:15px; font-weight:800; color:#2a2a2a; text-decoration:none; white-space:nowrap;
   clip-path:polygon(0px 0.0%, 6px 14.3%, 0px 28.6%, 6px 42.9%, 0px 57.1%, 6px 71.4%, 0px 85.7%, 6px 100.0%, calc(100% - 6px) 100.0%, calc(100% - 0px) 85.7%, calc(100% - 6px) 71.4%, calc(100% - 0px) 57.1%, calc(100% - 6px) 42.9%, calc(100% - 0px) 28.6%, calc(100% - 6px) 14.3%, calc(100% - 0px) 0.0%); }
 .shoprow.tapes a:hover { color:var(--red2); }
-.shoprow.tapes .t:nth-child(1) { rotate:-3deg; }   .shoprow.tapes .t:nth-child(1) a { background:repeating-linear-gradient(90deg, #f8cfcb 0 9px, #fffaf9 9px 18px); }
+.shoprow.tapes .t:nth-child(1) { rotate:-3deg; }   .shoprow.tapes .t:nth-child(1) a { background:repeating-linear-gradient(90deg, #c9def4 0 9px, #f3f8fe 9px 18px); }   /* 天藍條紋（原本粉紅，貼在粉紅底上會糊掉，他要換） */
 .shoprow.tapes .t:nth-child(2) { rotate:2deg; }    .shoprow.tapes .t:nth-child(2) a { background:#fde7a6; }
 .shoprow.tapes .t:nth-child(3) { rotate:-1.5deg; } .shoprow.tapes .t:nth-child(3) a { background:#cfe8dc radial-gradient(rgba(255,255,255,.7) 2px, transparent 2.6px) 0 0 / 10px 10px; }
-.shoprow.tapes .t:nth-child(4) { rotate:3deg; }    .shoprow.tapes .t:nth-child(4) a { background:repeating-linear-gradient(45deg, #fbd9d4 0 6px, #fff3f1 6px 12px); }
+.shoprow.tapes .t:nth-child(4) { rotate:3deg; }    .shoprow.tapes .t:nth-child(4) a { background:repeating-linear-gradient(45deg, #ddd0f1 0 6px, #f6f1fd 6px 12px); }   /* 淡紫斜紋 */
 /* 滑鼠移上去：膠帶被拿起來——往上浮、放大一點、轉正，影子變大變遠；放開帶一點回彈（他要的）。要寫在上面各段的角度之後才蓋得過 */
 .shoprow.tapes .t:hover, .shoprow.tapes .t:focus-within { translate:0 -7px; scale:1.07; rotate:0deg; z-index:1;
   filter:drop-shadow(0 10px 9px rgba(150,60,50,.24)); }
