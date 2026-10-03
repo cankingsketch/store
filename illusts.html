@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="shop-v3.css">
 <style>
   /* 數位賣場樣品：內容照正式站 illusts.html（Gumroad 的頻道會員獎勵，按年份分）。
-     全部排開不分年份；清單即時跟正式站的 /api/gumroad 拿；拿不到就給「到 Gumroad 看全部」 */
+     全部排開不分年份；清單即時跟正式站的 /api/gumroad 拿；拿不到（預覽站）就讀正式站的，再不行給「到 Gumroad 看全部」 */
   .top-go { margin-top:-6px; }
   .empty { text-align:center; color:var(--mute); padding:30px 0; }
 </style>
@@ -55,7 +55,8 @@
   function fail() { document.getElementById('list').innerHTML = '<p class="empty"><a href="' + STORE + '" target="_blank" rel="noopener">到 Gumroad 看全部 →</a></p>'; }
   fetch('/api/gumroad').then(function (r) { return r.json(); })
     .then(function (d) { if (!d || !d.groups || !d.groups.length) throw 0; show(d); })   // 空的也算失敗：給「到 Gumroad 看全部」
-    .catch(fail);
+    .catch(function () { fetch('https://cankingstore.com' + '/api/gumroad').then(function (r) { return r.json(); })
+      .then(function (d) { if (!d || !d.groups || !d.groups.length) throw 0; show(d); }).catch(fail); });
 })();
 </script>
 <script defer src="/track.js"></script>
