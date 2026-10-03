@@ -15,7 +15,8 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 const PIECE_T = 3;                // 小片壓克力厚度（mm）
 const BASE_T = 3;                 // 底座厚度（mm；插腳高 2.9mm，跟底座一樣厚）
 const BEVEL = 0.3;                // 切邊導圓角（mm），邊緣才會反光
-const TILT_MIN = 4, TILT_MAX = 40, TILT0 = 14, YAW0 = -24;   // 俯角範圍、一打開的角度
+// 俯角範圍、一打開的角度：幾乎正面、往右偏一點、只往下看一點（他截圖指定的，2026-10-04；隱藏款揭曉也停在這）
+const TILT_MIN = 4, TILT_MAX = 40, TILT0 = 7, YAW0 = 6;
 const BG = new THREE.Color(0.965, 0.962, 0.952);             // 燈箱背景色（.pl-3d 的漸層中間值），跟印章一樣
 
 // ---- 攝影棚環境（照 stamp3d.js 的 env()）：畫成一張全景圖，給壓克力反射、折射用 ----
