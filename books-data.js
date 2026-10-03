@@ -4,12 +4,13 @@ window.CK_BOOKS = {
   MYSHIP: 'https://myship.7-11.com.tw/general/detail/GM2308212736960',
   FORM: 'https://forms.gle/o2wVLt5KcqxdsSKd6',
   // 實體畫冊：[書名, 一行小字, 封面, [內頁…]]
+  // 書名統一叫「空罐王插畫集 N」（他要的，2026-10-03；原名：插畫設定集 6、完全設定集、Universe、Sketch、Secret Letter）
   PRINT: [
-    ['Canking 插畫設定集 6', '2022–2024 畫集', 'vol6_orig.png', ['vol6-1_orig.png', 'vol6-2_orig.png', 'vol6-3_orig.png']],
-    ['Canking 完全設定集', '2022–2023 畫集', 'editor_ck.png?1714732171', ['2023-713-10_orig.jpg', '2023-713-13_orig.jpg', 'ck-1_orig.jpg', '2023-713-18_orig.jpg']],
-    ['Canking Universe', '2020–2022 畫集', 'cu_orig.png', ['cu-0005-3031_orig.png', 'cu-0006-2829_orig.png', 'cu-0013-1415_orig.png', 'cu-0015-1011_orig.png']],
-    ['Canking Sketch', '2019–2020 畫集', 'cover2020.jpg?1685349297', ['006_orig.jpg', '10_orig.jpg', '8_orig.jpg', '9_orig.jpg']],
-    ['Secret Letter', '2015–2017 畫集', 'editor_85629136.jpg?1685348935', ['0203-orig_orig.jpg', '0607-orig_orig.jpg', '0809-orig_orig.jpg', '1415-orig_orig.jpg']],
+    ['空罐王插畫集 6', '2022–2024 畫集', 'vol6_orig.png', ['vol6-1_orig.png', 'vol6-2_orig.png', 'vol6-3_orig.png']],
+    ['空罐王插畫集 5', '2022–2023 畫集', 'editor_ck.png?1714732171', ['2023-713-10_orig.jpg', '2023-713-13_orig.jpg', 'ck-1_orig.jpg', '2023-713-18_orig.jpg']],
+    ['空罐王插畫集 4', '2020–2022 畫集', 'cu_orig.png', ['cu-0005-3031_orig.png', 'cu-0006-2829_orig.png', 'cu-0013-1415_orig.png', 'cu-0015-1011_orig.png']],
+    ['空罐王插畫集 3', '2019–2020 畫集', 'cover2020.jpg?1685349297', ['006_orig.jpg', '10_orig.jpg', '8_orig.jpg', '9_orig.jpg']],
+    ['空罐王插畫集 2', '2015–2017 畫集', 'editor_85629136.jpg?1685348935', ['0203-orig_orig.jpg', '0607-orig_orig.jpg', '0809-orig_orig.jpg', '1415-orig_orig.jpg']],
     ['Remembrance', 'FGO 全彩插畫本', 'editor_remembrance.jpg?1685349224', ['fgo-11_orig.jpg', 'fgo-10_orig.jpg', 'fgo12_orig.jpg']],
     ['FGO 卡片組合', '五張一組', 'fgo_orig.png', []]
   ],
