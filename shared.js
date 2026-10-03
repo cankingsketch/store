@@ -306,7 +306,7 @@
     if (sl) return;
     sl = document.createElement('div'); sl.className = 'lb sl';
     sl.innerHTML = '<div class="lb-panel" role="dialog" aria-modal="true"><button class="lb-x" aria-label="關閉">✕</button>' +
-      '<div class="sl-stage"><button class="sl-reset" hidden></button><div class="sl-box"></div><div class="sl-items"></div><div class="sl-hint"></div><div class="sl-photo" hidden></div></div>' +
+      '<div class="sl-stage"><div class="sl-box"></div><div class="sl-items"></div><div class="sl-hint"></div><div class="sl-photo" hidden></div></div>' +
       '<div class="lb-strip sl-strip"></div>' +
       '<div class="lb-foot"><div><h3></h3><small></small></div><div class="buybox"></div></div></div>';
     document.body.appendChild(sl);
@@ -317,10 +317,12 @@
     });
     sl.addEventListener('click', function (e) {
       if (CK_bgClick(sl, e) || e.target.closest('.lb-x')) return closeSet();
-      if (e.target.closest('.sl-reset')) return resetSet(true);
       var it = e.target.closest('[data-item]');
       if (!opened && (it || e.target.closest('.sl-box') || e.target.closest('.sl-hint'))) return burst();
-      if (opened && it) open(it.getAttribute('data-item'));
+      if (opened && it) return open(it.getAttribute('data-item'));
+      // 打開後點畫面空白處就收回盒子／袋子（他要的，不放「收回」按鈕）。
+      // 標籤貼（bottles）本來就是一打開就貼好、沒有收回；切到商品圖／影片那幾格時也不收
+      if (opened && cur.kind !== 'bottles' && sl.querySelector('.sl-photo').hidden && e.target.closest('.sl-stage')) return resetSet(true);
     });
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && sl.classList.contains('open') && !(lb && lb.classList.contains('open'))) closeSet();
@@ -492,7 +494,6 @@
     sl.classList.toggle('tilt', cur.kind === 'sheet');      // 電影貼紙組要打開後才擺動
     var st1 = sl.querySelector('.sl-stage'); ['--tx', '--ty'].forEach(function (v) { st1.style.removeProperty(v); });
     var z = stageSize(), els = sl.querySelectorAll('[data-item]'), boxEl = sl.querySelector('.sl-box');
-    sl.querySelector('.sl-reset').hidden = true;
     sl.querySelector('.sl-hint').hidden = false;
     boxEl.classList.remove('gone', 'lid-open');
     var fr0 = sl.querySelector('.sl-frame'); if (fr0) { fr0.style.transition = 'none'; fr0.style.opacity = 0; }
@@ -559,7 +560,6 @@
     }
     if (cur.kind === 'sheet') boxEl.classList.add('gone');   // 板子拿出來，背卡退場
     place(true);
-    var rs = sl.querySelector('.sl-reset'); rs.textContent = '↺ ' + cur.resetLabel; rs.hidden = false;
   }
   function openSet(id) {
     ensureSl();
@@ -595,7 +595,6 @@
       opened = true;
       sl.querySelector('.sl-hint').hidden = true;
       place(false);
-      sl.querySelector('.sl-reset').hidden = true;
     }
   }
   // 組合視窗切換：'3d'＝原本的盒子／板子；'p0'…＝商品圖；'video'＝影片（只在這格時才載入播放器）
