@@ -204,7 +204,8 @@
   padding:6px 16px; cursor:pointer; }
 .v3-chips button.on { color:#fff; background:var(--red2); border-color:var(--red2); }
 /* 放大看圖（CK_SHOP.lightbox）：大圖＋左右切換＋下面一排按鈕 */
-.v3-lb { position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; background:rgba(40,20,18,.62); padding:16px; }
+/* z-index 要高過手機的固定頁首（60），不然畫冊、客製的大圖上半和 ✕ 被頁首蓋住（他反映的）；跟商品燈箱 .lb 一樣用 100 */
+.v3-lb { position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; background:rgba(40,20,18,.62); padding:16px; }
 .v3-lb .box { position:relative; width:min(860px, 100%); max-height:calc(100vh - 32px); overflow:auto; background:#fff; border-radius:24px; padding:20px 20px 22px;
   box-sizing:border-box; text-align:center; }
 .v3-lb .big { display:block; width:100%; max-height:62vh; object-fit:contain; border-radius:12px; }
