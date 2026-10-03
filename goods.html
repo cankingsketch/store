@@ -208,8 +208,8 @@
     .b-hero .shoprow.tapes { margin:14px auto 8px; }
     .b-hero .mq-wrap { margin-top:14px; }
   }   /* 盲盒只有四款、放得下時置中（放不下時照常從左邊開始滑） */
-  /* 有 3D 預覽的商品（全部周邊的方格）：右上角一塊「3D」直接貼齊圖的角（他要的；明信片牆、服飾牆不放） */
-  .gcard .ph i.d3 { position:absolute; right:0; top:0; left:auto; bottom:auto; z-index:2; font-style:normal; font-size:15px; font-weight:900; letter-spacing:.05em;
+  /* 有 3D 預覽的商品（全部周邊的方格、盲盒那條）：右上角一塊「3D」直接貼齊圖的角（他要的；明信片牆、服飾牆不放） */
+  .gcard .ph i.d3, .tee .ph i.d3 { position:absolute; right:0; top:0; left:auto; bottom:auto; z-index:2; font-style:normal; font-size:15px; font-weight:900; letter-spacing:.05em;
     color:#fff; background:rgba(255,45,45,.62); border-radius:0 0 0 12px; padding:7px 12px 7px 13px; line-height:1; }   /* 透明度跟右下角的張數標籤一樣（.62，他要的） */
 </style>
 <meta name="description" content="空罐王的周邊：盲盒、貼紙、明信片、服飾，賣貨便、蝦皮都買得到。">
@@ -308,7 +308,8 @@
   var BLINDS = sect('blind');
   var GRID = sect('other');
   function blindCard(p) {
-    return '<button class="tee" data-prod="' + p.id + '"><span class="ph"><img src="' + small(p.img) + '" alt="" loading="lazy" draggable="false"></span>' +
+    return '<button class="tee" data-prod="' + p.id + '"><span class="ph"><img src="' + small(p.img) + '" alt="" loading="lazy" draggable="false">' +
+      (p.view3d ? '<i class="d3">3D</i>' : '') + '</span>' +
       '<span class="tx"><b>' + CK.esc(p.name) + '</b><span class="pr">' + CK.priceText(p.price, p.from) + '</span></span></button>';
   }
 
