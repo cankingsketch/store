@@ -73,6 +73,9 @@
   .page .stkwall { background:#fff; }
   .b-hero { padding-bottom:30px; }
   .b-blind { padding-bottom:10px; } .b-stk { padding-top:10px; padding-bottom:10px; } .b-post { padding-top:10px; padding-bottom:10px; } .b-tee { padding-top:10px; }
+  .b-tee { padding-bottom:10px; } .b-book { padding-top:10px; }
+  .bookcard .ph img { object-fit:contain; padding:12px; box-sizing:border-box; filter:drop-shadow(0 6px 8px rgba(0,0,0,.14)); }
+  .bookcard small { display:block; color:var(--mute); font-size:12px; margin-top:3px; }
   .stkwall-foot span.more { color:#9a9a9a; font-size:11.5px; font-weight:700; letter-spacing:.12em; margin:0; }
   .stkwall:hover .stkwall-foot span.more { color:#555; }
   /* 明信片列：跟貼紙牆同一種框，裡面是一排微歪的小卡（直的 96px 寬、橫的 144px） */
@@ -197,10 +200,10 @@
   #blindrow { justify-content:safe center; }
   /* 手機（照ちいかわ）：盲盒、服飾不左右滑，改成一排兩個的格子，一眼看完 */
   @media (max-width:760px) {
-    #blindrow, #teerow { display:grid; grid-template-columns:1fr 1fr; gap:12px 10px; overflow:visible; padding:0 0 4px; }
-    #blindrow .tee, #teerow .tee { min-width:0; width:auto; }
-    #blindwall .stkfade, #teewall .stkfade { -webkit-mask:none; mask:none; }
-    #blindwall, #teewall { padding:12px 10px 8px; }
+    #blindrow, #teerow, #bookrow { display:grid; grid-template-columns:1fr 1fr; gap:12px 10px; overflow:visible; padding:0 0 4px; }
+    #blindrow .tee, #teerow .tee, #bookrow .tee { min-width:0; width:auto; }
+    #blindwall .stkfade, #teewall .stkfade, #bookwall .stkfade { -webkit-mask:none; mask:none; }
+    #blindwall, #teewall, #bookwall { padding:12px 10px 8px; }
     /* 頂端四顆購買按鈕：縮成一行小的（他要的） */
     .b-hero .shoprow.tapes { margin:14px auto 8px; }
     .b-hero .mq-wrap { margin-top:14px; }
@@ -227,6 +230,7 @@
 <script src="shared.js"></script>
 <script src="shop-v3.js"></script>
 <script src="tees-data.js"></script>
+<script src="books-data.js"></script>
 <script src="postcards.js"></script>
 <script>
 (function () {
@@ -266,6 +270,15 @@
     return '<button class="tee white-box" data-prod="' + t.id + '"><span class="ph">' +
       (t.cut ? '<img class="cut" src="' + t.cut + '" alt="" loading="lazy">' : '<img src="' + t.img + '" alt="" loading="lazy">') + '</span>' +
       '<span class="tx"><b>' + CK.esc(t.name) + '</b><span class="pr">' + CK.priceText(t.price) + '</span></span></button>';
+  }
+  // 畫冊（資料跟畫冊頁共用 books-data.js）：實體畫冊在前，電子版接在後面、左上角標「電子版」（他要的）；價格先不放
+  var BOOKS = window.CK_BOOKS.PRINT.map(function (b) { return [b, 0]; })
+    .concat(window.CK_BOOKS.DIGI.map(function (b) { return [b, 1]; }));
+  function bookCard(x, k) {
+    var b = x[0];
+    return '<button class="tee bookcard" data-book="' + k + '"><span class="ph"><img src="' + CK_SHOP.opt(b[2]) + '" alt="" loading="lazy" draggable="false">' +
+      (x[1] ? '<i>電子版</i>' : '') + '</span>' +
+      '<span class="tx"><b>' + CK.esc(b[0]) + '</b><small>' + CK.esc(b[1]) + '</small></span></button>';
   }
   // T 恤分頁先隱藏（後台統計幾乎沒人點進 T 恤頁），T 恤只放周邊頁這一條；tees.html 樣品留著備用
   var S = CK.STICKERS, LINKS = CK_SHOP.LINKS;
@@ -331,6 +344,9 @@
     '</div></section><section class="band b-stripe b-tee"><div class="wrap"><div class="sect-title">服飾</div>' +
     // 服飾也做成跟明信片一樣的一整條白框（他要的），自己左右滑；順序照系列：不想上班→不想加班→破防→拉麵，破防襪放最後，滑到底才看到（點開破防T也看得到）
     '<div class="stkwall teewall white-box" id="teewall"><div class="stkfade"><div class="stkrow teerow" id="teerow">' + ['tee-nowork', 'tee-noot', 'tee-pofang', 'tee-ramen'].map(function (id) { return TEES.filter(function (t) { return t.id === id; })[0]; }).concat(APPAREL).map(teeCard).join('') + '</div></div></div>' +
+    // 畫冊：服飾下面一條，排法跟服飾一樣（他要的，2026-10-03）
+    '</div></section><section class="band b-stripe b-book"><div class="wrap"><div class="sect-title">畫冊</div>' +
+    '<div class="stkwall teewall white-box" id="bookwall"><div class="stkfade"><div class="stkrow teerow" id="bookrow">' + BOOKS.map(bookCard).join('') + '</div></div></div>' +
     // 「蝦皮可能較貴」只在點開的購買區說（buyBox 裡本來就有）
     '</div></section><section class="band b-dots b-all"><div class="wrap"><div class="sect-title">其他周邊</div>' +
     '<div class="sortbar" id="sortbar"><button data-sort="rec" class="on">推薦</button><button data-sort="new">最新上架</button>' +
@@ -407,14 +423,18 @@
     stk.addEventListener('click', function (e) { if (dragged) { dragged = false; e.stopPropagation(); e.preventDefault(); } }, true);
   })();
   stk.addEventListener('keydown', function (e) { if (e.key === 'Enter') location.href = GO; });
-  // 服飾列、盲盒列：可以拖可以滑；拖過就不算點（不打開商品）
-  [['teewall', 'teerow'], ['blindwall', 'blindrow']].forEach(function (ids) {
+  // 服飾列、盲盒列、畫冊列：可以拖可以滑；拖過就不算點（不打開商品）
+  [['teewall', 'teerow'], ['blindwall', 'blindrow'], ['bookwall', 'bookrow']].forEach(function (ids) {
     var box = document.getElementById(ids[0]), row = document.getElementById(ids[1]), dragged = false, x0 = null;
     swipeRow(box, row, function () {});
     row.addEventListener('pointerdown', function (e) { dragged = false; x0 = e.clientX; });
     window.addEventListener('pointermove', function (e) { if (x0 != null && Math.abs(e.clientX - x0) > 5) dragged = true; });
     window.addEventListener('pointerup', function () { x0 = null; });
     box.addEventListener('click', function (e) { if (dragged) { dragged = false; e.stopPropagation(); e.preventDefault(); } }, true);
+  });
+  // 畫冊列：點一本開跟畫冊頁一樣的燈箱（封面＋內頁；實體版是賣貨便／海外購買，電子版是電子版賣場）
+  document.getElementById('bookwall').addEventListener('click', function (e) {
+    var c = e.target.closest('[data-book]'); if (c) { var x = BOOKS[+c.dataset.book]; CK_BOOKS.open(x[0], x[1]); }
   });
   // 明信片列：點哪一張就放大哪一張；點到空白處就打開整面明信片牆
   swipeRow(document.getElementById('pcwall'), document.getElementById('pcrow'), function (e) {
