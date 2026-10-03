@@ -11,8 +11,8 @@ window.CK_BOOKS = {
     ['空罐王插畫集 4', '2020–2022 畫集', 'cu_orig.png', ['cu-0005-3031_orig.png', 'cu-0006-2829_orig.png', 'cu-0013-1415_orig.png', 'cu-0015-1011_orig.png']],
     ['空罐王插畫集 3', '2019–2020 畫集', 'cover2020.jpg?1685349297', ['006_orig.jpg', '10_orig.jpg', '8_orig.jpg', '9_orig.jpg']],
     ['空罐王插畫集 2', '2015–2017 畫集', 'editor_85629136.jpg?1685348935', ['0203-orig_orig.jpg', '0607-orig_orig.jpg', '0809-orig_orig.jpg', '1415-orig_orig.jpg']],
-    ['Remembrance', 'FGO 全彩插畫本', 'editor_remembrance.jpg?1685349224', ['fgo-11_orig.jpg', 'fgo-10_orig.jpg', 'fgo12_orig.jpg']],
-    ['FGO 卡片組合', '五張一組', 'fgo_orig.png', []]
+    ['Remembrance', 'FGO 全彩插畫本', 'editor_remembrance.jpg?1685349224', ['fgo-11_orig.jpg', 'fgo-10_orig.jpg', 'fgo12_orig.jpg']]
+    // FGO 卡片組合拿掉了：不是畫冊（他說的，2026-10-03）
   ],
   // 電子版：[書名, 小字, 封面, [內頁…], Gumroad]
   DIGI: [
