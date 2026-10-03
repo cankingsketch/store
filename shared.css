@@ -359,6 +359,9 @@ img { max-width:100%; }
   .sl-stage { height:min(56vh, 560px); height:min(56svh, 560px); }
   .pw .pw-wall, .pw-zoom { height:min(60vh, 600px); height:min(60svh, 600px); }
   .pw-card { height:min(44vh, 440px); height:min(44svh, 440px); }
+  /* 橫的明信片：iPhone（WebKit）只靠 aspect-ratio 算高度會算錯，吃到上面直式的高度、左右被裁掉（他反映的）。
+     手機上視窗寬＝螢幕寬扣掉兩邊 10px，直接把寬高都寫死成 3:2 */
+  .pw-card.wide { width:calc((100vw - 20px) * .76); height:calc((100vw - 20px) * .76 * 2 / 3); aspect-ratio:auto; }
   .pl-size { height:min(50vh, 560px); height:min(50svh, 560px); }
   .lb-x { position:fixed; top:calc(14px + env(safe-area-inset-top)); right:14px; width:40px; height:40px; z-index:130; }
 }
