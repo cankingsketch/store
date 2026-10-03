@@ -33,6 +33,10 @@
 .shoprow.tapes .t:hover, .shoprow.tapes .t:focus-within { translate:0 -7px; scale:1.07; rotate:0deg; z-index:1;
   filter:drop-shadow(0 10px 9px rgba(150,60,50,.24)); }
 .shoprow.tapes .t:active { translate:0 -3px; scale:1.02; }
+@media (max-width:760px) {
+  .shoprow.tapes { gap:6px; }
+  .shoprow.tapes a { padding:8px 9px; font-size:12.5px; }
+}
 
 /* 選單左右兩端外側的兩隻（附屬看板的購物空罐妹妹、購物罐罐）；shop-v3.js 會放進頁首 */
 .hd-ch { position:absolute; z-index:3; top:36px; height:132px; width:auto; pointer-events:none; }

@@ -9,7 +9,7 @@
 <style>
   /* 畫冊頁樣品：內容照正式站 3005920874.html，外觀套 v3。
      卡片只放封面＋書名＋一行年份；點了放大看內頁，購買鈕放在放大的視窗裡（卡片保持乾淨） */
-  .shoprow { margin:0 0 30px; }
+  .shoprow.tapes { margin:4px auto 34px; }   /* 頂端四個入口：跟周邊頁同一款紙膠帶（他要的），下面接「實體畫冊」標題 */
 </style>
 <meta name="description" content="空罐王的畫冊：實體畫冊與電子版。">
 <link rel="canonical" href="https://cankingstore.com/3005920874">
@@ -57,10 +57,10 @@
   }
   CK_SHOP.page('畫冊', [
     '<section class="band v3 b-stripe"><div class="v3-wrap">' +
-      '<div class="v3-btns shoprow"><a class="v3-btn" href="' + MYSHIP + '" target="_blank" rel="noopener">711賣貨便</a>' +
-      '<a class="v3-btn sub" href="https://cankingsketch.gumroad.com/" target="_blank" rel="noopener">電子版</a>' +
-      '<a class="v3-btn sub" href="events-883299.html">實體店</a>' +
-      '<a class="v3-btn sub" href="' + FORM + '" target="_blank" rel="noopener">海外購買</a></div>' +
+      '<div class="shoprow tapes"><span class="t"><a href="' + MYSHIP + '" target="_blank" rel="noopener">711賣貨便</a></span>' +
+      '<span class="t"><a href="https://cankingsketch.gumroad.com/" target="_blank" rel="noopener">電子版</a></span>' +
+      '<span class="t"><a href="events-883299.html">實體店</a></span>' +
+      '<span class="t"><a href="' + FORM + '" target="_blank" rel="noopener">海外購買</a></span></div>' +
       CK_SHOP.head('實體畫冊', 'ART BOOKS') + '<div class="v3-grid">' + cards(PRINT, 'p') + '</div></div></section>',
     '<section class="band v3 b-dots"><div class="v3-wrap">' + CK_SHOP.head('電子版', 'DIGITAL') +
       '<div class="v3-grid">' + cards(DIGI, 'd') + '</div></div></section>'
