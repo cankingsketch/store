@@ -33,9 +33,11 @@
 .shoprow.tapes .t:hover, .shoprow.tapes .t:focus-within { translate:0 -7px; scale:1.07; rotate:0deg; z-index:1;
   filter:drop-shadow(0 10px 9px rgba(150,60,50,.24)); }
 .shoprow.tapes .t:active { translate:0 -3px; scale:1.02; }
+/* 手機：四段紙膠帶撐開到比輪播卡片再寬一點（他畫的藍線），整排左右各內縮約 28px、四段平均分（周邊、畫冊共用） */
 @media (max-width:760px) {
-  .shoprow.tapes { gap:6px; }
-  .shoprow.tapes a { padding:8px 9px; font-size:12.5px; }
+  .shoprow.tapes { width:calc(100% - 32px); max-width:360px; gap:8px; }
+  .shoprow.tapes .t { flex:1 1 0; min-width:0; }
+  .shoprow.tapes a { padding:9px 2px; font-size:13px; text-align:center; }
 }
 
 /* 選單左右兩端外側的兩隻（附屬看板的購物空罐妹妹、購物罐罐）；shop-v3.js 會放進頁首 */
