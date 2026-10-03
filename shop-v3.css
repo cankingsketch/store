@@ -234,7 +234,9 @@
 /* 沿著頁尾裡、社群圖示上方那條線跳（他畫的位置：腳踩在頁尾上緣往下約 40px）；擋到東西也沒關係 */
 .shop-pet { position:absolute; left:0; top:calc(40px - 120px); z-index:5; width:93px; height:120px; pointer-events:none; will-change:transform; }
 .shop-pet .sp { display:block; width:100%; height:100%; background:url(img/shop-pet3.webp) 0 0 / 600% 100% no-repeat; pointer-events:auto; cursor:pointer;
-  filter:drop-shadow(0 3px 3px rgba(0,0,0,.15)); }
+  filter:drop-shadow(0 3px 3px rgba(0,0,0,.15));
+  /* 手機點牠時 iPhone 會畫一個深色的點擊框（他反映的）：關掉點擊反白、長按選單和選取 */
+  -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none; user-select:none; -webkit-user-select:none; outline:none; }
 .shop-pet.jump .sp { animation:sp-jump .55s cubic-bezier(.3,.7,.4,1); }
 @keyframes sp-jump { 0% { translate:0 0; } 40% { translate:0 -50px; } 100% { translate:0 0; } }
 .shop-pet .sp-heart { position:absolute; left:50%; top:-6px; translate:-50% 0; color:var(--red2); font-size:28px; pointer-events:none; animation:sp-heart .9s ease-out forwards; }
