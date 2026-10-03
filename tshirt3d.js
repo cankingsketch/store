@@ -1,115 +1,70 @@
-// T 恤 3D 預覽：用效果圖（去背的白 T 實拍，build_tee.py 已經把高解析的圖案和布標蓋上去）當布面，
-// 照衣服外形把正面、背面兩片各自「鼓起來」（離邊越遠越厚，袖子窄所以比較薄），兩片在外形邊緣接在一起。
-// 布料的皺褶、領口都是照片本身的明暗，3D 只負責讓它轉起來有厚度。
-// 滑鼠左右移動轉一點角度看側面，點一下翻到背面（再點翻回來）。shared.js 需要時才動態載入。
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+// T 恤預覽：平面薄片（跟明信片翻面同一種做法），正面一張、背面一張疊在一起。
+// 手指／滑鼠移動時微微傾斜，點一下翻到背面（再點翻回來）。shared.js 需要時才動態載入。
+//
+// 原本用 three.js 把前後兩片衣服「鼓起來」做出厚度，但 iPhone 上轉到側面時兩片的接縫會破圖（修了兩次都沒好），
+// 而且要先下載 three.js、建 4 萬多點的網格，打開要等 2 秒。他決定改成平面（2026-10-03）：
+// 不用 three.js、沒有接縫，打開幾乎立刻顯示。衣服照片本身就有皺褶明暗，傾斜角度小就看不出是平的。
+// 介面跟其他 3D 模組一樣：create(正面圖, 背面圖) → { mount(host), pointer(x, y) }
 
-const WIDTH = 86;          // 衣服攤平含袖子的全寬（cm），只用來定比例
-const PUFF = 2.6;          // 身體正中間鼓起的厚度（cm，單面）
-const SEG = 220;           // 網格密度（橫向）
+const TILT_Y = 12, TILT_X = 6;   // 跟著手指／滑鼠傾斜的最大角度（度）
 
-function loadImg(url) {
-  return new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = url; });
-}
-
-// 從衣服外形（貼圖的透明度）算出每一點要鼓多高：外形模糊一次，離邊越遠越接近 1，再開根號讓邊緣是圓弧
-function heightField(img, nx, ny) {
-  const c = document.createElement('canvas'); c.width = nx; c.height = ny;
-  const x = c.getContext('2d', { willReadFrequently: true });
-  x.drawImage(img, 0, 0, nx, ny);
-  const a = x.getImageData(0, 0, nx, ny).data;
-  const b = document.createElement('canvas'); b.width = nx; b.height = ny;
-  const bx = b.getContext('2d', { willReadFrequently: true });
-  bx.filter = 'blur(' + (nx * 0.045) + 'px)';                    // 約 4cm：袖子、肩膀會比身體扁
-  bx.drawImage(c, 0, 0);
-  const bl = bx.getImageData(0, 0, nx, ny).data;
-  const h = new Float32Array(nx * ny);
-  for (let i = 0; i < nx * ny; i++) {
-    const inside = a[i * 4 + 3] / 255;
-    const v = Math.min(1, Math.max(0, (bl[i * 4 + 3] / 255 - 0.5) * 2));
-    // 邊緣的鼓法：原本開根號，貼近外形邊緣幾乎是垂直的小牆，轉到側面時牆上的貼圖被拉成一條條橫紋（他手機上看到破圖）。
-    // 改成 sin：邊緣斜度有限、一樣是圓弧，正中間的厚度不變
-    h[i] = inside * Math.sin(v * Math.PI / 2);
-  }
-  return h;
-}
-
-function panel(img, tex, w, h, hf, nx, ny) {
-  const g = new THREE.PlaneGeometry(w, h, nx - 1, ny - 1);
-  const p = g.attributes.position;
-  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
-    const k = j * nx + i;
-    p.setZ(k, hf[k] * PUFF);
-  }
-  g.computeVertexNormals();
-  // 不用 alphaToCoverage：iPhone 的 GPU 上會把衣服外緣變成一條條雜訊紋（破圖）；alphaTest 直接切出外形就好
-  const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95, metalness: 0, alphaTest: 0.5, side: THREE.FrontSide });
-  return new THREE.Mesh(g, mat);
+let styled = false;
+function addStyle() {
+  if (styled) return;
+  styled = true;
+  const st = document.createElement('style');
+  st.textContent =
+    '.teeflat{position:absolute;inset:0;perspective:1400px;cursor:pointer;-webkit-tap-highlight-color:transparent}' +
+    '.teeflat .tf-card{position:absolute;left:50%;top:50%;transform-style:preserve-3d;will-change:transform}' +
+    '.teeflat img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;' +
+      'backface-visibility:hidden;-webkit-backface-visibility:hidden;user-select:none;-webkit-user-drag:none;pointer-events:none;' +
+      'filter:drop-shadow(0 10px 14px rgba(60,40,30,.18))}' +
+    '.teeflat img.b{transform:rotateY(180deg)}';
+  document.head.appendChild(st);
 }
 
 export function create(frontUrl, backUrl) {
-  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-  renderer.setPixelRatio(Math.min((window.devicePixelRatio || 1) * 1.25, 3));
-  renderer.setClearColor(0x000000, 0);
-  const canvas = renderer.domElement; canvas.className = 'tshirt3d'; canvas.style.cursor = 'pointer';
-  const scene = new THREE.Scene();
-  // 照片本身已經有明暗，燈光以環境光為主，只留一點方向光讓轉動時看得出鼓起來的厚度
-  scene.add(new THREE.AmbientLight(0xffffff, 2.6));
-  const key = new THREE.DirectionalLight(0xffffff, 0.75); key.position.set(-40, 60, 100); scene.add(key);
-  const camera = new THREE.PerspectiveCamera(28, 1, 10, 2000);
-  camera.position.set(0, 0, 220);
-  const aniso = renderer.capabilities.getMaxAnisotropy();
+  addStyle();
+  const el = document.createElement('div'); el.className = 'teeflat';
+  const card = document.createElement('div'); card.className = 'tf-card';
+  const f = new Image(), b = new Image();
+  f.className = 'f'; b.className = 'b'; f.alt = ''; b.alt = '';
+  f.decoding = 'async'; b.decoding = 'async';
+  f.src = frontUrl; b.src = backUrl;
+  card.appendChild(f); card.appendChild(b); el.appendChild(card);
 
-  const shirt = new THREE.Group();
-  scene.add(shirt);
-  let ready = false;
-  const loader = new THREE.TextureLoader();
-  const tex = (url) => new Promise(ok => loader.load(url, t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = aniso; ok(t); }));
-  Promise.all([loadImg(frontUrl), tex(frontUrl), tex(backUrl)]).then(([img, tf, tb]) => {
-    const W = WIDTH, Hh = WIDTH * img.height / img.width;
-    const nx = SEG, ny = Math.round(SEG * img.height / img.width);
-    const hf = heightField(img, nx, ny);
-    shirt.add(panel(img, tf, W, Hh, hf, nx, ny));
-    // 背面：整片轉 180° 放到後面，從後面看就是背面圖。
-    // 轉 180° 會讓外形左右顛倒，而衣服照片不是完全左右對稱（差約 1.4%）→ 前後兩片在衣服邊緣接不起來，
-    // 從側面看就從縫隙看穿到背景（他 iPhone 上看到的破圖）。所以背面那片用「左右翻過來的外形」：
-    // 鼓起高度用 hf 的鏡像，背面貼圖的透明範圍也已經改成正面外形的鏡像（2026-10-03 重做 assets/tee-*-back.webp），
-    // 轉 180° 之後兩片外形完全重合，邊緣接成密封的一圈
-    const hfB = new Float32Array(hf.length);
-    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) hfB[j * nx + i] = hf[j * nx + (nx - 1 - i)];
-    const back = panel(img, tb, W, Hh, hfB, nx, ny);
-    back.rotation.y = Math.PI; shirt.add(back);
-    ready = true; dirty = true;
-  });
-
-  // 姿勢：滑鼠左右轉一點角度；點一下翻面（轉 180°），動畫用彈簧追上目標
-  let tx = 0, ty = 0, rx = 0, ry = 0, flip = 0, flipNow = 0, raf = 0, dirty = true;
-  canvas.addEventListener('click', () => { flip = flip ? 0 : 1; dirty = true; });
-  function frame() {
-    raf = canvas.isConnected ? requestAnimationFrame(frame) : 0;
-    if (!raf || !ready) return;
-    const nrx = rx + (ty - rx) * 0.08, nry = ry + (tx - ry) * 0.08, nf = flipNow + (flip - flipNow) * 0.09;
-    if (!dirty && Math.abs(nrx - rx) + Math.abs(nry - ry) + Math.abs(nf - flipNow) < 1e-5) return;
-    rx = nrx; ry = nry; flipNow = nf; dirty = false;
-    shirt.rotation.set(rx, ry + flipNow * Math.PI, 0, 'YXZ');
-    renderer.render(scene, camera);
+  let host = null, aspect = 2202 / 2400;          // 高／寬；圖載完用實際比例
+  function layout() {
+    if (!host) return;
+    const w = host.clientWidth, h = host.clientHeight;
+    // 衣服全寬約佔畫面寬的八成、高度不超過畫面的九成
+    const cw = Math.min(w * 0.82, h * 0.9 / aspect), ch = cw * aspect;
+    card.style.width = cw + 'px'; card.style.height = ch + 'px';
+    card.style.marginLeft = (-cw / 2) + 'px'; card.style.marginTop = (-ch / 2 - h * 0.03) + 'px';   // 稍微偏上，下面留給提示字
   }
+  f.addEventListener('load', () => { if (f.naturalWidth) aspect = f.naturalHeight / f.naturalWidth; layout(); });
+
+  // 姿勢：傾斜跟著手指／滑鼠，翻面用彈簧追上目標（跟原本 3D 版的手感一樣）
+  let tx = 0, ty = 0, rx = 0, ry = 0, flip = 0, flipNow = 0, raf = 0;
+  el.addEventListener('click', () => { flip = flip ? 0 : 1; kick(); });
+  function kick() { if (!raf) raf = requestAnimationFrame(frame); }
+  function frame() {
+    raf = 0;
+    if (!el.isConnected) return;
+    rx += (ty - rx) * 0.1; ry += (tx - ry) * 0.1; flipNow += (flip - flipNow) * 0.11;
+    card.style.transform = 'rotateX(' + rx.toFixed(2) + 'deg) rotateY(' + (ry + flipNow * 180).toFixed(2) + 'deg)';
+    if (Math.abs(ty - rx) + Math.abs(tx - ry) + Math.abs(flip - flipNow) > 0.01) kick();
+  }
+  window.addEventListener('resize', layout);
+
   return {
-    canvas,
-    mount(host) {
-      if (canvas.parentNode !== host) { host.innerHTML = ''; host.appendChild(canvas); }
-      const w = host.clientWidth, h = host.clientHeight;
-      renderer.setSize(w, h, false); camera.aspect = w / h;
-      // 衣服全寬約佔畫面寬的八成、高度不超過畫面
-      const t = 2 * Math.tan(THREE.MathUtils.degToRad(14));
-      camera.position.z = Math.max(WIDTH * 1.2 / (t * camera.aspect), WIDTH * 1.15 / t);
-      // 深度範圍只包住衣服（原本 10～2000）：手機的深度精度比較低，範圍太大時前後片的邊緣會互相打架
-      camera.near = Math.max(1, camera.position.z - WIDTH); camera.far = camera.position.z + WIDTH;
-      camera.updateProjectionMatrix();
-      flip = flipNow = 0;                    // 每次打開都從正面開始
-      dirty = true;
-      if (!raf) raf = requestAnimationFrame(frame);
+    canvas: el,                                   // 舊介面的名字，有人拿來判斷就沿用
+    mount(h) {
+      host = h;
+      if (el.parentNode !== h) { h.innerHTML = ''; h.appendChild(el); }
+      flip = flipNow = 0; tx = ty = rx = ry = 0;  // 每次打開都從正面開始
+      layout(); frame();
     },
-    pointer(x, y) { tx = (x - 0.5) * 1.0; ty = (y - 0.5) * 0.35; }
+    pointer(x, y) { tx = (x - 0.5) * 2 * TILT_Y; ty = -(y - 0.5) * 2 * TILT_X; kick(); }
   };
 }

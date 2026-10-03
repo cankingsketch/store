@@ -34,7 +34,7 @@
       cut2: a + (t.card === 'back' ? '-thumb.webp' : '-thumb-back.webp'),
       img: imgs[0], more: imgs.slice(1), photoFirst: 1, photoLabel: '實穿',
       sizeHtml: sizeHtml,
-      view3d: { module: 'tshirt3d.js', art: a + '-front.webp', uv: a + '-back.webp', hint: '移動滑鼠轉動・點一下翻到背面' },
+      view3d: { module: 'tshirt3d.js', art: a + '-front.webp', uv: a + '-back.webp', hint: '點一下翻到背面' },
       links: [{ label: '海外預購', href: FORM }] };
   });
   window.CK_TEE_INFO = { TPAGE: TPAGE, FORM: FORM, SIZE_IMG: SIZE_IMG };
