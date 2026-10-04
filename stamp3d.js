@@ -5,7 +5,7 @@
 // （不做內部反彈，側面才不會映出一堆倒影）。shared.js 需要時才動態載入。
 // 蓋章（他選的 B）：磚底下鋪一張紙，點一下印章 → 抬起、移到紙上、壓下去、抬起來移到旁邊，紙上留下章印。
 // 蓋下去的動態（2026-10-04 他要的）：往下加速落到紙上 →「咚」→ 底下的軟水晶膠被壓扁、往外擠一點 →
-// 前後輕輕晃兩下把墨壓實（沙沙的紙張摩擦聲）→ 抬起時水晶膠黏著紙被拉長一下才「啵」地離開、彈回原狀 → 移到旁邊放著。
+// 前後輕輕晃兩下把墨壓實（短短一聲紙張摩擦）→ 抬起時水晶膠黏著紙被拉長一下才「啵」地離開、彈回原狀 → 移到旁邊放著。
 // 聲音都用 Web Audio 即時合成，沒有音檔：落下是厚實的低音「咚」＋壓克力的「叩」，晃的時候是紙張摩擦，離開是一聲小小的撕離聲。
 // 章印＝橡皮章圖的 R（凸起的線；從磚頂往下看是正的，蓋出來也是正的），墨色有顆粒、偶爾沒吃到墨、邊緣微暈、每次歪一點。
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
@@ -327,11 +327,11 @@ export function create(printUrl, rubberUrl) {
       hiss(0, 'lowpass', 380, 0.7, [[0.004, 0.55], [0.05, 0.25], [0.2, 0]]);
       hiss(0, 'bandpass', 1900, 2.5, [[0.002, 0.16], [0.03, 0]]);
     },
-    // 晃兩下：紙張摩擦的沙沙聲，兩個起伏跟著晃的節奏
+    // 壓下去那一下：很短的一聲紙張摩擦「沙」（他說原本太長，只要 1/5）
     rub(len) {
       if (!ac) return;
-      hiss(0, 'bandpass', 3200, 0.8, [[0.06, 0.07], [len * 0.4, 0.02], [len * 0.62, 0.075], [len, 0]]);
-      hiss(0, 'bandpass', 900, 0.9, [[0.06, 0.05], [len * 0.4, 0.015], [len * 0.62, 0.05], [len, 0]]);
+      hiss(0, 'bandpass', 3200, 0.8, [[len * 0.25, 0.07], [len, 0]]);
+      hiss(0, 'bandpass', 900, 0.9, [[len * 0.25, 0.05], [len, 0]]);
     },
     // 離開紙：水晶膠從紙上撕離的一小聲「啵」
     peel() {
@@ -357,7 +357,7 @@ export function create(printUrl, rubberUrl) {
       tween(cur, { x: cur.x, y: Math.max(cur.y, 14), z: cur.z, r: cur.r, rx: 0, rz: 0, sq: 0 }, cur.y > 10 ? 1 : 220),
       tween(null, at({ y: 14 }), 380),
       tween(null, T, 150, () => { inkAt(T.x, T.z, T.r); SND.thud(); stamps++; }, EASE_IN),   // 加速落下，碰到紙「咚」
-      tween(null, at({ sq: 1 }), 110, () => SND.rub(RUB), EASE_OUT),                          // 水晶膠被壓扁、往外擠
+      tween(null, at({ sq: 1 }), 110, () => SND.rub(RUB / 5), EASE_OUT),                          // 水晶膠被壓扁、往外擠
       tween(null, at({ sq: 1, rx: ROCK }), RUB * 0.3 * 1000),                                  // 前後晃兩下把墨壓實
       tween(null, at({ sq: 1, rx: -ROCK * 0.8, rz: ROCK * 0.5 }), RUB * 0.4 * 1000),
       tween(null, at({ sq: 1 }), RUB * 0.3 * 1000),
