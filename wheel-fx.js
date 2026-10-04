@@ -49,8 +49,9 @@ export function create(THREE, SFX) {
     bulbs = [];
     for (let k = 0; k < BULBS; k++) {
       const [x, y] = at(k * 360 / BULBS, BULB_R * r);
-      const core = new THREE.Mesh(new THREE.CircleGeometry(r * 0.05, 16), mat(0xfffbe0, 0, true));
-      const halo = new THREE.Mesh(new THREE.CircleGeometry(r * 0.12, 20), mat(0xffc23a, 0, true));
+      // 只亮印好的那顆燈泡本身（量出來半徑 0.038），不要外面一圈光暈——他說亮點太大、閃起來不好看
+      const core = new THREE.Mesh(new THREE.CircleGeometry(r * 0.038, 20), mat(0xfffbe0, 0, true));
+      const halo = new THREE.Mesh(new THREE.CircleGeometry(r * 0.03, 16), mat(0xffc23a, 0, true));
       core.position.set(x, y, z + 0.12); halo.position.set(x, y, z + 0.11);
       core.renderOrder = halo.renderOrder = 6;
       grp.add(halo); grp.add(core); bulbs.push([core, halo]);
@@ -70,14 +71,14 @@ export function create(THREE, SFX) {
   function lights(dt, speed, winning, t) {
     if (winning) {                                   // 中獎：全部一起閃
       const lit = Math.floor(t * 8) % 2 === 0 && t < 2;
-      bulbs.forEach(([c, h], k) => { c.material.opacity = lit ? 1 : 0.15; h.material.opacity = lit ? (k % 2 ? 0.55 : 0.4) : 0; });
+      bulbs.forEach(([c, h]) => { c.material.opacity = lit ? 0.9 : 0; h.material.opacity = lit ? 0.5 : 0; });
       return;
     }
     chase += dt * (3 + speed / 120);                 // 跑馬燈：轉越快跑越快
     const ph = Math.floor(chase);
     bulbs.forEach(([c, h], k) => {
       const l = speed > 20 && (k + ph) % 3 === 0;
-      c.material.opacity = l ? 1 : 0; h.material.opacity = l ? 0.45 : 0;
+      c.material.opacity = l ? 0.9 : 0; h.material.opacity = l ? 0.5 : 0;
     });
   }
   function burst(idx) {
