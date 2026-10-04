@@ -162,11 +162,11 @@ export function create(dir, boxDir) {   // boxDir：小外盒的素材資料夾�
     const it = list[cur]; if (!it || it.hidden || wheelGroup) return;
     tagEl.textContent = '盲盒內附QR 掃描之後可以看到立牌的AR動畫喔~'; tagEl.hidden = !arOn;
   };
-  // ---- 拆盲盒（2026-10-05 他要的）：素材資料夾有 box/box.json 的（通學路）一打開是一個沒拆的小外盒，
-  //      點一下：盒子抖一抖 → 盒蓋彈開（光＋紙花）→ 抽到的那組立牌從盒子裡跳出來 → 「抽到了！」＋「再抽一次」。
-  //      機率照實際：隱藏款 1/64，其他 6 款平分。下面那排按鈕照樣可以直接看某一組（看了就不演盒子）。
+  // ---- 拆盲盒（2026-10-05 他要的）：products.json 的 view3d.uv 指到 box/ 的（通學路、名店選）一打開是一個沒拆的小外盒，
+  //      點一下：盒子抖一抖 → 盒蓋彈開（光＋紙花＋8-bit 拉炮聲）→ 抽到的那組立牌從盒子裡跳出來；左上角一顆小盒子圖示可以再抽（不寫字）。
+  //      機率照實際：隱藏款 1/60（盒子上印的，他確認過），其他平分。有盒子的款式，下面那排款式按鈕藏起來（他說的）。
   //      盒子是 build_box.py 從工廠刀模檔切的六個面（8 × 3 × 9.6 cm）；盒蓋鉸鏈放在後緣，往後掀才不會擋住鏡頭。
-  const HIDDEN_ODDS = 64;
+  const HIDDEN_ODDS = 60;
   const boxUI = document.createElement('div');
   boxUI.innerHTML = '<div class="sd-hint" hidden>點盒子拆開</div><div class="sd-got" hidden></div><button class="sd-again" type="button" aria-label="再抽一次" hidden></button>';
   el.appendChild(boxUI);
@@ -501,7 +501,7 @@ export function create(dir, boxDir) {   // boxDir：小外盒的素材資料夾�
     cur = k;
     const it = list[k];
     if (!quiet) Array.prototype.forEach.call(varsBox.children, (b, i) => b.classList.toggle('on', i === k));   // 從盒子抽的：落地才亮，不然會先爆雷
-    tagEl.hidden = !it.hidden; tagEl.textContent = '隱藏款機率為 1/64';
+    tagEl.hidden = !it.hidden; tagEl.textContent = '隱藏款機率為 1/60';
     revealEl.hidden = quiet || !(it.hidden && !revealed);
     yaw = YAW0; yawVel = 0; spin = null;
     return load(root0 + it.id + '/');
