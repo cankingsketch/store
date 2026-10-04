@@ -220,6 +220,9 @@
         <label>一行說明（選填）</label>
         <input type="text" id="f-note" placeholder="例如：陶瓷 吸水 杯墊｜直徑 11cm" />
 
+        <label>詳細說明（選填，商品視窗裡顯示在說明下面一行）</label>
+        <input type="text" id="f-desc" placeholder="例如：融會貫通春聯，考生可用" />
+
         <label>商品圖片（第一張是卡片上的圖）</label>
         <div class="imgs" id="f-imgs"></div>
         <div class="drop" id="drop">點這裡選圖片，或把圖片拖進來（可一次多張）</div>
@@ -450,7 +453,7 @@
     }).join('');
     $('f-section').value = p.section;
     $('f-name').value = p.name; $('f-price').value = p.price || ''; $('f-from').checked = !!p.from;
-    $('f-note').value = p.note || ''; $('f-video').value = p.video || ''; $('f-shopee').value = p.shopee || '';
+    $('f-note').value = p.note || ''; $('f-desc').value = p.desc || ''; $('f-video').value = p.video || ''; $('f-shopee').value = p.shopee || '';
     $('f-find').value = p.findName || ''; $('f-date').value = p.date || '';
     $('f-hot').checked = p.hot; $('f-soldout').checked = !!p.soldout; $('f-hidden').checked = !!p.hidden;
     $('f-3d').style.display = p.view3d ? '' : 'none';
@@ -496,7 +499,7 @@
       renderPreview();
     });
   }
-  bind('f-name', 'name'); bind('f-price', 'price', 'num'); bind('f-from', 'from', 'chk'); bind('f-note', 'note');
+  bind('f-name', 'name'); bind('f-price', 'price', 'num'); bind('f-from', 'from', 'chk'); bind('f-note', 'note'); bind('f-desc', 'desc');
   bind('f-video', 'video'); bind('f-shopee', 'shopee'); bind('f-find', 'findName'); bind('f-date', 'date');
   bind('f-hot', 'hot', 'chk'); bind('f-soldout', 'soldout', 'chk'); bind('f-hidden', 'hidden', 'chk');
   $('f-section').addEventListener('change', function () { state.editing.section = this.value; });

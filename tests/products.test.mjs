@@ -147,5 +147,16 @@ console.log('\n[6] 上傳的圖');
   ok('太大', throws(() => mod.checkUploads({ [L]: huge }, d), /太大/));
 }
 
+console.log('\n[desc] 詳細說明（選填）');
+{
+  const base = clone(DATA.products.find(p => !p.special && !p.view3d));
+  const a = mod.normalize(Object.assign(clone(base), { desc: '  融會貫通春聯，考生可用  ' }), base);
+  ok('有填就保留（去頭尾空白）', a.desc === '融會貫通春聯，考生可用', a.desc);
+  ok('排在 note 後面', Object.keys(a).indexOf('desc') === Object.keys(a).indexOf('note') + 1, Object.keys(a));
+  const b = mod.normalize(Object.assign(clone(base), { desc: '' }), base);
+  ok('空白就不寫這個欄位', !('desc' in b), b);
+  ok('太長擋掉', throws(() => mod.normalize(Object.assign(clone(base), { desc: 'x'.repeat(301) }), base), /詳細說明/));
+}
+
 console.log('\n=== ' + pass + ' 通過 / ' + fail + ' 失敗 ===');
 process.exit(fail ? 1 : 0);

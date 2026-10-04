@@ -385,6 +385,7 @@ img { max-width:100%; }
 }
 
 /* ---------- 想買清單（2026-10-04）：購買區的「♡ 加到想買清單」、右下角的「♡ 3」、打開的清單 ---------- */
+.pl-desc { display:block; margin-top:3px; color:var(--ink); font-size:13px; }
 .wish-btn { font:inherit; font-size:14px; line-height:1; background:#fff; color:#555; border:1.5px solid #ddd; border-radius:999px;
   padding:8px 14px; margin-right:12px; cursor:pointer; vertical-align:middle; }
 .wish-btn:hover { border-color:#bbb; }

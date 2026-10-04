@@ -187,6 +187,8 @@ function normalize(p, prev) {
   o.price = price;
   if (p.from) o.from = true;
   o.note = str(p.note, 200, '說明');
+  const desc = str(p.desc, 300, '詳細說明');
+  if (desc) o.desc = desc;
   o.imgs = imgs;
   o.video = video;
   o.shopee = shopee;

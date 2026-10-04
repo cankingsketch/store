@@ -908,7 +908,7 @@
     var cells = (p.view3d ? 1 : 0) + plImgs.length + (p.sizeHtml ? 1 : 0);
     pl.querySelector('.pl-thumbs').innerHTML = cells > 1 ? thumbs : '';
     pl.querySelector('h3').textContent = p.name;
-    pl.querySelector('small').textContent = p.note || '';
+    pl.querySelector('small').innerHTML = esc(p.note || '') + (p.desc ? '<span class="pl-desc">' + esc(p.desc) + '</span>' : '');   // desc＝詳細說明（後台選填）
     // 影片嵌不進來的（不是 IG／YouTube）才在購買區放一顆連結
     var links = (p.links || []).concat(p.video && !vEmb ? [{ label: '▶ 影片', href: p.video }] : []);
     pl.querySelector('.buybox').innerHTML = buyBox(p.name, p.price, { from: p.from, shopee: p.shopee, soldout: p.soldout, noShopee: p.noShopee, links: links, findName: p.findName,
