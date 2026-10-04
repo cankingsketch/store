@@ -168,7 +168,7 @@ export function create(dir, boxDir) {   // boxDir：小外盒的素材資料夾�
   //      盒子是 build_box.py 從工廠刀模檔切的六個面（8 × 3 × 9.6 cm）；盒蓋鉸鏈放在後緣，往後掀才不會擋住鏡頭。
   const HIDDEN_ODDS = 64;
   const boxUI = document.createElement('div');
-  boxUI.innerHTML = '<div class="sd-hint" hidden>點盒子拆開</div><div class="sd-got" hidden></div><button class="sd-again" type="button" hidden>再抽一次</button>';
+  boxUI.innerHTML = '<div class="sd-hint" hidden>點盒子拆開</div><div class="sd-got" hidden></div><button class="sd-again" type="button" aria-label="再抽一次" hidden></button>';
   el.appendChild(boxUI);
   if (!document.getElementById('sd-box-style')) {
     const st = document.createElement('style'); st.id = 'sd-box-style';
@@ -180,9 +180,12 @@ export function create(dir, boxDir) {   // boxDir：小外盒的素材資料夾�
         'font-size:16px;font-weight:900;letter-spacing:.06em;pointer-events:none;box-shadow:0 4px 14px rgba(240,168,0,.35);animation:sd-gotin .45s cubic-bezier(.2,1.6,.4,1)}' +
       '.sd-got.hid{background:#2b2f45;color:#ffe27a;box-shadow:0 0 18px rgba(255,210,58,.6)}' +
       '@keyframes sd-gotin{from{transform:translateX(-50%) scale(.3);opacity:0}}' +
-      '.sd-again{position:absolute;left:50%;bottom:52px;transform:translateX(-50%);border:0;border-radius:999px;background:var(--red2,#e5483d);color:#fff;' +
-        'font-size:14px;font-weight:800;padding:8px 20px;cursor:pointer;letter-spacing:.06em;box-shadow:0 4px 12px rgba(229,72,61,.3)}' +
-      '.sd-hint[hidden],.sd-got[hidden],.sd-again[hidden]{display:none}';
+      // 再抽一次：不寫字（他說說明要少），一顆小盒子圖示，輕輕晃
+      '.sd-again{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);width:46px;height:46px;padding:5px;border:2px solid #fff;border-radius:14px;' +
+        'background:#ffd23a;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.16);animation:sd-wig 2.4s ease-in-out infinite}' +
+      '.sd-again img{width:100%;height:100%;object-fit:contain;display:block}' +
+      '@keyframes sd-wig{0%,80%,100%{transform:translateX(-50%) rotate(0)}85%{transform:translateX(-50%) rotate(-8deg)}90%{transform:translateX(-50%) rotate(7deg)}95%{transform:translateX(-50%) rotate(-4deg)}}' +
+      '.sd-hint[hidden],.sd-got[hidden],.sd-again[hidden],.sd-vars[hidden]{display:none}';
     document.head.appendChild(st);
   }
   const hintEl = boxUI.querySelector('.sd-hint'), gotEl = boxUI.querySelector('.sd-got'), againBtn = boxUI.querySelector('.sd-again');
@@ -192,22 +195,25 @@ export function create(dir, boxDir) {   // boxDir：小外盒的素材資料夾�
   const boxGroup = new THREE.Group(), lidPivot = new THREE.Group(), flash = new THREE.Group();
   boxGroup.visible = false; scene.add(boxGroup); scene.add(flash);
   function boxBuild(j, dir) {
-    const W = j.w, H = j.h, Dp = j.d, inside = new THREE.MeshStandardMaterial({ color: 0xf3eee5, roughness: 0.9, side: THREE.BackSide });
-    const paper = img => { const m = new THREE.MeshStandardMaterial({ map: tex(dir + img), roughness: 0.55, metalness: 0, envMapIntensity: 0.55 }); return m; };
-    const face = (w, h, img, pos, rot, parent) => {
+    const W = j.w, H = j.h, Dp = j.d, inside = new THREE.MeshBasicMaterial({ color: 0xf1ebe0, side: THREE.BackSide });
+    // 紙盒：跟立牌的印刷一樣用自發光，顏色才會跟實品一樣亮（一般材質靠打光，整個偏暗偏灰——他說的）；
+    // k＝這一面的亮度，正面最亮、側面暗一點，看得出是個盒子；再加一點點反光
+    const paper = (img, k) => { const t = tex(dir + img);
+      return new THREE.MeshPhysicalMaterial({ color: 0x000000, emissive: new THREE.Color(k, k, k), emissiveMap: t, roughness: 0.55, metalness: 0, envMapIntensity: 0.18 }); };
+    const face = (w, h, img, pos, rot, parent, k) => {
       const g = new THREE.PlaneGeometry(w, h);
-      const o = new THREE.Mesh(g, paper(img)), i = new THREE.Mesh(g, inside);
+      const o = new THREE.Mesh(g, paper(img, k || 1)), i = new THREE.Mesh(g, inside);
       o.position.copy(pos); o.rotation.set(rot[0], rot[1], rot[2]); i.position.copy(pos); i.rotation.copy(o.rotation);
       (parent || boxGroup).add(o); (parent || boxGroup).add(i);
     };
     const V = (x, y, z) => new THREE.Vector3(x, y, z);
-    face(W, H, j.faces.front, V(0, H / 2, Dp / 2), [0, 0, 0]);
-    face(W, H, j.faces.back, V(0, H / 2, -Dp / 2), [0, Math.PI, 0]);
-    face(Dp, H, j.faces.left, V(-W / 2, H / 2, 0), [0, -Math.PI / 2, 0]);
-    face(Dp, H, j.faces.right, V(W / 2, H / 2, 0), [0, Math.PI / 2, 0]);
-    face(W, Dp, j.faces.bottom, V(0, 0, 0), [Math.PI / 2, 0, Math.PI]);
+    face(W, H, j.faces.front, V(0, H / 2, Dp / 2), [0, 0, 0], null, 1);
+    face(W, H, j.faces.back, V(0, H / 2, -Dp / 2), [0, Math.PI, 0], null, 0.92);
+    face(Dp, H, j.faces.left, V(-W / 2, H / 2, 0), [0, -Math.PI / 2, 0], null, 0.8);
+    face(Dp, H, j.faces.right, V(W / 2, H / 2, 0), [0, Math.PI / 2, 0], null, 0.88);
+    face(W, Dp, j.faces.bottom, V(0, 0, 0), [Math.PI / 2, 0, Math.PI], null, 0.7);
     lidPivot.position.set(0, H, -Dp / 2); boxGroup.add(lidPivot);
-    face(W, Dp, j.faces.top, V(0, 0, Dp / 2), [-Math.PI / 2, 0, 0], lidPivot);
+    face(W, Dp, j.faces.top, V(0, 0, Dp / 2), [-Math.PI / 2, 0, 0], lidPivot, 1);
     // 盒子底下的影子
     const sc = document.createElement('canvas'); sc.width = sc.height = 128;
     const sg = sc.getContext('2d'), gr = sg.createRadialGradient(64, 64, 6, 64, 64, 64);
@@ -242,6 +248,8 @@ export function create(dir, boxDir) {   // boxDir：小外盒的素材資料夾�
     fetch(dir + 'box.json').then(r => r.ok ? r.json() : null).then(j => {
       if (!j) { root.visible = true; kick(); return; }
       boxBuild(j, dir);
+      againBtn.innerHTML = '<img src="' + dir + j.faces.front + '" alt="">';
+      varsBox.hidden = true;                             // 有盒子的：下面那排款式按鈕不要（他說的），想看別款就再抽
       boxReset(true);
       // 音效：盒子出現時在背景先載（小程式，沒有圖），第一次點盒子時開聲音（iPhone 要在點的那一下開）
       const mod = n => window.CK_MOD ? window.CK_MOD(n) : './' + n;
@@ -275,7 +283,7 @@ export function create(dir, boxDir) {   // boxDir：小外盒的素材資料夾�
   function boxOff() {
     if (boxPhase === 'off') return;
     boxPhase = 'off'; boxGroup.visible = false; root.visible = true; boxView = 0;
-    hintEl.hidden = true; gotEl.hidden = true; againBtn.hidden = !box; againBtn.textContent = '拆一盒';
+    hintEl.hidden = true; gotEl.hidden = true; againBtn.hidden = !box;
   }
   const easeOutBack = t => 1 + 2.4 * Math.pow(t - 1, 3) + 1.4 * Math.pow(t - 1, 2);
   // 每一格：盒子的動畫；回傳 true＝還在動
@@ -302,7 +310,7 @@ export function create(dir, boxDir) {   // boxDir：小外盒的素材資料夾�
     }
     if (boxPhase === 'shake') {
       boxGroup.rotation.z = Math.sin(t * 46) * 0.09 * (1 - t / 0.8); boxGroup.position.y = Math.abs(Math.sin(t * 23)) * 2.5;
-      if (t > 0.8) { boxPhase = 'open'; boxT0 = now; boxGroup.rotation.z = 0; boxGroup.position.y = 0; if (sfx) sfx.SFX.lidPop(); burstFX(); }
+      if (t > 0.8) { boxPhase = 'open'; boxT0 = now; boxGroup.rotation.z = 0; boxGroup.position.y = 0; if (sfx) sfx.SFX.popper(); burstFX(); }
       return true;
     }
     if (boxPhase === 'open') {
@@ -326,9 +334,7 @@ export function create(dir, boxDir) {   // boxDir：小外盒的素材資料夾�
         boxPhase = 'off'; boxGroup.visible = false; root.position.y = 0; root.scale.setScalar(1); root.rotation.y = 0; boxView = 0;
         const it = list[cur];
         Array.prototype.forEach.call(varsBox.children, (b, i) => b.classList.toggle('on', i === cur));
-        gotEl.textContent = it.hidden ? '★ 抽到隱藏款！ ★' : '抽到了！' + it.name; gotEl.classList.toggle('hid', !!it.hidden); gotEl.hidden = false;
-        againBtn.textContent = '再抽一次'; againBtn.hidden = false;
-        if (sfx) { if (it.hidden) sfx.SFX.don(); else sfx.SFX.tada(); }
+        againBtn.hidden = false;                         // 「抽到了！」的字拿掉了（他說的），只留一顆小盒子圖示可以再抽
         if (it.hidden && !revealed) setTimeout(() => { if (list[cur] && list[cur].hidden && !revealed) reveal(); }, 500);
       }
       return true;
