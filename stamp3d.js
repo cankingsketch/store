@@ -4,6 +4,7 @@
 // 進入時折射、穿過磚：撞到頂面背後是白墨、撞到底面就穿進橡皮章看到凸起的線，其他地方直接穿出去
 // （不做內部反彈，側面才不會映出一堆倒影）。shared.js 需要時才動態載入。
 // 蓋章（他選的 B）：磚底下鋪一張紙，點一下印章 → 抬起、移到紙上、壓下去、抬起來移到旁邊，紙上留下章印。
+// 壓到紙的那一下有一聲短短悶悶的「啪」（Web Audio 即時合成，沒有音檔；2026-10-04 他要的）
 // 章印＝橡皮章圖的 R（凸起的線；從磚頂往下看是正的，蓋出來也是正的），墨色有顆粒、偶爾沒吃到墨、邊緣微暈、每次歪一點。
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 
@@ -297,8 +298,27 @@ export function create(printUrl, rubberUrl) {
   let anim = null, stamps = 0;
   const ease = t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
   function tween(from, to, ms, done) { return { from: Object.assign({}, from), to, ms, t0: performance.now(), done }; }
+  // 蓋章聲：橡皮壓到紙上的悶響＝一小段低通雜訊＋很低的「咚」。AudioContext 在點擊那一下開（iPhone 規定）
+  let ac = null;
+  function thud() {
+    if (!ac) return;
+    const t = ac.currentTime, n = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    const buf = ac.createBuffer(1, ac.sampleRate * 0.12, ac.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    n.buffer = buf; f.type = 'lowpass'; f.frequency.value = 700;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.5, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.1);
+    n.connect(f).connect(g).connect(ac.destination); n.start(t);
+    const o = ac.createOscillator(), og = ac.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(60, t + 0.12);
+    og.gain.setValueAtTime(0.0001, t); og.gain.exponentialRampToValueAtTime(0.35, t + 0.005); og.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+    o.connect(og).connect(ac.destination); o.start(t); o.stop(t + 0.16);
+  }
   function stampOnce() {
     if (anim) return;
+    try {
+      if (!ac) { const C = window.AudioContext || window.webkitAudioContext; if (C) ac = new C(); }
+      if (ac && ac.state === 'suspended') ac.resume();
+    } catch (e) { ac = null; }
     // 每次換個地方、歪一點，蓋幾次就排成一小片（五個位置輪流，太多次就清掉重來）
     const SPOTS = [[0, 2], [32, -10], [30, 26], [-26, 24], [2, 34]];   // 避開左後方（印章蓋完放那裡）
     if (stamps && stamps % SPOTS.length === 0) clearPaper();
@@ -308,7 +328,7 @@ export function create(printUrl, rubberUrl) {
     const steps = [
       tween(cur, { x: cur.x, y: Math.max(cur.y, 14), z: cur.z, r: cur.r }, cur.y > 10 ? 1 : 220),
       tween(null, up, 380),
-      tween(null, T, 170, () => { inkAt(T.x, T.z, T.r); stamps++; }),
+      tween(null, T, 170, () => { inkAt(T.x, T.z, T.r); thud(); stamps++; }),
       tween(null, T, 90),
       tween(null, up, 200),
       tween(null, REST, 420)
