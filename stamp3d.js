@@ -6,7 +6,7 @@
 // 蓋章（他選的 B）：磚底下鋪一張紙，點一下印章 → 抬起、移到紙上、壓下去、抬起來移到旁邊，紙上留下章印。
 // 蓋下去的動態（2026-10-04 他要的）：往下加速落到紙上 →「咚」→ 底下的軟水晶膠被壓扁、往外擠一點 →
 // 前後輕輕晃兩下把墨壓實→ 抬起時水晶膠黏著紙被拉長一下才「啵」地離開、彈回原狀 → 移到旁邊放著。
-// 聲音都用 Web Audio 即時合成，沒有音檔：落下是短短悶悶的「啪」，離開是一聲小小的撕離聲（紙張摩擦聲他說先拿掉）。
+// 聲音用 Web Audio 即時合成，沒有音檔：只有落下那一聲短短悶悶的「啪」（紙張摩擦聲、離開時的撕離聲他都說拿掉）。
 // 章印＝橡皮章圖的 R（凸起的線；從磚頂往下看是正的，蓋出來也是正的），墨色有顆粒、偶爾沒吃到墨、邊緣微暈、每次歪一點。
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 
@@ -304,15 +304,7 @@ export function create(printUrl, rubberUrl) {
   const EASE_OUT_BACK = t => 1 + 2.2 * Math.pow(t - 1, 3) + 1.2 * Math.pow(t - 1, 2);   // 稍微超過再回來（膠彈回去）
   function tween(from, to, ms, done, ez) { return { from: Object.assign({}, from), to, ms, t0: performance.now(), done, ez: ez || ease }; }
   // 蓋章聲。AudioContext 在點擊那一下開（iPhone 規定）
-  let ac = null, nbuf = null;
-  // 一段濾過的雜訊：type＝lowpass/bandpass/highpass，env＝[[秒, 音量], ...] 的音量折線
-  function hiss(at, type, freq, q, env) {
-    if (!nbuf) { nbuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = nbuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
-    const t = ac.currentTime + at, n = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
-    n.buffer = nbuf; n.loop = true; f.type = type; f.frequency.value = freq; f.Q.value = q;
-    g.gain.setValueAtTime(0.0001, t); env.forEach(([k, v]) => g.gain.linearRampToValueAtTime(v, t + k));
-    n.connect(f).connect(g).connect(ac.destination); n.start(t); n.stop(t + env[env.length - 1][0] + 0.02);
-  }
+  let ac = null;
   function hum(at, f0, f1, len, vol, type) {
     const t = ac.currentTime + at, o = ac.createOscillator(), g = ac.createGain();
     o.type = type || 'sine'; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + len);
@@ -330,12 +322,6 @@ export function create(printUrl, rubberUrl) {
       g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.5, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.1);
       n.connect(f).connect(g).connect(ac.destination); n.start(t);
       hum(0, 150, 60, 0.14, 0.35);
-    },
-    // 離開紙：水晶膠從紙上撕離的一小聲「啵」
-    peel() {
-      if (!ac) return;
-      hiss(0, 'highpass', 2600, 0.7, [[0.01, 0.06], [0.08, 0]]);
-      hum(0.02, 520, 260, 0.06, 0.07);
     }
   };
   function stampOnce() {
@@ -359,7 +345,7 @@ export function create(printUrl, rubberUrl) {
       tween(null, at({ sq: 1, rx: ROCK }), RUB * 0.3 * 1000),                                  // 前後晃兩下把墨壓實
       tween(null, at({ sq: 1, rx: -ROCK * 0.8, rz: ROCK * 0.5 }), RUB * 0.4 * 1000),
       tween(null, at({ sq: 1 }), RUB * 0.3 * 1000),
-      tween(null, at({ sq: 1 }), 60, () => SND.peel()),
+      tween(null, at({ sq: 1 }), 60),
       tween(null, at({ sq: -0.35 }), 170),                                                     // 抬起：膠還黏著紙，被拉長一下
       tween(null, at({ y: 14, sq: 0 }), 240, null, EASE_OUT_BACK),                             // 離開、彈回原狀
       tween(null, Object.assign({ rx: 0, rz: 0, sq: 0 }, REST), 420)
