@@ -18,6 +18,9 @@
     var x = TOP.indexOf(a[0]), y = TOP.indexOf(b[0]);
     return (x < 0 ? 99 : x) - (y < 0 ? 99 : y) || a[0] - b[0];
   });
+  // 春聯也放進原創明信片牆（他要的，2026-10-04）：正方形、單面、自己的價格和賣貨便商品（不是明信片，所以不算在「N 款」裡）
+  // 圖：NAS 商品照片「春節_春聯_效果圖.png」（燙金效果）→ img/post/cl-l／-s.webp
+  CARDS.push(['cl', '龍會罐通燙金春聯', 'sq', { price: 50, single: 1, note: '15.2 × 15.2 cm・燙金・新年考生兩用' }]);
   // 二創（单面資料夾的 A 編號）：[編號, 角色名, 橫?]
   var FAN = [
     [1, '靜謐'], [2, '凜'], [3, '雙貞德', 1], [4, '虞美人', 1], [5, '黑貞'], [6, '小霞|寶可夢'],
@@ -31,11 +34,12 @@
   // O：pre＝圖檔開頭（p／a）、single＝單面（不翻）、buyName＝賣貨便上找的名字、more＝牆最下面的一行小字
   function make(CARDS, O) {
   var list = CARDS.map(function (c, i) {
-    var id = O.pre + (c[0] < 10 ? '0' : '') + c[0];
-    return { no: c[0], name: c[1], wide: !!c[2], s: P + id + '-s.webp', l: P + id + '-l.webp', rot: ((i * 37) % 9 - 4) * 0.6 };
+    var id = typeof c[0] === 'string' ? c[0] : O.pre + (c[0] < 10 ? '0' : '') + c[0];
+    return { no: c[0], name: c[1], wide: c[2] === 1, sq: c[2] === 'sq', x: c[3] || null, s: P + id + '-s.webp', l: P + id + '-l.webp', rot: ((i * 37) % 9 - 4) * 0.6 };
   });
   var pw, at = -1, prod = null;
   function esc(s) { return CK.esc(s); }
+  function cls(c) { return c.wide ? ' wide' : c.sq ? ' sq' : ''; }
   function ensure() {
     if (pw) return;
     pw = document.createElement('div'); pw.className = 'lb pw';
@@ -124,7 +128,7 @@
   }
   function wallHtml() {
     return '<div class="pw-row">' + list.map(function (c, i) {
-      return '<button class="pc' + (c.wide ? ' wide' : '') + '" data-pc="' + i + '" style="--r:' + c.rot + 'deg" title="' + esc(c.name) + '">' +
+      return '<button class="pc' + cls(c) + '" data-pc="' + i + '" style="--r:' + c.rot + 'deg" title="' + esc(c.name) + '">' +
         '<img src="' + c.s + '" alt="' + esc(c.name) + '" loading="lazy"></button>';
     }).join('') + '</div>' + (O.more ? '<p class="pw-more">' + O.more + '</p>' : '');
   }
@@ -140,7 +144,8 @@
     var c = list[i], card = pw.querySelector('.pw-card');
     card.classList.toggle('wide', c.wide); card.classList.remove('flipped');
     card.querySelector('.f').src = c.l;
-    if (O.single) card.querySelector('.b').removeAttribute('src');      // 單面：沒有背面
+    card.classList.toggle('sq', c.sq);
+    if (O.single || (c.x && c.x.single)) card.querySelector('.b').removeAttribute('src');      // 單面：沒有背面
     else card.querySelector('.b').src = P + (c.wide ? 'back-h.webp' : 'back-v.webp');
     pw.querySelector('.pw-cap b').textContent = c.name;
     buy(c);
@@ -149,16 +154,19 @@
   function buy(c) {
     var w = !c ? null : FGO.indexOf(c.name) >= 0 ? { n: 'FGO明信片組', f: 'FGO明信片組|共5張', p: 200, img: c.s }
       : { v: c.name, sp: c.name, img: c.s, na: O.pre === 'p' && NOT_ON_MYSHIP.indexOf(c.name) >= 0 };
-    pw.querySelector('.buybox').innerHTML = CK.buyBox(O.buyName, prod.price, { from: !c, shopee: prod.shopee, wish: w });
+    if (c && c.x) w = { img: c.s };                          // 春聯：自己是一樣商品
+    pw.querySelector('.lb-foot small').textContent = c && c.x ? (c.x.note || '') : '單張 NT$44・10 × 15 cm';
+    pw.querySelector('.buybox').innerHTML = c && c.x ? CK.buyBox(c.name, c.x.price, { wish: w })
+      : CK.buyBox(O.buyName, prod.price, { from: !c, shopee: prod.shopee, wish: w });
   }
   function turn() {
-    if (O.single) return;                                     // 單面的點了不翻
+    if (O.single || (list[at] && list[at].x && list[at].x.single)) return;   // 單面的點了不翻
     pw.querySelector('.pw-card').classList.toggle('flipped');
   }
   // 周邊頁的明信片列：一排小卡（點了直接放大那一張）
   function stripHtml() {
     return list.map(function (c, i) {
-      return '<button class="pc' + (c.wide ? ' wide' : '') + '" data-pcs="' + i + '" style="--r:' + c.rot + 'deg" title="' + esc(c.name) + '">' +
+      return '<button class="pc' + cls(c) + '" data-pcs="' + i + '" style="--r:' + c.rot + 'deg" title="' + esc(c.name) + '">' +
         '<img src="' + c.s + '" alt="' + esc(c.name) + '" loading="lazy" draggable="false"></button>';
     }).join('');
   }
@@ -166,9 +174,9 @@
     ensure(); prod = p;
     pw.querySelector('.pw-wall').innerHTML = wallHtml();
     pw.querySelector('.pw-strip').innerHTML = list.map(function (c, i) {
-      return '<button class="' + (c.wide ? 'wide' : '') + '" data-pk="' + i + '" title="' + esc(c.name) + '"><img src="' + c.s + '" alt="' + esc(c.name) + '" loading="lazy"></button>';
+      return '<button class="' + cls(c).trim() + '" data-pk="' + i + '" title="' + esc(c.name) + '"><img src="' + c.s + '" alt="' + esc(c.name) + '" loading="lazy"></button>';
     }).join('');
-    pw.querySelector('.lb-foot h3').innerHTML = esc(p.name) + '<i class="tag setc">' + list.length + ' 款</i>';
+    pw.querySelector('.lb-foot h3').innerHTML = esc(p.name) + '<i class="tag setc">' + list.filter(function (c) { return !c.x; }).length + ' 款</i>';
     pw.querySelector('.lb-foot small').textContent ='單張 NT$44・10 × 15 cm';
     zoom(-1);
     pw.classList.add('open'); document.body.style.overflow = 'hidden';
