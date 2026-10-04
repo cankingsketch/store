@@ -5,7 +5,7 @@
 //     箭頭指到的選項亮淡黃色，一格一格跟著跳
 //   ・停下來：只有三個「中獎」有演出，有主次（他說的）：大獎＝畫、二獎＝好啦我畫、三獎＝畫一點——
 //     效果字（JoJo／漫畫那種擬聲字，拆兩半放吊飾左上、右上，不擋中間）、集中線閃爍、震動、專屬音效；
-//     大獎：雙層金框跑馬燈、星星最多、音效最長（重擊＋勝利旋律＋一長串投幣聲）
+//     大獎：雙層金框跑馬燈、星星最多、音效最長（他在試聽頁選的「拉霸機」：重擊＋旋律＋投幣 20 枚）
 //     二獎：單層金框、星星少一半；三獎：沒有框、小閃光。不寫「大獎／二獎」字樣（他不要）
 //   ・其他六個（含再轉一次）：選項亮起來＋一聲「沒中」音效就好，不要其他特效（他說的）
 // 選項的位置、角度、文字形狀由 build_spinner.py 產生（charm-draw-fx.json、charm-draw-opt*.webp）。
@@ -103,10 +103,9 @@ function noise(len, vol, cut, at, wob) {
   if (wob) { const l = a.createOscillator(), lg = a.createGain(); l.frequency.value = wob; lg.gain.value = vol * 0.6; l.connect(lg).connect(g.gain); l.start(t); l.stop(t + len); }
   s.connect(f).connect(g).connect(a.destination); s.start(t); s.stop(t + len + 0.05);
 }
-const jingle = at => {
-  [523, 659, 784, 1047].forEach((f, i) => tone('square', f, f, 0.11, 0.06, (at || 0) + i * 0.09));
-  tone('square', 1047, 1047, 0.36, 0.05, (at || 0) + 0.38); tone('square', 1319, 1319, 0.36, 0.035, (at || 0) + 0.38);
-};
+const NOTE = { C5: 523, E5: 659, G5: 784, C6: 1047 };
+const seq = (notes, at) => { let t = at; notes.forEach(([n, b]) => { tone('square', NOTE[n], NOTE[n], b * 0.09 * 0.92, 0.05, t); t += b * 0.09; }); };
+const coin = at => { tone('square', 988, 988, 0.06, 0.045, at); tone('square', 1319, 1319, 0.16, 0.045, at + 0.06); };   // 投幣「叮鈴」
 const SFX = {
   tick(speed) { const f = 900 + Math.min(1, speed / 2500) * 900; tone('square', f, f, 0.035, 0.045); },
   whir(speed) {
@@ -121,18 +120,15 @@ const SFX = {
     whir.g.gain.setTargetAtTime(k * 0.03, a.currentTime, 0.05);
     whir.o.frequency.setTargetAtTime(70 + k * 90, a.currentTime, 0.05);
   },
-  // ドンッ：重擊＋勝利旋律
+  // 中獎三個等級（試聽頁 sfx-pick.html 他選「1 拉霸機」）：大獎重擊＋旋律＋投幣 20 枚、二獎旋律＋7 枚、三獎兩個音＋1 枚
   don() {
-    noise(0.35, 0.5, 260); tone('sine', 120, 45, 0.4, 0.5); jingle(0.25);
-    tone('square', 1568, 1568, 0.5, 0.04, 0.65); tone('square', 2093, 2093, 0.5, 0.03, 0.65);    // 勝利旋律收尾拉長
-    for (let i = 0; i < 12; i++) { tone('square', 988, 988, 0.05, 0.045, 1.2 + i * 0.11); tone('square', 1319, 1319, 0.08, 0.045, 1.24 + i * 0.11); }   // 嘩啦嘩啦投幣
+    noise(0.3, 0.45, 260); tone('sine', 120, 45, 0.4, 0.45); seq([['C5', 1], ['E5', 1], ['G5', 1], ['C6', 3]], 0.2);
+    tone('square', 1568, 1568, 0.6, 0.035, 0.75); for (let i = 0; i < 20; i++) coin(1.25 + i * 0.1);
   },
-  // ドドドド：連續低音鼓點往上＋旋律
-  dododo() { for (let i = 0; i < 4; i++) { noise(0.12, 0.3, 300, i * 0.11); tone('sine', 100 + i * 20, 60, 0.12, 0.35, i * 0.11); } jingle(0.5); },
-  // キラーン：高音琶音＋一聲長的閃光
-  kiran() { [1568, 2093, 2637, 3136].forEach((f, i) => tone('triangle', f, f, 0.18, 0.05, i * 0.06)); tone('sine', 2637, 3520, 0.6, 0.04, 0.3); },
-  // 沒中：輕輕的「噗噗～」往下兩聲（六個沒中的共用這一聲）
-  miss() { tone('triangle', 523, 523, 0.11, 0.09); tone('triangle', 392, 330, 0.38, 0.09, 0.15); }
+  dododo() { seq([['C5', 1], ['E5', 1], ['G5', 1], ['C6', 3]], 0); for (let i = 0; i < 7; i++) coin(0.6 + i * 0.12); },
+  kiran() { seq([['E5', 1], ['C6', 2]], 0); coin(0.32); },
+  // 沒中（他選 F）：短短「喀」一聲機械聲，六個沒中的共用
+  miss() { noise(0.05, 0.3, 1800); tone('square', 110, 90, 0.09, 0.07); }
 };
 
 export async function attach({ el, card, base, thick }) {
