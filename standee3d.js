@@ -12,7 +12,9 @@
 //   ・有轉盤的時候右上角多一顆「特效」開關（跟畫圖抉擇轉盤共用開關狀態）：打開才載入 wheel-fx.js＋charm-fx.js 的音效，
 //     轉動有跑燈、嗶嗶聲，停下來指到的那格亮紅框＋中獎音效＋星星
 //   ・通學路有「📱 AR」開關（2026-10-04）：實品掃 QR Code（ar.cankingstore.com）手機對準人物那片，整組角色的動畫會浮在立牌前面；
-//     這裡照同樣的位置演一次：掃描框閃一下 → 動畫彈出來循環播放，可以照樣拖著轉。素材 build_standee_ar.py 做的
+//     這裡用一支「迷你手機」演一次（他說直接跳出動畫不直覺）：手機從右邊滑進來，螢幕裡是手機鏡頭拍到的立牌
+//     （同一個場景，從手機的位置再畫一次、只畫在螢幕那一塊），掃描框閃一下 → 動畫只在手機螢幕裡彈出來循環播放；
+//     手機外面還是普通的立牌。可以照樣拖著轉，手機裡的畫面跟著變。素材 build_standee_ar.py 做的
 //     （一組一張拼格子的 webp、幾百 KB），開關打開才載入、而且只載目前這一組；隱藏款要先揭曉才有
 //   ・轉盤一轉，鏡頭就往轉盤拉近（轉盤變兩倍大，實品字太小、轉完看不出指到什麼——他說的）；
 //     停下來不拉回去，可以在這個距離繼續轉；輕點轉盤以外的地方才回到原本的距離（他說的）
@@ -108,7 +110,8 @@ export function create(dir) {
   const ui = document.createElement('div');
   ui.innerHTML = '<div class="sd-tag" hidden></div><div class="sd-reveal" hidden>點一下揭曉</div><div class="sd-vars"></div>' +
     '<div class="sd-btns"><button class="sd-fx" type="button" hidden>🔈 特效</button><button class="sd-ar" type="button" hidden>📱 AR</button></div>' +
-    '<div class="sd-scan" hidden><i></i><i></i><i></i><i></i></div>';
+    '<div class="sd-phone" hidden><div class="sd-ph-screen"><div class="sd-ph-bar"><b>9:41</b><b>▂▄▆ ▮</b></div>' +
+      '<div class="sd-scan"><i></i><i></i><i></i><i></i></div><div class="sd-ph-tip">對準立牌</div></div></div>';
   el.appendChild(ui);
   if (!document.getElementById('sd-style')) {
     const st = document.createElement('style'); st.id = 'sd-style';
@@ -127,7 +130,17 @@ export function create(dir) {
         'padding:5px 12px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.04em;box-shadow:0 2px 6px rgba(0,0,0,.06)}' +
       '.sd-fx.on,.sd-ar.on{background:#ffd23a;border-color:#f0a800;color:#7a4b00;box-shadow:0 0 10px rgba(255,190,0,.6)}' +
       // AR 的掃描框：四個角，掃到的那一下變亮、放大淡掉
-      '.sd-scan{position:absolute;left:50%;top:45%;width:min(58%,330px);aspect-ratio:3/4;transform:translate(-50%,-50%);pointer-events:none;animation:sd-scan .9s ease-in-out infinite}' +
+      // 迷你手機：只有外框是 HTML，螢幕那塊是透明的，底下的 canvas 在那一塊畫手機鏡頭的畫面
+      // 上面讓出 AR 按鈕、下面讓出切換的按鈕
+      '.sd-phone{position:absolute;right:4%;top:52px;bottom:58px;aspect-ratio:9/17;max-width:44%;pointer-events:none;' +
+        'border:7px solid #1f2026;border-radius:26px;box-shadow:0 12px 30px rgba(0,0,0,.28),0 0 0 1px #50525c;animation:sd-phin .45s cubic-bezier(.2,1.2,.4,1)}' +
+      '.sd-phone::before{content:"";position:absolute;left:50%;top:5px;width:30%;height:9px;transform:translateX(-50%);border-radius:9px;background:#1f2026;z-index:2}' +
+      '@keyframes sd-phin{from{transform:translateX(70%) rotate(8deg);opacity:0}to{transform:none}}' +
+      '.sd-ph-screen{position:absolute;inset:0;border-radius:19px;overflow:hidden;box-shadow:inset 0 0 26px rgba(0,0,0,.22)}' +
+      '.sd-ph-bar{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;padding:5px 12px;font-size:9px;color:#fff;' +
+        'text-shadow:0 0 3px rgba(0,0,0,.5);letter-spacing:.02em}' +
+      '.sd-ph-tip{position:absolute;left:50%;bottom:9%;transform:translateX(-50%);padding:3px 10px;border-radius:999px;background:rgba(0,0,0,.45);color:#fff;font-size:11px;white-space:nowrap}' +
+      '.sd-scan{position:absolute;left:50%;top:50%;width:74%;aspect-ratio:3/4;transform:translate(-50%,-50%);pointer-events:none;animation:sd-scan .9s ease-in-out infinite}' +
       '.sd-scan i{position:absolute;width:22%;height:16%;border:0 solid #fff;filter:drop-shadow(0 0 3px rgba(0,0,0,.35))}' +
       '.sd-scan i:nth-child(1){left:0;top:0;border-left-width:4px;border-top-width:4px;border-top-left-radius:10px}' +
       '.sd-scan i:nth-child(2){right:0;top:0;border-right-width:4px;border-top-width:4px;border-top-right-radius:10px}' +
@@ -136,7 +149,7 @@ export function create(dir) {
       '@keyframes sd-scan{50%{transform:translate(-50%,-50%) scale(.95)}}' +
       '.sd-scan.ok{animation:sd-scanok .4s ease-out forwards}.sd-scan.ok i{border-color:#ffd23a}' +
       '@keyframes sd-scanok{from{transform:translate(-50%,-50%) scale(1);opacity:1}to{transform:translate(-50%,-50%) scale(1.15);opacity:0}}' +
-      '.sd-tag[hidden],.sd-reveal[hidden],.sd-fx[hidden],.sd-ar[hidden],.sd-scan[hidden]{display:none}';
+      '.sd-tag[hidden],.sd-reveal[hidden],.sd-fx[hidden],.sd-ar[hidden],.sd-scan[hidden],.sd-phone[hidden],.sd-ph-tip[hidden]{display:none}';
     document.head.appendChild(st);
   }
   const varsBox = ui.querySelector('.sd-vars'), tagEl = ui.querySelector('.sd-tag'), revealEl = ui.querySelector('.sd-reveal');
@@ -166,7 +179,8 @@ export function create(dir) {
   fxBtn.addEventListener('pointerdown', e => e.stopPropagation());   // 按開關不要變成拖曳
   fxBtn.addEventListener('click', () => setFx(!fxOn));
   // ---- AR 動畫開關（通學路）：打開才載入目前這組的 ar.webp；不記住（每次進來都是關的，不要一進來就載） ----
-  const arBtn = ui.querySelector('.sd-ar'), scanEl = ui.querySelector('.sd-scan');
+  const arBtn = ui.querySelector('.sd-ar'), scanEl = ui.querySelector('.sd-scan'), phoneEl = ui.querySelector('.sd-phone');
+  const phScreen = ui.querySelector('.sd-ph-screen'), phTip = ui.querySelector('.sd-ph-tip');
   let arOn = false, arMesh = null, arTex = null, arReady = 0, arT = 0, arIdx = 0, arToken = 0, pieceGroups = [];
   arBtn.addEventListener('pointerdown', e => e.stopPropagation());
   arBtn.addEventListener('click', () => {
@@ -178,7 +192,7 @@ export function create(dir) {
     tagEl.textContent = '掃立牌附的 QR Code，用手機看角色動起來'; tagEl.hidden = !arOn;
   };
   function arStop() {
-    arToken++; scanEl.hidden = true; scanEl.classList.remove('ok');
+    arToken++; scanEl.hidden = true; scanEl.classList.remove('ok'); phoneEl.hidden = true;
     if (arMesh) { arMesh.parent && arMesh.parent.remove(arMesh); arMesh.geometry.dispose(); arMesh.material.dispose(); }
     if (arTex) arTex.dispose();
     arMesh = null; arTex = null; arReady = 0; arTag(); kick();
@@ -192,7 +206,7 @@ export function create(dir) {
     // 鏡頭轉回正面（跟揭曉同一套轉法，不換圖）
     const to = yaw - ((((yaw - YAW0) % 360) + 540) % 360 - 180);
     if (Math.abs(to - yaw) > 1) { spin = { t0, dur: 600, from: yaw, to, tilt0: tilt, swapped: true, ar: true }; yawVel = 0; }
-    scanEl.hidden = false;
+    phoneEl.hidden = false; scanEl.hidden = false; phTip.hidden = false; kick();
     loader.load(base + a.img, t => {
       if (tok !== arToken) { t.dispose(); return; }
       t.colorSpace = THREE.SRGBColorSpace; t.repeat.set(1 / a.cols, 1 / a.rows);
@@ -200,14 +214,36 @@ export function create(dir) {
       arMesh = new THREE.Mesh(new THREE.PlaneGeometry(a.size, a.size),
         new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: 0, depthWrite: false, side: THREE.FrontSide }));
       arMesh.position.set(p.w / 2, p.h / 2, PIECE_T / 2 + a.z); arMesh.renderOrder = 10;
+      arMesh.layers.set(1);                              // 只有手機鏡頭看得到（主畫面的鏡頭只看 layer 0）
       pieceGroups[a.piece].add(arMesh);
-      // 掃描框至少閃 0.7 秒，再「掃到了」：框變亮淡掉、動畫彈出來
+      // 手機滑進來＋掃描框至少閃 1.1 秒，再「掃到了」：框變亮淡掉、動畫彈出來
       setTimeout(() => {
+        phTip.hidden = true;
         if (tok !== arToken) return;
         scanEl.classList.add('ok'); setTimeout(() => { if (tok === arToken) scanEl.hidden = true; }, 400);
         arReady = performance.now(); kick();
-      }, Math.max(0, 700 - (performance.now() - t0)));
+      }, Math.max(0, 1100 - (performance.now() - t0)));
     });
+  }
+  // 手機螢幕裡的畫面：同一個鏡頭方向，對準動畫的中心、放大到動畫剛好塞滿螢幕寬（像手機鏡頭拍到的樣子）
+  const arC = new THREE.Vector3(), arR = new THREE.Vector3(), arE = new THREE.Vector3();
+  function renderPhone() {
+    if (phoneEl.hidden || !set || !set.ar || !pieceGroups[set.ar.piece]) return;
+    const cr = canvas.getBoundingClientRect(), sr = phScreen.getBoundingClientRect();
+    const W = cr.width, H = cr.height, w = sr.width, h = sr.height, x = sr.left - cr.left, y = sr.top - cr.top;
+    if (w < 4 || h < 4) return;
+    const a = set.ar, p = set.pieces[a.piece];
+    arC.set(p.w / 2, p.h / 2, PIECE_T / 2 + a.z); pieceGroups[a.piece].localToWorld(arC);
+    arR.setFromMatrixColumn(camera.matrixWorld, 0).multiplyScalar(a.size / 2).add(arC);
+    arC.project(camera); arE.copy(arR).project(camera);
+    const ax = (arC.x + 1) / 2 * W, ay = (1 - arC.y) / 2 * H, A = Math.abs(arE.x - arC.x) * W;   // A＝動畫半寬（px）
+    const k = Math.max(0.4, Math.min(3, w * 0.8 / Math.max(1, A)));    // GIF 四周有透明邊；放大到兩側路牌稍微出框，主角才夠大
+    camera.setViewOffset(W * k, H * k, ax * k - w / 2, ay * k - h / 2, w, h);
+    camera.layers.enable(1);
+    renderer.setScissorTest(true); renderer.setScissor(x, H - y - h, w, h); renderer.setViewport(x, H - y - h, w, h);
+    renderer.render(scene, camera);
+    renderer.setScissorTest(false); renderer.setViewport(0, 0, W, H);
+    camera.layers.disable(1); camera.clearViewOffset();
   }
   function arFrame() {
     const a = set.ar, c = arIdx % a.cols, r = Math.floor(arIdx / a.cols);
@@ -512,7 +548,8 @@ export function create(dir) {
     camera.position.set(camTarget.x + dz * Math.cos(rt) * Math.sin(ry), camTarget.y + dz * Math.sin(rt), camTarget.z + dz * Math.cos(rt) * Math.cos(ry));
     camera.lookAt(camTarget);
     renderer.render(scene, camera);
-    if (drag || yawVel || spin || wheelVel || fxBusy || (zoom !== (zoomed ? 1 : 0)) || (arMesh && arReady)) kick();
+    if (arOn) renderPhone();
+    if (drag || yawVel || spin || wheelVel || fxBusy || (zoom !== (zoomed ? 1 : 0)) || (arMesh && arReady) || (arOn && !phoneEl.hidden)) kick();
   }
 
   window.addEventListener('resize', resize);
