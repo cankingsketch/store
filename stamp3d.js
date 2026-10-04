@@ -5,8 +5,8 @@
 // （不做內部反彈，側面才不會映出一堆倒影）。shared.js 需要時才動態載入。
 // 蓋章（他選的 B）：磚底下鋪一張紙，點一下印章 → 抬起、移到紙上、壓下去、抬起來移到旁邊，紙上留下章印。
 // 蓋下去的動態（2026-10-04 他要的）：往下加速落到紙上 →「咚」→ 底下的軟水晶膠被壓扁、往外擠一點 →
-// 前後輕輕晃兩下把墨壓實（短短一聲紙張摩擦）→ 抬起時水晶膠黏著紙被拉長一下才「啵」地離開、彈回原狀 → 移到旁邊放著。
-// 聲音都用 Web Audio 即時合成，沒有音檔：落下是厚實的低音「咚」＋壓克力的「叩」，晃的時候是紙張摩擦，離開是一聲小小的撕離聲。
+// 前後輕輕晃兩下把墨壓實→ 抬起時水晶膠黏著紙被拉長一下才「啵」地離開、彈回原狀 → 移到旁邊放著。
+// 聲音都用 Web Audio 即時合成，沒有音檔：落下是短短悶悶的「啪」，離開是一聲小小的撕離聲（紙張摩擦聲他說先拿掉）。
 // 章印＝橡皮章圖的 R（凸起的線；從磚頂往下看是正的，蓋出來也是正的），墨色有顆粒、偶爾沒吃到墨、邊緣微暈、每次歪一點。
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 
@@ -320,18 +320,16 @@ export function create(printUrl, rubberUrl) {
     o.connect(g).connect(ac.destination); o.start(t); o.stop(t + len + 0.02);
   }
   const SND = {
-    // 落下：厚實的低音「咚」＋桌面悶響＋壓克力磚本身的一聲「叩」
+    // 落下：短短悶悶的「啪」＝一小段低通雜訊＋很低的「咚」（第一版的聲音；厚實版他說像打鼓，改回來）
     thud() {
       if (!ac) return;
-      hum(0, 120, 44, 0.32, 0.6); hum(0, 240, 110, 0.09, 0.18, 'triangle');
-      hiss(0, 'lowpass', 380, 0.7, [[0.004, 0.55], [0.05, 0.25], [0.2, 0]]);
-      hiss(0, 'bandpass', 1900, 2.5, [[0.002, 0.16], [0.03, 0]]);
-    },
-    // 壓下去那一下：很短的一聲紙張摩擦「沙」（他說原本太長，只要 1/5）
-    rub(len) {
-      if (!ac) return;
-      hiss(0, 'bandpass', 3200, 0.8, [[len * 0.25, 0.07], [len, 0]]);
-      hiss(0, 'bandpass', 900, 0.9, [[len * 0.25, 0.05], [len, 0]]);
+      const t = ac.currentTime, n = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+      const buf = ac.createBuffer(1, ac.sampleRate * 0.12, ac.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      n.buffer = buf; f.type = 'lowpass'; f.frequency.value = 700;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.5, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.1);
+      n.connect(f).connect(g).connect(ac.destination); n.start(t);
+      hum(0, 150, 60, 0.14, 0.35);
     },
     // 離開紙：水晶膠從紙上撕離的一小聲「啵」
     peel() {
@@ -357,7 +355,7 @@ export function create(printUrl, rubberUrl) {
       tween(cur, { x: cur.x, y: Math.max(cur.y, 14), z: cur.z, r: cur.r, rx: 0, rz: 0, sq: 0 }, cur.y > 10 ? 1 : 220),
       tween(null, at({ y: 14 }), 380),
       tween(null, T, 150, () => { inkAt(T.x, T.z, T.r); SND.thud(); stamps++; }, EASE_IN),   // 加速落下，碰到紙「咚」
-      tween(null, at({ sq: 1 }), 110, () => SND.rub(RUB / 5), EASE_OUT),                          // 水晶膠被壓扁、往外擠
+      tween(null, at({ sq: 1 }), 110, null, EASE_OUT),                                           // 水晶膠被壓扁、往外擠（紙張摩擦聲他說先拿掉）
       tween(null, at({ sq: 1, rx: ROCK }), RUB * 0.3 * 1000),                                  // 前後晃兩下把墨壓實
       tween(null, at({ sq: 1, rx: -ROCK * 0.8, rz: ROCK * 0.5 }), RUB * 0.4 * 1000),
       tween(null, at({ sq: 1 }), RUB * 0.3 * 1000),
