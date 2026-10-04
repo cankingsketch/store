@@ -246,6 +246,8 @@ export function create(dir) {
       }
     });
     fxBtn.hidden = !wheelGroup;
+    // 名店選：左上角一行細字，說轉盤背面是空白的、可以自己寫（他要的，跟隱藏款機率同一個樣式）
+    if (wheelGroup && tagEl.hidden) { tagEl.textContent = '轉盤背面是空白的，可以寫上自己的菜單'; tagEl.hidden = false; }
     if (wheelGroup) { if (fxStore.get() && !fxOn) setFx(true); else fxBind(); }
 
     // 鏡頭：整組（底座對角線＋最高的那片）都要塞得下，轉一圈也不會出框
