@@ -13,15 +13,15 @@
   // 不放進來的：各款的尺寸表圖（t_orig.png、04_orig.jpg、editor_t.png，統一放在「尺寸表」分頁）、
   // 2_orig.png（「卡片背面」，是客製化信用卡的圖，放錯了）
   var RAW = [
-    { id: 'tee-pofang', name: '破防T', series: 'T04', color: '白色', hex: '#f4f4f2', find: '破防T恤', card: 'front',
+    { id: 'tee-pofang', name: '破防T恤', series: 'T04', color: '白色', hex: '#f4f4f2', find: '破防T恤', card: 'front',
       // 破防襪是搭配破防T的（他要的）：點開破防T最後一張就是襪子那張宣傳圖
       photos: ['images/380636145_orig.png', 'images/socks_orig.png'], model: '模特兒 A 160cm／48kg 穿 S 合身', line: '兄弟買了吧，我朋友有點破防了' },
-    { id: 'tee-ramen', name: '拉麵T', series: 'T03', color: '白色', hex: '#f4f4f2', find: '拉麵健康T恤', card: 'back',
+    { id: 'tee-ramen', name: '拉麵健康T恤', series: 'T03', color: '白色', hex: '#f4f4f2', find: '拉麵健康T恤', card: 'back',
       photos: ['images/1775592479_orig.png'], model: '模特兒 B 170cm／60kg 穿 L 合身', line: 'ラーメンは健康食品です' },
-    { id: 'tee-noot', name: '不想加班T', series: 'T02', color: '黑色', hex: '#222', find: '不想加班T恤', card: 'front',
+    { id: 'tee-noot', name: '不想加班T恤', series: 'T02', color: '黑色', hex: '#222', find: '不想加班T恤', card: 'front',
       photos: ['images/01_orig.jpg', 'images/editor_l.jpg?1748549184', 'images/editor_05.jpg?1748549147', 'images/1472244275_orig.png'],
       model: '模特兒穿 L', line: '今日は残業不要です' },
-    { id: 'tee-nowork', name: '不想上班T', series: 'T01', color: '沙色', hex: '#d6c8b2', find: '不想工作T恤', card: 'back',
+    { id: 'tee-nowork', name: '不想工作T恤', series: 'T01', color: '沙色', hex: '#d6c8b2', find: '不想工作T恤', card: 'back',
       photos: ['images/editor_2.jpg?1748556051', 'images/t_orig.jpg'], line: 'NO MORE WORK・沙色更新版本' }
   ];
 

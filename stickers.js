@@ -7,7 +7,7 @@
 window.CK_STICKERS = [
   { id: 'onigiri',       name: '飯糰',       wMm: 81.1,  hMm: 87.2, padMm: 5, holo: 0, added: '2026-08-30' },
   { id: 'breakfast',     name: '早餐',       wMm: 101.3, hMm: 75.4, padMm: 5, holo: 0, added: '2026-08-30' },
-  { id: 'buhuihuahua',   name: '我不會畫畫', wMm: 80,    hMm: 67,   padMm: 5, holo: 1, added: '2026-09-25' },   // 最新款，其他都是舊款
+  { id: 'buhuihuahua',   name: '不會畫畫', wMm: 80,    hMm: 67,   padMm: 5, holo: 1, added: '2026-09-25' },   // 最新款，其他都是舊款
   { id: 'haohuihuahua',  name: '好會畫畫',   wMm: 82,    hMm: 55.6, padMm: 5, holo: 0, added: '2026-08-30' },
   { id: 'pofang',        name: '破防了',     wMm: 69,    hMm: 88,   padMm: 5, holo: 0, added: '2026-06-25' },
   { id: 'ramen',         name: '拉麵是健康食品', wMm: 72,    hMm: 77,   padMm: 5, holo: 0, added: '2026-06-25' },
@@ -87,7 +87,7 @@ window.CK_STICKERS.forEach(function (s) {
 // photos＝原本排好的宣傳圖（路徑相對於 designs/），組合預覽上方可以切「3D 示意／商品圖」
 // box 的尺寸是照展開圖量的（mm），六個面的圖在 assets/box-<id>-*.jpg
 window.CK_SETS = [
-  { id: 'movie', video: 'https://www.instagram.com/reel/DSSRR7fDFV7/', name: '電影貼紙組', note: '16 張防水貼紙＋電影票根＋發票＋紙盒', unit: '件', price: 330, kind: 'box', box: { w: 94, h: 29, d: 60 }, closedHint: '點擊打開', resetLabel: '收回盒子',
+  { id: 'movie', video: 'https://www.instagram.com/reel/DSSRR7fDFV7/', name: '空罐電影貼紙組', note: '16 張防水貼紙＋電影票根＋發票＋紙盒', unit: '件', price: 330, kind: 'box', box: { w: 94, h: 29, d: 60 }, closedHint: '點擊打開', resetLabel: '收回盒子',
     // 打開後照商品照的畫框擺：畫框內框在照片上是 830×590，每張＝[中心 x, 中心 y, 寬]（照片像素）
     layout: { w: 830, h: 590, items: {
       // 票根、發票照實物比例（他給的照片：票根跟椅子差不多寬，約 49.5mm；發票約 58mm）。以椅子 115 寬＝50.4mm 換算

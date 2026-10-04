@@ -786,6 +786,11 @@
     html += section('哪個商品的購買鍵被按最多',
       barList((d.byLabel || []).map(function (r) { return { nm: r.label, n: r.n }; })));
 
+    // 想買清單（2026-10-04）：大家很想買、但不一定點去下單的東西
+    html += section('哪個商品被加到想買清單最多',
+      (d.byWish && d.byWish.length ? barList(d.byWish.map(function (r) { return { nm: r.label, n: r.n }; })) : '<p class="hint">這段期間還沒有人加</p>') +
+      '<p class="hint">跟上面「購買鍵被按最多」對照：加的人多、按購買的人少，就是想買但沒下單</p>');
+
 
     var dev = d.byDevice || [], ctry = d.byCountry || [];
     html += '<div class="cols" style="margin-top:4px;"><div>' +

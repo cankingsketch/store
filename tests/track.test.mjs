@@ -139,6 +139,29 @@ console.log('\n[6] 彙總統計');
   ok('每日序列有今天', d.byDay.some(x => x.day === today && x.n === 5), d.byDay);
 }
 
+console.log('\n[6b] 想買清單（kind = wish）跟外連點擊分開算');
+{
+  const e5 = { STATS: makeD1() };
+  await hit(e5, { channel: '賣貨便', kind: 'shop', label: '下雨天杯墊', url: 'https://myship.7-11.com.tw/a', page: '/goods' }, { 'CF-IPCountry': 'TW' });
+  await hit(e5, { channel: '想買清單', kind: 'wish', label: '下雨天杯墊', url: 'wish', page: '/goods' }, { 'CF-IPCountry': 'TW' });
+  await hit(e5, { channel: '想買清單', kind: 'wish', label: '下雨天杯墊', url: 'wish', page: '/goods' }, { 'CF-IPCountry': 'TW' });
+  await hit(e5, { channel: '想買清單', kind: 'wish', label: '防水貼紙・破防了', url: 'wish', page: '/stickers' }, { 'CF-IPCountry': 'TW' });
+  const row = e5.STATS._raw.prepare("SELECT kind FROM clicks WHERE channel = '想買清單' LIMIT 1").get();
+  ok('wish 照原樣存下來', row.kind === 'wish', row);
+  const d = await (await ask(e5, '?days=7')).json();
+  ok('外連總數不算 wish（1）', d.total === 1, d.total);
+  ok('購買點擊不算 wish（1）', d.shop === 1, d.shop);
+  ok('通路裡沒有「想買清單」', !d.byChannel.some(c => c.channel === '想買清單'), d.byChannel);
+  ok('每日序列不算 wish', d.byDay.every(x => x.n === 1), d.byDay);
+  ok('國家只算外連（TW 1）', d.byCountry.length === 1 && d.byCountry[0].n === 1, d.byCountry);
+  ok('購買鍵排行不含 wish', d.byLabel.length === 1 && d.byLabel[0].n === 1, d.byLabel);
+  ok('想買清單排行：下雨天杯墊 2 第一', d.byWish[0].label === '下雨天杯墊' && d.byWish[0].n === 2, d.byWish);
+  ok('想買清單共 3', d.wish === 3, d.wish);
+  await hit(e5, { channel: 'x', kind: 'hack', url: 'https://x' });
+  const k = e5.STATS._raw.prepare("SELECT kind FROM clicks WHERE channel = 'x'").get();
+  ok('其他 kind 一律當 other', k.kind === 'other', k);
+}
+
 console.log('\n[7] 天數參數');
 {
   const e3 = { STATS: makeD1() };

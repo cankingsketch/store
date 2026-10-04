@@ -47,10 +47,11 @@ export async function onRequestGet({ request, env }) {
   try {
     const rows = (q, ...b) => db.prepare(q).bind(...b).all().then((r) => r.results || []);
 
-    const [total, byChannel, byLabel, byDay, byPage, byDevice, byCountry] = await Promise.all([
-      rows(`SELECT COUNT(*) AS n, SUM(kind = 'shop') AS shop FROM clicks WHERE day >= ?`, from),
+    // kind = 'wish' 是「加到想買清單」，不是外連：點擊的數字（總數、通路、每日、裝置、國家）都不算它
+    const [total, byChannel, byLabel, byDay, byPage, byDevice, byCountry, byWish] = await Promise.all([
+      rows(`SELECT COUNT(*) AS n, SUM(kind = 'shop') AS shop FROM clicks WHERE day >= ? AND kind <> 'wish'`, from),
       rows(
-        `SELECT channel, kind, COUNT(*) AS n FROM clicks WHERE day >= ?
+        `SELECT channel, kind, COUNT(*) AS n FROM clicks WHERE day >= ? AND kind <> 'wish'
          GROUP BY channel, kind ORDER BY n DESC LIMIT ?`,
         from, TOP_N
       ),
@@ -62,7 +63,7 @@ export async function onRequestGet({ request, env }) {
       ),
       rows(
         `SELECT day, COUNT(*) AS n, SUM(kind = 'shop') AS shop FROM clicks
-         WHERE day >= ? GROUP BY day ORDER BY day`,
+         WHERE day >= ? AND kind <> 'wish' GROUP BY day ORDER BY day`,
         from
       ),
       // 舊資料裡的 page 帶著 ?fbclid=... 之類的查詢字串（前端已修，但存下來的還在），
@@ -78,10 +79,17 @@ export async function onRequestGet({ request, env }) {
          GROUP BY 1 ORDER BY n DESC LIMIT ?`,
         from, TOP_N_PAGES
       ),
-      rows(`SELECT device, COUNT(*) AS n FROM clicks WHERE day >= ? GROUP BY device`, from),
+      rows(`SELECT device, COUNT(*) AS n FROM clicks WHERE day >= ? AND kind <> 'wish' GROUP BY device`, from),
       rows(
-        `SELECT country, COUNT(*) AS n FROM clicks WHERE day >= ? AND country <> ''
+        `SELECT country, COUNT(*) AS n FROM clicks WHERE day >= ? AND country <> '' AND kind <> 'wish'
          GROUP BY country ORDER BY n DESC LIMIT ?`,
+        from, TOP_N
+      ),
+      // 加到想買清單最多的商品（label 是「商品・款式」）
+      rows(
+        `SELECT label, COUNT(*) AS n FROM clicks
+         WHERE day >= ? AND kind = 'wish' AND label <> ''
+         GROUP BY label ORDER BY n DESC LIMIT ?`,
         from, TOP_N
       ),
     ]);
@@ -100,6 +108,8 @@ export async function onRequestGet({ request, env }) {
       byPage,
       byDevice,
       byCountry,
+      byWish,
+      wish: byWish.reduce((s, r) => s + r.n, 0),
       user: auth.email,
     });
   } catch (e) {

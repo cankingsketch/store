@@ -27,20 +27,20 @@
 
   // 現在周邊頁上的商品（照現在的順序，只取前面幾個當示意）
   var PRODUCTS = [
-    { id: 'memo', price: 50, name: '罐快遞Q版便利貼', img: 'img/p-memo.jpg', more: ['img/p-memo-2.jpg'], cat: '文具' },
+    { id: 'memo', price: 50, name: '罐快遞便利貼', img: 'img/p-memo.jpg', more: ['img/p-memo-2.jpg'], cat: '文具' },
     { id: 'bag', price: 495, name: '洗沐盥洗包', img: 'img/p-bag.jpg', more: ['img/p-bag-2.jpg'], note: '贈特點明信片+洗沐貼3小張', cat: '生活小物' },
     { id: 'coaster', price: 220, name: '下雨天杯墊', img: 'img/p-coaster.jpg', note: '陶瓷 吸水 杯墊｜UV浮雕印刷', cat: '生活小物' },
-    { id: 'omamori', price: 220, name: '肌腱安泰壓克力御守', img: 'img/p-omamori.jpg', more: ['img/p-omamori-2.jpg'], cat: '吊飾・徽章' },
-    { id: 'badge', price: 220, name: '罐罐吸麵金屬徽章', img: 'img/p-badge.jpg', cat: '吊飾・徽章' },
+    { id: 'omamori', price: 220, name: '肌腱安泰御守 壓克力吊飾', img: 'img/p-omamori.jpg', more: ['img/p-omamori-2.jpg'], cat: '吊飾・徽章' },
+    { id: 'badge', price: 220, name: '罐罐吸麵徽章 復刻 金屬徽章', img: 'img/p-badge.jpg', cat: '吊飾・徽章' },
     { id: 'lightbox', price: 220, name: '偷拍禁止小燈箱', img: 'img/p-lightbox.jpg', cat: '生活小物' },
     { id: 'mousepad', price: 220, name: '電影院滑鼠墊', img: 'img/p-mousepad.jpg', cat: '生活小物' },
-    { id: 'stamp', price: 220, name: '誇誇印章', img: 'img/p-stamp.jpg', more: ['img/p-stamp-2.jpg'], note: '共5款', cat: '文具' },
-    { id: 'anim', price: 220, name: '發條食物抉擇動畫機(盲盒)', img: 'img/p-anim.jpg', more: ['img/p-anim-2.jpg', 'img/p-anim-3.jpg', 'img/p-anim-4.jpg'],
+    { id: 'stamp', price: 220, name: '誇誇水晶印章', img: 'img/p-stamp.jpg', more: ['img/p-stamp-2.jpg'], note: '共5款', cat: '文具' },
+    { id: 'anim', price: 220, name: '今日吃什麼?翻頁動畫機', img: 'img/p-anim.jpg', more: ['img/p-anim-2.jpg', 'img/p-anim-3.jpg', 'img/p-anim-4.jpg'],
       note: '內有午餐、甜點、飲料共三款／早餐、晚餐、飲料共三款', cat: '盲盒・玩具' }
   ];
   // 成組賣的貼紙商品：不進貼紙牆，但跟貼紙放在一起
   var STICKER_SETS = [
-    { id: 'movie', name: '電影貼紙組', img: 'img/p-movie.jpg', note: '16張防水貼紙+電影票根+發票+紙盒', cat: '貼紙組合' },
+    { id: 'movie', name: '空罐電影貼紙組', img: 'img/p-movie.jpg', note: '16張防水貼紙+電影票根+發票+紙盒', cat: '貼紙組合' },
     { id: 'label', name: '洗沐標籤貼', img: 'img/p-label.jpg', note: '大3張 小3張', cat: '貼紙組合' }
   ];
 
@@ -106,11 +106,129 @@
     opt = opt || {};
     if (opt.soldout) return (opt.links || []).map(function (l) { return '<a class="sub" href="' + l.href + '" target="_blank" rel="noopener">' + esc(l.label) + '</a>'; }).join('') + '<small>這個商品已經絕版，目前沒有販售</small>';
     return '<a class="main" href="' + MYSHIP + '" target="_blank" rel="noopener">賣貨便下單' + (price ? '　' + priceText(price, opt.from) : '') + '</a>' +
+      (opt.wish === false ? '' : wishBtn(wishItem(name, price, opt))) +
       (opt.noShopee ? '' : '<a class="sub" href="' + (opt.shopee || SHOPEE) + '" target="_blank" rel="noopener">蝦皮商品頁</a>') +
       // 其他連結（T 恤：海外預購表單、T 恤頁）
       (opt.links || []).map(function (l) { return '<a class="sub" href="' + l.href + '" target="_blank" rel="noopener">' + esc(l.label) + '</a>'; }).join('') +
       '<small>' + (price && !opt.noShopee ? '蝦皮含平台手續費，價格可能比賣貨便貴一些<br>' : '') + '賣貨便所有商品在同一頁，進去後找「' + esc(opt.findName || name) + '」</small>';
   }
+  // ---------- 想買清單（2026-10-04 他要的）----------
+  // 我們沒有購物車：客人在網站上逛、玩 3D，看到想買的按「♡ 加到想買清單」，最後再照清單去賣貨便一次下單。
+  // 清單只存在客人自己的瀏覽器（localStorage），不登入、不傳回來；每一頁右下角一顆「♡ 3」打開清單。
+  // 一樣東西：n＝網站上的名字、v＝哪一款、f＝賣貨便上的商品名、sp＝賣貨便上要選的規格、p＝單價、img、sh＝蝦皮連結、
+  //           na＝賣貨便目前沒有這款、q＝數量、ok＝在賣貨便選好了（客人自己勾）
+  var WISH_KEY = 'ck-wish', wish = [];
+  function wishLoad() {
+    try { wish = JSON.parse(localStorage.getItem(WISH_KEY) || '[]'); } catch (e) { wish = []; }
+    if (!Array.isArray(wish)) wish = [];
+  }
+  function wishSave() { try { localStorage.setItem(WISH_KEY, JSON.stringify(wish)); } catch (e) {} wishPaint(); }
+  function wishKey(it) { return it.n + '|' + (it.v || ''); }
+  function wishHas(k) { for (var i = 0; i < wish.length; i++) if (wish[i].k === k) return true; return false; }
+  // 購買區的那顆按鈕：w 可以覆蓋 n／v／f／sp／p／img／na（貼紙、明信片要記是哪一張）
+  function wishItem(name, price, opt) {
+    var w = opt.wish || {};
+    var it = { n: w.n || name, v: w.v || '', f: w.f || opt.findName || w.n || name, sp: w.sp || '', p: w.p != null ? w.p : (price || 0),
+      from: !w.v && !!opt.from, img: w.img || opt.img || '', sh: opt.noShopee ? '' : (opt.shopee || ''), na: !!w.na };
+    it.k = wishKey(it);
+    return it;
+  }
+  function wishBtn(it) {
+    var on = wishHas(it.k);
+    return '<button type="button" class="wish-btn' + (on ? ' on' : '') + '" data-wk="' + esc(it.k) + '" data-wish="' + esc(JSON.stringify(it)) + '">' +
+      (on ? '♥ 已加到想買清單' : '♡ 加到想買清單') + '</button>';
+  }
+  function wishToggle(it) {
+    if (wishHas(it.k)) wish = wish.filter(function (x) { return x.k !== it.k; });
+    else {
+      it.q = 1; it.ok = false; wish.push(it);
+      // 統計：哪些東西最常被加進清單（正式站的 track.js 才有；不記任何個人資料）
+      try { if (window.CK_TRACK) window.CK_TRACK(it.n + (it.v ? '・' + it.v : '')); } catch (e) {}
+    }
+    wishSave();
+  }
+  var wishFab, wishPn;
+  function wishPaint() {
+    Array.prototype.forEach.call(document.querySelectorAll('.wish-btn'), function (b) {
+      var on = wishHas(b.getAttribute('data-wk'));
+      b.classList.toggle('on', on); b.textContent = on ? '♥ 已加到想買清單' : '♡ 加到想買清單';
+    });
+    if (!wishFab) return;
+    var n = wish.reduce(function (s, x) { return s + (x.q || 1); }, 0);
+    wishFab.hidden = !wish.length || !wishPn.hidden;
+    wishFab.querySelector('b').textContent = n;
+    if (!wishPn.hidden) wishList();
+  }
+  function wishList() {
+    var ul = wishPn.querySelector('.wish-list');
+    if (!wish.length) { ul.innerHTML = '<li class="wish-empty">還沒有想買的商品</li>'; }
+    else ul.innerHTML = wish.map(function (x, i) {
+      // 賣貨便上的名字跟網站不一樣時才寫（規格跟款式同名就不重複）
+      var sp = x.sp && x.sp !== x.v ? x.sp : '';
+      var find = x.na ? '<small class="na">賣貨便目前沒有這款</small>'
+        : x.f !== x.n ? '<small>賣貨便：' + esc(x.f) + (sp ? '／' + esc(sp) : '') + '</small>' : sp ? '<small>賣貨便：選「' + esc(sp) + '」</small>' : '';
+      return '<li class="' + (x.ok ? 'ok' : '') + '" data-i="' + i + '">' +
+        (x.img ? '<img src="' + esc(x.img) + '" alt="" loading="lazy">' : '<span class="ph"></span>') +
+        '<div class="wn"><b>' + esc(x.n) + '</b>' + (x.v ? '<span>' + esc(x.v) + '</span>' : '') + find +
+          (x.sh ? '<a class="wsh" href="' + esc(x.sh) + '" target="_blank" rel="noopener" data-track-label="' + esc(x.n) + '">蝦皮</a>' : '') + '</div>' +
+        '<div class="wq"><button data-a="-" aria-label="少一個">−</button><span>' + (x.q || 1) + '</span><button data-a="+" aria-label="多一個">＋</button></div>' +
+        '<div class="wr">' + (x.p ? '<span class="wp">' + priceText(x.p * (x.q || 1), x.from) + '</span>' : '') +
+          '<label class="wok"><input type="checkbox"' + (x.ok ? ' checked' : '') + '>選好了</label>' +
+          '<button class="wdel" data-a="x" aria-label="拿掉">✕</button></div></li>';
+    }).join('');
+    var sum = wish.reduce(function (s, x) { return s + (x.p || 0) * (x.q || 1); }, 0), from = wish.some(function (x) { return x.from; });
+    wishPn.querySelector('.wish-sum').innerHTML = wish.length ? '合計 ' + priceText(sum, from) + '<small>金額以賣貨便為準</small>' : '';
+    wishPn.querySelector('.wish-acts').hidden = !wish.length;
+  }
+  function wishOpen(v) {
+    wishPn.hidden = !v; document.body.classList.toggle('wish-open', v);
+    // 手機：同一個分頁去賣貨便，按「上一頁」就回來（清單還在）；電腦開新分頁
+    wishPn.querySelector('.wish-go').target = matchMedia('(hover: none)').matches ? '_self' : '_blank';
+    wishPaint();
+  }
+  function wishText() {
+    return wish.map(function (x) {
+      return '・' + (x.na ? x.n : x.f) + (x.sp ? '／' + x.sp : x.v ? '／' + x.v : '') + ' × ' + (x.q || 1) + (x.p ? '（' + money(x.p * (x.q || 1)) + '）' : '') + (x.na ? '（賣貨便目前沒有）' : '');
+    }).join('\n') + '\n合計 ' + money(wish.reduce(function (s, x) { return s + (x.p || 0) * (x.q || 1); }, 0)) + '\n' + MYSHIP;
+  }
+  function wishInit() {
+    wishLoad();
+    wishFab = document.createElement('button'); wishFab.type = 'button'; wishFab.className = 'wish-fab'; wishFab.hidden = true;
+    wishFab.setAttribute('aria-label', '想買清單'); wishFab.innerHTML = '♡ <b></b>';
+    wishPn = document.createElement('div'); wishPn.className = 'wish-pn'; wishPn.hidden = true;
+    wishPn.innerHTML = '<div class="wish-bg"></div><div class="wish-box" role="dialog" aria-label="想買清單">' +
+      '<div class="wish-hd"><b>想買清單</b><button class="wish-x" aria-label="關閉">✕</button></div>' +
+      '<a class="wish-go" href="' + MYSHIP + '" rel="noopener" data-track-label="想買清單">去賣貨便下單</a>' +
+      '<ul class="wish-list"></ul>' +
+      '<div class="wish-ft"><div class="wish-sum"></div><div class="wish-acts"><button data-a="copy">複製清單</button><button data-a="clear">清空</button></div></div></div>';
+    document.body.appendChild(wishFab); document.body.appendChild(wishPn);
+    wishFab.addEventListener('click', function () { wishOpen(true); });
+    wishPn.addEventListener('click', function (e) {
+      var t = e.target;
+      if (t.classList.contains('wish-bg') || t.classList.contains('wish-x')) return wishOpen(false);
+      var li = t.closest('li[data-i]'), x = li ? wish[+li.getAttribute('data-i')] : null, a = t.getAttribute('data-a');
+      if (x && t.matches('input[type=checkbox]')) { x.ok = t.checked; return wishSave(); }
+      if (x && a === '+') { x.q = Math.min(99, (x.q || 1) + 1); return wishSave(); }
+      if (x && a === '-') { if ((x.q || 1) > 1) x.q--; return wishSave(); }
+      if (x && a === 'x') { wish.splice(+li.getAttribute('data-i'), 1); return wishSave(); }
+      if (a === 'clear') { wish = []; return wishSave(); }
+      if (a === 'copy') {
+        var txt = wishText(), done = function () { t.textContent = '已複製'; setTimeout(function () { t.textContent = '複製清單'; }, 1500); };
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, function () { prompt('複製這段文字', txt); });
+        else prompt('複製這段文字', txt);
+      }
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !wishPn.hidden) wishOpen(false); });
+    // 購買區的按鈕（各處燈箱動態產生的）：統一在這裡接
+    document.addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('.wish-btn'); if (!b) return;
+      try { wishToggle(JSON.parse(b.getAttribute('data-wish'))); } catch (err) {}
+    });
+    // 別的分頁改了清單：這頁也跟著變
+    window.addEventListener('storage', function (e) { if (e.key === WISH_KEY) { wishLoad(); wishPaint(); } });
+    wishPaint();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wishInit); else wishInit();
   // 讓各頁放自己的商品清單（燈箱會從這裡找）
   function setProducts(list) { PRODUCTS.length = 0; Array.prototype.push.apply(PRODUCTS, list); }
   function product(p) {
@@ -168,7 +286,10 @@
     lb.querySelector('.prev').style.visibility = lb.querySelector('.next').style.visibility = list.length > 1 ? '' : 'hidden';
     lb.querySelector('small').textContent = s.sheetView ? s.note : s.note + (s.paper ? '' : '・防水貼紙') + (t ? '・' + t.name + '內容物，不單賣' : '');
     // 單張貼紙：畫面上寫「防水貼紙」，統計記成「貼紙・名稱」（原本每一張都記成「防水貼紙」，看不出是哪張，2026-10-04 改）
-    lb.querySelector('.buybox').innerHTML = buyBox(t ? t.name : '防水貼紙', t ? t.price : s.price, t ? null : { trackLabel: '貼紙・' + s.name });
+    var SPEC_SETS = ['空罐表情貼', '通學路散步組合貼'];
+    lb.querySelector('.buybox').innerHTML = buyBox(t ? t.name : '防水貼紙', t ? t.price : s.price, t
+      ? { img: setThumb(t), wish: SPEC_SETS.indexOf(t.name) >= 0 ? { f: '防水貼紙 共11款', sp: t.name } : null }
+      : { trackLabel: '貼紙・' + s.name, wish: { v: s.name, f: '防水貼紙 共11款', sp: s.name, img: 'assets/' + s.id + '-thumb.webp' } });
     // 提示只留撕／翻這種不講不會發現的操作，一句話（照ちいかわマーケット的做法，說明越少越好）
     lb.querySelector('.lb-hint').textContent = s.sheetView ? '按住一枚往內拖，可以撕起來' : s.stack ? '往左上拖，可以翻開票根'
       : s.paper ? '' : '按住邊緣往內拖，可以撕起來';
@@ -580,7 +701,8 @@
     sl.querySelector('h3').innerHTML = esc(cur.name) + '<i class="tag setc">' + cur.items.length + ' ' + cur.unit + '</i>';
     sl.querySelector('small').textContent = cur.note;
     var vEmb = cur.video ? videoEmbed(cur.video) : '';
-    sl.querySelector('.buybox').innerHTML = buyBox(cur.name, cur.price, { links: cur.video && !vEmb ? [{ label: '▶ 影片', href: cur.video }] : undefined });   // 影片嵌得進來就放在縮圖裡
+    sl.querySelector('.buybox').innerHTML = buyBox(cur.name, cur.price, { links: cur.video && !vEmb ? [{ label: '▶ 影片', href: cur.video }] : undefined,
+      img: setThumb(cur), wish: ['空罐表情貼', '通學路散步組合貼'].indexOf(cur.name) >= 0 ? { f: '防水貼紙 共11款', sp: cur.name } : null });   // 影片嵌得進來就放在縮圖裡
     sl.classList.add('open'); document.body.style.overflow = 'hidden';
     resetSet(false);
     // 上方「3D 示意／商品圖」拿掉了（他要的）：下面一排縮圖切換——第一格 3D、接著商品圖、最後影片
@@ -775,7 +897,8 @@
     pl.querySelector('small').textContent = p.note || '';
     // 影片嵌不進來的（不是 IG／YouTube）才在購買區放一顆連結
     var links = (p.links || []).concat(p.video && !vEmb ? [{ label: '▶ 影片', href: p.video }] : []);
-    pl.querySelector('.buybox').innerHTML = buyBox(p.name, p.price, { from: p.from, shopee: p.shopee, soldout: p.soldout, noShopee: p.noShopee, links: links, findName: p.findName });
+    pl.querySelector('.buybox').innerHTML = buyBox(p.name, p.price, { from: p.from, shopee: p.shopee, soldout: p.soldout, noShopee: p.noShopee, links: links, findName: p.findName,
+      img: p.img ? p.img.replace(/-l\.webp$/, '-s.webp') : '' });
     pl.classList.add('open'); document.body.style.overflow = 'hidden';
     pl.querySelector('.pl-stage').scrollLeft = 0; plMark();
     cur3dSpec = p.view3d || null; curP = p;
@@ -834,5 +957,5 @@
 
   window.CK = { STICKERS: STICKERS, PRODUCTS: PRODUCTS, STICKER_SETS: STICKER_SETS, isNew: isNew, esc: esc, setProducts: setProducts, priceText: priceText,
     money: money, footer: footer, header: header, hero: hero, hot: hot, buyRow: buyRow, product: product, tile: tile, tiles: tiles, open: open,
-    SETS: SETS, setTiles: setTiles, openSet: openSet, buyBox: buyBox, stripify: stripify };
+    SETS: SETS, setTiles: setTiles, openSet: openSet, buyBox: buyBox, stripify: stripify, wishBtn: function (w) { return wishBtn(wishItem(w.n, w.p, { wish: w })); } };
 })();

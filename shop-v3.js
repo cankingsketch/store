@@ -58,7 +58,7 @@ window.CK_SHOP = {
       (o.nm ? '<p class="nm">' + o.nm + '</p>' : '') + (o.sub ? '<p class="sub">' + o.sub + '</p>' : '') +
       (o.btns && o.btns.length ? '<div class="v3-btns">' + o.btns.map(function (b) {
         return '<a class="v3-btn' + (b[2] ? ' sub' : '') + '" href="' + b[1] + '"' + (o.nm ? ' data-track-label="' + CK.esc(o.nm) + '"' : '') + (/^https?:/.test(b[1]) ? ' target="_blank" rel="noopener"' : '') + '>' + b[0] + '</a>';
-      }).join('') + '</div>' : '') + '</div>';
+      }).join('') + (o.wish ? CK.wishBtn(o.wish) : '') + '</div>' : '') + '</div>';
     var big = lb.querySelector('.big'), th = lb.querySelectorAll('.thumbs img');
     function show(n) {
       i = (n + o.imgs.length) % o.imgs.length; big.src = o.imgs[i];

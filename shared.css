@@ -365,3 +365,56 @@ img { max-width:100%; }
   .pl-size { height:min(50vh, 560px); height:min(50svh, 560px); }
   .lb-x { position:fixed; top:calc(14px + env(safe-area-inset-top)); right:14px; width:40px; height:40px; z-index:130; }
 }
+
+/* ---------- 想買清單（2026-10-04）：購買區的「♡ 加到想買清單」、右下角的「♡ 3」、打開的清單 ---------- */
+.wish-btn { font:inherit; font-size:14px; line-height:1; background:#fff; color:#555; border:1.5px solid #ddd; border-radius:999px;
+  padding:8px 14px; margin-right:12px; cursor:pointer; vertical-align:middle; }
+.wish-btn:hover { border-color:#bbb; }
+.wish-btn.on { color:var(--red2); border-color:var(--red2); }
+@media (max-width:640px) {
+  .buybox .wish-btn { display:block; box-sizing:border-box; width:100%; margin:0 0 8px; padding:13px 0; text-align:center; }
+}
+.v3-btns .wish-btn { margin:0; padding:10px 20px; font-size:15px; font-weight:800; }
+.wish-fab { position:fixed; right:16px; bottom:calc(16px + env(safe-area-inset-bottom)); z-index:150; border:0; border-radius:999px;
+  background:var(--red2); color:#fff; font:inherit; font-size:15px; font-weight:800; padding:11px 18px; cursor:pointer;
+  box-shadow:0 6px 18px rgba(0,0,0,.18); }
+.wish-fab b { font-weight:900; }
+.wish-fab[hidden], .wish-pn[hidden], .wish-acts[hidden] { display:none; }
+.wish-pn { position:fixed; inset:0; z-index:160; }
+.wish-bg { position:absolute; inset:0; background:rgba(0,0,0,.35); }
+.wish-box { position:absolute; top:0; right:0; bottom:0; width:min(420px, 100%); background:#fff; display:flex; flex-direction:column;
+  box-shadow:-8px 0 30px rgba(0,0,0,.12); animation:wish-in .25s ease-out; }
+@keyframes wish-in { from { transform:translateX(30px); opacity:0; } }
+.wish-hd { display:flex; align-items:center; justify-content:space-between; padding:16px 18px 6px; }
+.wish-hd b { font-size:18px; font-weight:900; }
+.wish-x { border:0; background:none; font-size:20px; color:#888; cursor:pointer; padding:4px 8px; }
+.wish-go { display:block; margin:8px 18px 6px; padding:13px 0; text-align:center; border-radius:999px; background:var(--red); color:#fff;
+  font-weight:800; text-decoration:none; letter-spacing:.06em; }
+.wish-list { list-style:none; margin:0; padding:4px 18px; overflow:auto; flex:1; }
+.wish-list li { display:grid; grid-template-columns:56px 1fr auto; grid-template-areas:"img wn wr" "img wq wr"; gap:4px 12px;
+  padding:12px 0; border-bottom:1px solid var(--line); align-items:center; }
+.wish-list li.ok { opacity:.5; }
+.wish-list li img, .wish-list li .ph { grid-area:img; width:56px; height:56px; object-fit:contain; border-radius:8px; background:var(--paper); align-self:start; }
+.wish-list .wn { grid-area:wn; min-width:0; font-size:14px; line-height:1.4; }
+.wish-list .wn b { display:block; font-weight:700; }
+.wish-list .wn span { display:block; color:#555; font-size:13px; }
+.wish-list .wn small { display:block; color:var(--mute); font-size:11px; }
+.wish-list .wn small.na { color:var(--red2); }
+.wish-list .wsh { font-size:12px; color:#555; border-bottom:1px solid #ccc; text-decoration:none; }
+.wish-list .wq { grid-area:wq; display:flex; align-items:center; gap:2px; }
+.wish-list .wq button { width:28px; height:28px; border:1px solid #ddd; background:#fff; border-radius:50%; font-size:15px; line-height:1; cursor:pointer; color:#444; }
+.wish-list .wq span { min-width:26px; text-align:center; font-weight:700; }
+.wish-list .wr { grid-area:wr; display:flex; flex-direction:column; align-items:flex-end; gap:6px; font-size:13px; }
+.wish-list .wp { font-weight:700; }
+.wish-list .wok { display:flex; align-items:center; gap:4px; color:#555; cursor:pointer; white-space:nowrap; }
+.wish-list .wdel { border:0; background:none; color:#aaa; cursor:pointer; font-size:14px; padding:0; }
+.wish-list .wish-empty { display:block; text-align:center; color:var(--mute); border:0; padding:40px 0; }
+.wish-ft { padding:12px 18px calc(14px + env(safe-area-inset-bottom)); border-top:1px solid var(--line); }
+.wish-sum { font-weight:800; font-size:16px; }
+.wish-sum small { margin-left:8px; font-weight:400; font-size:12px; color:var(--mute); }
+.wish-acts { display:flex; gap:10px; margin-top:10px; }
+.wish-acts button { flex:1; font:inherit; font-size:14px; padding:10px 0; border:1.5px solid #ddd; background:#fff; border-radius:999px; cursor:pointer; color:#444; }
+@media (max-width:640px) {
+  .wish-box { top:auto; left:0; width:auto; max-height:86vh; max-height:86svh; border-radius:18px 18px 0 0; animation:wish-up .25s ease-out; }
+  @keyframes wish-up { from { transform:translateY(40px); opacity:0; } }
+}

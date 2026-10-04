@@ -8,7 +8,7 @@
   // [編號, 名稱, 橫?]，照編號排。牆上不標售完、不分新舊（他在賣貨便上自己調整）
   var CARDS = [
     [1, '手繪女僕'], [2, '手繪二姊'], [3, '封面女僕'], [4, '睡覺罐妹'], [5, '吃冰棒'], [6, '吃西瓜'], [7, '大姊吃拉麵'], [8, '大哥吃拉麵'],
-    [9, '南瓜'], [10, '水手服'], [11, '動畫機'], [12, '情人節'], [13, '捧花'], [14, '泥泥汝'], [15, '橘子蘇打'], [16, '龍年'], [17, '盔甲'],
+    [9, '南瓜'], [10, '水手服'], [11, '動畫機'], [12, '情人節'], [13, '捧花'], [14, '馬尾女孩'], [15, '橘子蘇打'], [16, '龍年'], [17, '盔甲'],
     [18, '騎機車', 1], [19, '黃花', 1], [20, '黑絲OL'], [21, '小魔女'], [22, '月餅罐罐'], [23, '白花罐罐'], [24, '街頭風罐罐'], [25, '泳裝罐罐'],
     [26, '草莓吐司'], [27, '大姊沙發', 1], [28, '封面泳裝', 1], [29, '帝雉'], [31, '破防拉麵']
   ];
@@ -20,10 +20,14 @@
   });
   // 二創（单面資料夾的 A 編號）：[編號, 角色名, 橫?]
   var FAN = [
-    [1, '靜謐'], [2, '凜'], [3, '雙貞德', 1], [4, '虞美人', 1], [5, '黑貞'], [6, '小霞'],
-    [7, '莉佳'], [8, '娜姿'], [9, '戀雪'], [10, '林克'], [11, '露西'], [12, 'DVA']
+    [1, '靜謐'], [2, '凜'], [3, '雙貞德', 1], [4, '虞美人', 1], [5, '黑貞'], [6, '小霞|寶可夢'],
+    [7, '莉佳|寶可夢'], [8, '娜姿|寶可夢'], [9, '戀雪|鬼滅之刃'], [10, '林克|薩爾達傳說'], [11, '露西|電馭叛客'], [12, 'D.VA|鬥陣特工']
   ];
 
+  // 賣貨便「空罐原創明信片」沒有的款（2026-10-04 對過；有上架了就從這裡拿掉）
+  var NOT_ON_MYSHIP = ['月餅罐罐', '白花罐罐', '街頭風罐罐', '泳裝罐罐', '草莓吐司', '大姊沙發', '封面泳裝', '帝雉', '破防拉麵'];
+  // 二創裡 FGO 這 5 張：賣貨便是包成「FGO明信片組|共5張」（NT$200），沒有單張
+  var FGO = ['靜謐', '凜', '雙貞德', '虞美人', '黑貞'];
   // O：pre＝圖檔開頭（p／a）、single＝單面（不翻）、buyName＝賣貨便上找的名字、more＝牆最下面的一行小字
   function make(CARDS, O) {
   var list = CARDS.map(function (c, i) {
@@ -128,7 +132,7 @@
     at = i;
     var z = pw.querySelector('.pw-zoom'), st = pw.querySelector('.pw-strip');
     z.hidden = i < 0; st.parentNode.hidden = i < 0;
-    if (i < 0) return;
+    if (i < 0) return buy(null);
     var on = null;
     Array.prototype.forEach.call(st.querySelectorAll('[data-pk]'), function (b, k) { b.classList.toggle('on', k === i); if (k === i) on = b; });
     if (on) st.scrollTo({ left: on.offsetLeft - st.clientWidth / 2 + on.offsetWidth / 2, behavior: 'smooth' });
@@ -139,6 +143,13 @@
     if (O.single) card.querySelector('.b').removeAttribute('src');      // 單面：沒有背面
     else card.querySelector('.b').src = P + (c.wide ? 'back-h.webp' : 'back-v.webp');
     pw.querySelector('.pw-cap b').textContent = c.name;
+    buy(c);
+  }
+  // 購買區：放大某一張時「加到想買清單」記的是那一張
+  function buy(c) {
+    var w = !c ? null : FGO.indexOf(c.name) >= 0 ? { n: 'FGO明信片組', f: 'FGO明信片組|共5張', p: 200, img: c.s }
+      : { v: c.name, sp: c.name, img: c.s, na: O.pre === 'p' && NOT_ON_MYSHIP.indexOf(c.name) >= 0 };
+    pw.querySelector('.buybox').innerHTML = CK.buyBox(O.buyName, prod.price, { from: !c, shopee: prod.shopee, wish: w });
   }
   function turn() {
     if (O.single) return;                                     // 單面的點了不翻
@@ -159,7 +170,6 @@
     }).join('');
     pw.querySelector('.lb-foot h3').innerHTML = esc(p.name) + '<i class="tag setc">' + list.length + ' 款</i>';
     pw.querySelector('.lb-foot small').textContent ='單張 NT$44・10 × 15 cm';
-    pw.querySelector('.buybox').innerHTML = CK.buyBox(O.buyName, p.price, { from: 1, shopee: p.shopee });
     zoom(-1);
     pw.classList.add('open'); document.body.style.overflow = 'hidden';
     pw.querySelector('.pw-wall').scrollTop = 0;
@@ -170,5 +180,5 @@
   }
 
   window.CK_POSTCARDS = make(CARDS, { pre: 'p', buyName: '空罐原創明信片', more: 'FGO 明信片組（5 張 NT$200）請到賣貨便看' });
-  window.CK_FANCARDS = make(FAN, { pre: 'a', single: true, buyName: '二創明信片' });
+  window.CK_FANCARDS = make(FAN, { pre: 'a', single: true, buyName: '空罐二創明信片' });
 })();

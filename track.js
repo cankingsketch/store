@@ -91,6 +91,14 @@
     }
   }
 
+  /* 想買清單（shared.js 呼叫）：記「哪個商品被加進清單」。不是外連，kind 記成 wish，統計時跟點擊分開算 */
+  window.CK_TRACK = function (label) {
+    try {
+      label = String(label || '').slice(0, 80);
+      if (label) send({ channel: '想買清單', kind: 'wish', url: 'wish', label: label, page: location.pathname.slice(0, 200) });
+    } catch (err) { /* 不影響網站 */ }
+  };
+
   document.addEventListener('click', function (e) {
     try {
       if (e.defaultPrevented || e.button !== 0) return;

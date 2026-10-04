@@ -67,7 +67,8 @@ export async function onRequestPost({ request, env }) {
     const channel = str(body && body.channel, 60);
     if (!url || !channel) return new Response(null, NO_CONTENT);
 
-    const kind = body && body.kind === 'shop' ? 'shop' : 'other';
+    // wish＝加到想買清單（2026-10-04），不是外連；stats 會跟點擊分開算
+    const kind = body && (body.kind === 'shop' || body.kind === 'wish') ? body.kind : 'other';
     const ua = request.headers.get('User-Agent') || '';
     const device = /Mobile|Android|iPhone|iPad|iPod/i.test(ua) ? 'mobile' : 'desktop';
     const country =

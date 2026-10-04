@@ -11,8 +11,7 @@
     {
       "id": "anim1",
       "section": "blind",
-      "name": "發條食物抉擇動畫機 第一彈（盲盒）",
-      "findName": "發條食物抉擇動畫機",
+      "name": "第一彈|今日吃什麼?翻頁動畫機",
       "price": 220,
       "note": "早餐、晚餐、飲料 共 3 款",
       "imgs": [
@@ -26,8 +25,7 @@
     {
       "id": "anim2",
       "section": "blind",
-      "name": "發條食物抉擇動畫機 第二彈（盲盒）",
-      "findName": "發條食物抉擇動畫機",
+      "name": "第二彈|今日吃什麼?翻頁動畫機",
       "price": 220,
       "note": "午餐、甜點、消夜 共 3 款",
       "imgs": [
@@ -41,8 +39,7 @@
     {
       "id": "blind1",
       "section": "blind",
-      "name": "小立牌盲盒・通學路",
-      "findName": "小立牌盲盒",
+      "name": "空罐們的通學路盲盒",
       "price": 330,
       "from": true,
       "note": "單抽 330／整盒 1980",
@@ -65,8 +62,7 @@
     {
       "id": "blind2",
       "section": "blind",
-      "name": "小立牌盲盒・名店選",
-      "findName": "小立牌盲盒",
+      "name": "空罐們的名店選盲盒",
       "price": 330,
       "from": true,
       "note": "單抽 330／整盒 1980",
@@ -88,7 +84,7 @@
     {
       "id": "album",
       "section": "postcard",
-      "name": "明信片卡冊",
+      "name": "明信片卡冊-麵包款/6吋",
       "price": 380,
       "note": "霧面 PVC・15.5 × 17.5 × 3.5 cm",
       "imgs": [
@@ -102,7 +98,7 @@
     {
       "id": "post",
       "section": "postcard",
-      "name": "明信片",
+      "name": "空罐原創明信片",
       "price": 44,
       "from": true,
       "note": "單張 44 元起・30 款",
@@ -118,7 +114,7 @@
     {
       "id": "socks",
       "section": "apparel",
-      "name": "破防襪",
+      "name": "空罐破防襪",
       "price": 250,
       "note": "男女通用 24–27 cm",
       "imgs": [
@@ -145,7 +141,7 @@
     {
       "id": "charm",
       "section": "other",
-      "name": "畫圖抉擇轉盤吊飾",
+      "name": "繪圖抉擇吊飾",
       "price": 220,
       "note": "",
       "imgs": [
@@ -185,7 +181,7 @@
     {
       "id": "omamori",
       "section": "other",
-      "name": "肌腱安泰壓克力御守",
+      "name": "肌腱安泰御守 壓克力吊飾",
       "price": 220,
       "note": "",
       "imgs": [
@@ -199,7 +195,7 @@
     {
       "id": "badge",
       "section": "other",
-      "name": "罐罐吸麵金屬徽章",
+      "name": "罐罐吸麵徽章 復刻 金屬徽章",
       "price": 220,
       "note": "尺寸 3.5 × 3.4 cm",
       "imgs": [
@@ -244,7 +240,7 @@
     {
       "id": "stamp",
       "section": "other",
-      "name": "誇誇印章",
+      "name": "誇誇水晶印章",
       "price": 220,
       "note": "共 5 款",
       "imgs": [
@@ -295,7 +291,7 @@
     {
       "id": "memo",
       "section": "other",
-      "name": "罐快遞Q版便利貼",
+      "name": "罐快遞便利貼",
       "price": 50,
       "note": "",
       "imgs": [
@@ -309,7 +305,7 @@
     {
       "id": "doll",
       "section": "other",
-      "name": "罐頭娃娃套組",
+      "name": "空罐娃娃套組",
       "price": 1000,
       "note": "含表情貼等六種小配件",
       "imgs": [
@@ -323,7 +319,8 @@
     {
       "id": "stand",
       "section": "other",
-      "name": "原創人物立牌",
+      "name": "春夏秋冬裝空罐立牌",
+      "findName": "春裝／夏裝／秋裝／冬裝空罐立牌",
       "price": 385,
       "note": "春・夏・秋・冬 四款",
       "imgs": [
@@ -339,7 +336,7 @@
     {
       "id": "charm2",
       "section": "other",
-      "name": "飲料甜度轉盤吊飾",
+      "name": "空罐妹妹甜度抉擇吊飾",
       "price": 0,
       "note": "已絕版",
       "imgs": [
@@ -353,7 +350,7 @@
     {
       "id": "tote",
       "section": "other",
-      "name": "帆布袋組合",
+      "name": "來吃拉麵吧帆布袋",
       "price": 0,
       "note": "已絕版",
       "imgs": [
