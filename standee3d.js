@@ -213,7 +213,7 @@ export function create(dir) {
       arTex = t; arIdx = 0; arT = 0; arFrame();
       arMesh = new THREE.Mesh(new THREE.PlaneGeometry(a.size, a.size),
         new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: 0, depthWrite: false, side: THREE.FrontSide }));
-      arMesh.position.set(p.w / 2, p.h / 2, PIECE_T / 2 + a.z); arMesh.renderOrder = 10;
+      arMesh.position.set(p.w / 2 + (a.dx || 0), p.h / 2 + (a.dy || 0), PIECE_T / 2 + a.z); arMesh.renderOrder = 10;   // dx／dy：讓動畫裡的人物疊在立牌的人物上
       arMesh.layers.set(1);                              // 只有手機鏡頭看得到（主畫面的鏡頭只看 layer 0）
       pieceGroups[a.piece].add(arMesh);
       // 手機滑進來＋掃描框至少閃 1.1 秒，再「掃到了」：框變亮淡掉、動畫彈出來
@@ -233,7 +233,7 @@ export function create(dir) {
     const W = cr.width, H = cr.height, w = sr.width, h = sr.height, x = sr.left - cr.left, y = sr.top - cr.top;
     if (w < 4 || h < 4) return;
     const a = set.ar, p = set.pieces[a.piece];
-    arC.set(p.w / 2, p.h / 2, PIECE_T / 2 + a.z); pieceGroups[a.piece].localToWorld(arC);
+    arC.set(p.w / 2 + (a.dx || 0), p.h / 2 + (a.dy || 0), PIECE_T / 2 + a.z); pieceGroups[a.piece].localToWorld(arC);
     arR.setFromMatrixColumn(camera.matrixWorld, 0).multiplyScalar(a.size / 2).add(arC);
     arC.project(camera); arE.copy(arR).project(camera);
     const ax = (arC.x + 1) / 2 * W, ay = (1 - arC.y) / 2 * H, A = Math.abs(arE.x - arC.x) * W;   // A＝動畫半寬（px）
