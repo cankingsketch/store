@@ -138,6 +138,20 @@
       "date": "2026-10-05"
     },
     {
+      "id": "doufang",
+      "section": "other",
+      "name": "萬用新春斗方小卡5入組",
+      "price": 100,
+      "note": "10cm・星幻紙・台灣製",
+      "imgs": [
+        "img/opt/doufang1-l.webp",
+        "img/opt/doufang2-l.webp"
+      ],
+      "video": "",
+      "shopee": "",
+      "date": "2026-10-05"
+    },
+    {
       "id": "bag",
       "section": "other",
       "name": "洗沐盥洗包",
