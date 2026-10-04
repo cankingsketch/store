@@ -181,16 +181,18 @@ export function create(dir, boxDir) {   // boxDir：小外盒的素材資料夾�
       '.sd-got.hid{background:#2b2f45;color:#ffe27a;box-shadow:0 0 18px rgba(255,210,58,.6)}' +
       '@keyframes sd-gotin{from{transform:translateX(-50%) scale(.3);opacity:0}}' +
       // 再抽一次：不寫字（他說說明要少），一顆小盒子圖示，輕輕晃
-      '.sd-again{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);width:46px;height:46px;padding:5px;border:2px solid #fff;border-radius:14px;' +
+      '.sd-again{position:absolute;left:12px;top:12px;width:46px;height:46px;padding:5px;border:2px solid #fff;border-radius:14px;' +
         'background:#ffd23a;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.16);animation:sd-wig 2.4s ease-in-out infinite}' +
       '.sd-again img{width:100%;height:100%;object-fit:contain;display:block}' +
-      '@keyframes sd-wig{0%,80%,100%{transform:translateX(-50%) rotate(0)}85%{transform:translateX(-50%) rotate(-8deg)}90%{transform:translateX(-50%) rotate(7deg)}95%{transform:translateX(-50%) rotate(-4deg)}}' +
+      '@keyframes sd-wig{0%,80%,100%{transform:rotate(0)}85%{transform:rotate(-8deg)}90%{transform:rotate(7deg)}95%{transform:rotate(-4deg)}}' +
       '.sd-hint[hidden],.sd-got[hidden],.sd-again[hidden],.sd-vars[hidden]{display:none}';
     document.head.appendChild(st);
   }
   const hintEl = boxUI.querySelector('.sd-hint'), gotEl = boxUI.querySelector('.sd-got'), againBtn = boxUI.querySelector('.sd-again');
   againBtn.addEventListener('pointerdown', e => e.stopPropagation());
   againBtn.addEventListener('click', () => boxReset());
+  // 再抽的小盒子圖示放左上角（他說的）；左上角原本那行細字（隱藏款機率／轉盤背面）往右讓開
+  function showAgain(v) { againBtn.hidden = !v; tagEl.style.left = v ? '70px' : ''; tagEl.style.top = v ? '26px' : ''; }
   let box = null, boxPhase = 'off', boxT0 = 0, boxView = 0, boxPending = null, sfx = null, parts = [];
   const boxGroup = new THREE.Group(), lidPivot = new THREE.Group(), flash = new THREE.Group();
   boxGroup.visible = false; scene.add(boxGroup); scene.add(flash);
@@ -265,7 +267,7 @@ export function create(dir, boxDir) {   // boxDir：小外盒的素材資料夾�
     boxPhase = 'idle'; boxT0 = performance.now(); boxView = 1;
     boxGroup.visible = true; boxGroup.position.set(0, 0, 0); boxGroup.rotation.set(0, 0, 0); boxGroup.scale.setScalar(1);
     lidPivot.rotation.x = 0; root.visible = false;
-    hintEl.hidden = false; gotEl.hidden = true; againBtn.hidden = true; revealEl.hidden = true;
+    hintEl.hidden = true; gotEl.hidden = true; showAgain(false); revealEl.hidden = true;   // 「點盒子拆開」的字拿掉（他說不用提示），盒子自己會跳
     yaw = YAW0; tilt = TILT0; yawVel = 0; spin = null;
     Array.prototype.forEach.call(varsBox.children, b => b.classList.remove('on'));
     kick();
@@ -286,7 +288,7 @@ export function create(dir, boxDir) {   // boxDir：小外盒的素材資料夾�
   function boxOff() {
     if (boxPhase === 'off') return;
     boxPhase = 'off'; boxGroup.visible = false; root.visible = true; boxView = 0;
-    hintEl.hidden = true; gotEl.hidden = true; againBtn.hidden = !box;
+    hintEl.hidden = true; gotEl.hidden = true; showAgain(!!box);
   }
   const easeOutBack = t => 1 + 2.4 * Math.pow(t - 1, 3) + 1.4 * Math.pow(t - 1, 2);
   // 每一格：盒子的動畫；回傳 true＝還在動
@@ -337,7 +339,7 @@ export function create(dir, boxDir) {   // boxDir：小外盒的素材資料夾�
         boxPhase = 'off'; boxGroup.visible = false; root.position.y = 0; root.scale.setScalar(1); root.rotation.y = 0; boxView = 0;
         const it = list[cur];
         Array.prototype.forEach.call(varsBox.children, (b, i) => b.classList.toggle('on', i === cur));
-        againBtn.hidden = false;                         // 「抽到了！」的字拿掉了（他說的），只留一顆小盒子圖示可以再抽
+        showAgain(true);                                 // 「抽到了！」的字拿掉了（他說的），只留一顆小盒子圖示可以再抽
         if (it.hidden && !revealed) setTimeout(() => { if (list[cur] && list[cur].hidden && !revealed) reveal(); }, 500);
       }
       return true;
