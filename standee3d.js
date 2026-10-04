@@ -11,6 +11,9 @@
 //     玩法跟畫圖抉擇轉盤一樣；按其他地方拖才是轉整組（set.json 有 wheel 才有）
 //   ・有轉盤的時候右上角多一顆「特效」開關（跟畫圖抉擇轉盤共用開關狀態）：打開才載入 wheel-fx.js＋charm-fx.js 的音效，
 //     轉動有跑燈、嗶嗶聲，停下來指到的那格亮紅框＋中獎音效＋星星
+//   ・通學路有「📱 AR」開關（2026-10-04）：實品掃 QR Code（ar.cankingstore.com）手機對準人物那片，整組角色的動畫會浮在立牌前面；
+//     這裡照同樣的位置演一次：掃描框閃一下 → 動畫彈出來循環播放，可以照樣拖著轉。素材 build_standee_ar.py 做的
+//     （一組一張拼格子的 webp、幾百 KB），開關打開才載入、而且只載目前這一組；隱藏款要先揭曉才有
 //   ・轉盤一轉，鏡頭就往轉盤拉近（轉盤變兩倍大，實品字太小、轉完看不出指到什麼——他說的）；
 //     停下來不拉回去，可以在這個距離繼續轉；輕點轉盤以外的地方才回到原本的距離（他說的）
 // 素材由 tools/sticker-preview/build_standee.py 從工廠排版產生：index.json＝有哪幾組，每組一個資料夾，
@@ -104,7 +107,8 @@ export function create(dir) {
   // 切換按鈕＋隱藏款的提示（疊在畫面上）
   const ui = document.createElement('div');
   ui.innerHTML = '<div class="sd-tag" hidden></div><div class="sd-reveal" hidden>點一下揭曉</div><div class="sd-vars"></div>' +
-    '<button class="sd-fx" type="button" hidden>🔈 特效</button>';
+    '<div class="sd-btns"><button class="sd-fx" type="button" hidden>🔈 特效</button><button class="sd-ar" type="button" hidden>📱 AR</button></div>' +
+    '<div class="sd-scan" hidden><i></i><i></i><i></i><i></i></div>';
   el.appendChild(ui);
   if (!document.getElementById('sd-style')) {
     const st = document.createElement('style'); st.id = 'sd-style';
@@ -118,10 +122,21 @@ export function create(dir) {
       '.sd-reveal{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);padding:8px 18px;border-radius:999px;background:rgba(43,47,69,.88);' +
         'color:#fff;font-size:15px;font-weight:800;letter-spacing:.08em;pointer-events:none;animation:sd-pulse 1.6s ease-in-out infinite}' +
       '@keyframes sd-pulse{50%{transform:translate(-50%,-50%) scale(1.06)}}' +
-      '.sd-fx{position:absolute;right:12px;top:12px;border:1.5px solid #ddd;background:#fff;color:#777;border-radius:999px;' +
+      '.sd-btns{position:absolute;right:12px;top:12px;display:flex;flex-direction:column;align-items:flex-end;gap:6px}' +
+      '.sd-fx,.sd-ar{border:1.5px solid #ddd;background:#fff;color:#777;border-radius:999px;' +
         'padding:5px 12px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.04em;box-shadow:0 2px 6px rgba(0,0,0,.06)}' +
-      '.sd-fx.on{background:#ffd23a;border-color:#f0a800;color:#7a4b00;box-shadow:0 0 10px rgba(255,190,0,.6)}' +
-      '.sd-tag[hidden],.sd-reveal[hidden],.sd-fx[hidden]{display:none}';
+      '.sd-fx.on,.sd-ar.on{background:#ffd23a;border-color:#f0a800;color:#7a4b00;box-shadow:0 0 10px rgba(255,190,0,.6)}' +
+      // AR 的掃描框：四個角，掃到的那一下變亮、放大淡掉
+      '.sd-scan{position:absolute;left:50%;top:45%;width:min(58%,330px);aspect-ratio:3/4;transform:translate(-50%,-50%);pointer-events:none;animation:sd-scan .9s ease-in-out infinite}' +
+      '.sd-scan i{position:absolute;width:22%;height:16%;border:0 solid #fff;filter:drop-shadow(0 0 3px rgba(0,0,0,.35))}' +
+      '.sd-scan i:nth-child(1){left:0;top:0;border-left-width:4px;border-top-width:4px;border-top-left-radius:10px}' +
+      '.sd-scan i:nth-child(2){right:0;top:0;border-right-width:4px;border-top-width:4px;border-top-right-radius:10px}' +
+      '.sd-scan i:nth-child(3){left:0;bottom:0;border-left-width:4px;border-bottom-width:4px;border-bottom-left-radius:10px}' +
+      '.sd-scan i:nth-child(4){right:0;bottom:0;border-right-width:4px;border-bottom-width:4px;border-bottom-right-radius:10px}' +
+      '@keyframes sd-scan{50%{transform:translate(-50%,-50%) scale(.95)}}' +
+      '.sd-scan.ok{animation:sd-scanok .4s ease-out forwards}.sd-scan.ok i{border-color:#ffd23a}' +
+      '@keyframes sd-scanok{from{transform:translate(-50%,-50%) scale(1);opacity:1}to{transform:translate(-50%,-50%) scale(1.15);opacity:0}}' +
+      '.sd-tag[hidden],.sd-reveal[hidden],.sd-fx[hidden],.sd-ar[hidden],.sd-scan[hidden]{display:none}';
     document.head.appendChild(st);
   }
   const varsBox = ui.querySelector('.sd-vars'), tagEl = ui.querySelector('.sd-tag'), revealEl = ui.querySelector('.sd-reveal');
@@ -150,6 +165,54 @@ export function create(dir) {
   }
   fxBtn.addEventListener('pointerdown', e => e.stopPropagation());   // 按開關不要變成拖曳
   fxBtn.addEventListener('click', () => setFx(!fxOn));
+  // ---- AR 動畫開關（通學路）：打開才載入目前這組的 ar.webp；不記住（每次進來都是關的，不要一進來就載） ----
+  const arBtn = ui.querySelector('.sd-ar'), scanEl = ui.querySelector('.sd-scan');
+  let arOn = false, arMesh = null, arTex = null, arReady = 0, arT = 0, arIdx = 0, arToken = 0, pieceGroups = [];
+  arBtn.addEventListener('pointerdown', e => e.stopPropagation());
+  arBtn.addEventListener('click', () => {
+    arOn = !arOn; arBtn.classList.toggle('on', arOn);
+    if (arOn) arStart(); else arStop();
+  });
+  const arTag = () => {                                  // 左上角細字：AR 打開時說怎麼玩（隱藏款那組照樣顯示機率）
+    const it = list[cur]; if (!it || it.hidden || wheelGroup) return;
+    tagEl.textContent = '掃立牌附的 QR Code，用手機看角色動起來'; tagEl.hidden = !arOn;
+  };
+  function arStop() {
+    arToken++; scanEl.hidden = true; scanEl.classList.remove('ok');
+    if (arMesh) { arMesh.parent && arMesh.parent.remove(arMesh); arMesh.geometry.dispose(); arMesh.material.dispose(); }
+    if (arTex) arTex.dispose();
+    arMesh = null; arTex = null; arReady = 0; arTag(); kick();
+  }
+  function arStart() {
+    arStop();
+    if (!arOn || !set || !set.ar || !pieceGroups[set.ar.piece]) return;
+    if (list[cur] && list[cur].hidden && !revealed) return;          // 隱藏款：揭曉之後才有
+    const a = set.ar, p = set.pieces[a.piece], tok = arToken, t0 = performance.now();
+    arTag();
+    // 鏡頭轉回正面（跟揭曉同一套轉法，不換圖）
+    const to = yaw - ((((yaw - YAW0) % 360) + 540) % 360 - 180);
+    if (Math.abs(to - yaw) > 1) { spin = { t0, dur: 600, from: yaw, to, tilt0: tilt, swapped: true, ar: true }; yawVel = 0; }
+    scanEl.hidden = false;
+    loader.load(base + a.img, t => {
+      if (tok !== arToken) { t.dispose(); return; }
+      t.colorSpace = THREE.SRGBColorSpace; t.repeat.set(1 / a.cols, 1 / a.rows);
+      arTex = t; arIdx = 0; arT = 0; arFrame();
+      arMesh = new THREE.Mesh(new THREE.PlaneGeometry(a.size, a.size),
+        new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: 0, depthWrite: false, side: THREE.FrontSide }));
+      arMesh.position.set(p.w / 2, p.h / 2, PIECE_T / 2 + a.z); arMesh.renderOrder = 10;
+      pieceGroups[a.piece].add(arMesh);
+      // 掃描框至少閃 0.7 秒，再「掃到了」：框變亮淡掉、動畫彈出來
+      setTimeout(() => {
+        if (tok !== arToken) return;
+        scanEl.classList.add('ok'); setTimeout(() => { if (tok === arToken) scanEl.hidden = true; }, 400);
+        arReady = performance.now(); kick();
+      }, Math.max(0, 700 - (performance.now() - t0)));
+    });
+  }
+  function arFrame() {
+    const a = set.ar, c = arIdx % a.cols, r = Math.floor(arIdx / a.cols);
+    arTex.offset.set(c / a.cols, 1 - (r + 1) / a.rows);
+  }
   // 轉盤：wheelSpin＝轉了幾度、wheelVel＝每秒幾度
   let wheelGroup = null, wheelMeshes = [], wheelSpin = 0, wheelVel = 0;
   const ray = new THREE.Raycaster();
@@ -192,7 +255,9 @@ export function create(dir) {
     root.clear();
     wheelGroup = null; wheelMeshes = []; wheelSpin = 0; wheelVel = 0; zoom = 0; zoomed = false;
     prints.forEach(p => { if (p.sil) p.sil.dispose(); });   // 剪影材質不在場景裡時（已揭曉）上面丟不到
-    prints = [];
+    prints = []; pieceGroups = [];
+    if (arTex) arTex.dispose();
+    arToken++; arMesh = null; arTex = null; arReady = 0;
   }
 
   function build() {
@@ -226,7 +291,7 @@ export function create(dir) {
       pf.position.set(p.w / 2, p.h / 2, PIECE_T / 2 + 0.03);
       pb.position.set(p.w / 2, p.h / 2, -PIECE_T / 2 - 0.03);
       g.add(pf); g.add(pb);
-      root.add(g);
+      root.add(g); pieceGroups[pi] = g;
       // 轉盤（名店選）：裝在轉盤柱這一片的前面，繞自己的中心轉
       if (set.wheel && set.wheel.piece === pi) {
         const w = set.wheel, r = w.d / 2, wg = new THREE.Group();
@@ -246,6 +311,7 @@ export function create(dir) {
       }
     });
     fxBtn.hidden = !wheelGroup;
+    arBtn.hidden = !set.ar;
     // 名店選：左上角一行細字，說轉盤背面是空白的、可以自己寫（他要的，跟隱藏款機率同一個樣式）
     if (wheelGroup && tagEl.hidden) { tagEl.textContent = '轉盤背面是空白的，可以寫上自己的菜單'; tagEl.hidden = false; }
     if (wheelGroup) { if (fxStore.get() && !fxOn) setFx(true); else fxBind(); }
@@ -258,6 +324,7 @@ export function create(dir) {
     dist = Math.max(R / Math.tan(vf), R / (Math.tan(vf) * (camera.aspect || 1))) * 1.06;   // 下面留給按鈕
     const hid = list[cur] && list[cur].hidden;
     if (hid && !revealed) setPrints(false);
+    if (arOn) arStart(); else arTag();
     kick();
   }
 
@@ -397,7 +464,7 @@ export function create(dir) {
       yaw = spin.from + (spin.to - spin.from) * e;
       tilt = spin.tilt0 + (TILT0 - spin.tilt0) * e;
       if (!spin.swapped && e > 0.5) { spin.swapped = true; setPrints(true); }
-      if (k >= 1) { spin = null; yaw = YAW0; }
+      if (k >= 1) { const wasReveal = !spin.ar && list[cur] && list[cur].hidden; spin = null; yaw = YAW0; if (wasReveal && arOn && !arMesh) arStart(); }
     }
     if (wheelGroup) {
       const wDrag = !!(drag && drag.mode === 'wheel');
@@ -415,6 +482,14 @@ export function create(dir) {
         if (wDrag && drag.hist.length > 1) { const h = drag.hist, sp = h[h.length - 1][0] - h[0][0]; v = sp > 0 ? h.reduce((a, x) => a + x[1], 0) / sp * 1000 : 0; }
         fxBusy = fx.frame(wheelSpin, v, wDrag || !!wheelVel, wheelFacing(), dt);
       }
+    }
+    if (arMesh && arReady) {
+      const a = set.ar;
+      arT += dt * 1000;
+      while (arT >= a.dur[arIdx]) { arT -= a.dur[arIdx]; arIdx = (arIdx + 1) % a.n; }
+      arFrame();
+      const k = Math.min(1, (now - arReady) / 320), e = 1 + 2.2 * Math.pow(k - 1, 3) + 1.2 * Math.pow(k - 1, 2);   // 彈一下
+      arMesh.material.opacity = k; arMesh.scale.setScalar(0.6 + 0.4 * e);
     }
     if (!drag && yawVel) {
       yaw += yawVel * dt;
@@ -437,7 +512,7 @@ export function create(dir) {
     camera.position.set(camTarget.x + dz * Math.cos(rt) * Math.sin(ry), camTarget.y + dz * Math.sin(rt), camTarget.z + dz * Math.cos(rt) * Math.cos(ry));
     camera.lookAt(camTarget);
     renderer.render(scene, camera);
-    if (drag || yawVel || spin || wheelVel || fxBusy || (zoom !== (zoomed ? 1 : 0))) kick();
+    if (drag || yawVel || spin || wheelVel || fxBusy || (zoom !== (zoomed ? 1 : 0)) || (arMesh && arReady)) kick();
   }
 
   window.addEventListener('resize', resize);
