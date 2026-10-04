@@ -481,7 +481,7 @@ export function create(dir, boxDir) {   // boxDir：小外盒的素材資料夾�
 
     // 鏡頭：整組（底座對角線＋最高的那片）都要塞得下，轉一圈也不會出框
     const tall = Math.max.apply(null, set.pieces.map(p => p.h));
-    target.set(0, tall * 0.36, 0);
+    target.set(0, tall * (varsBox.hidden ? 0.47 : 0.36), 0);   // 0.36：下面留給款式按鈕；有盒子的那兩款沒有按鈕了，上下置中（他說下面空一塊）
     const R = Math.hypot(Math.hypot(b.w, b.d) / 2, tall * 0.62);
     const vf = camera.fov * Math.PI / 360;
     dist = Math.max(R / Math.tan(vf), R / (Math.tan(vf) * (camera.aspect || 1))) * 1.06;   // 下面留給按鈕
