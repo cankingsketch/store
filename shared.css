@@ -416,6 +416,10 @@ img { max-width:100%; }
 .wish-sum { font-weight:800; font-size:16px; }
 .wish-sum small { margin-left:8px; font-weight:400; font-size:12px; color:var(--mute); }
 .wish-acts { display:flex; gap:10px; margin-top:10px; }
+.wish-copybox[hidden] { display:none; }
+.wish-copybox { margin-top:10px; }
+.wish-copybox small { display:block; font-size:12px; color:var(--mute); margin-bottom:4px; }
+.wish-copybox textarea { width:100%; box-sizing:border-box; font:inherit; font-size:16px; line-height:1.5; border:1px solid #ddd; border-radius:8px; padding:8px; resize:none; }
 .wish-acts button { flex:1; font:inherit; font-size:14px; padding:10px 0; border:1.5px solid #ddd; background:#fff; border-radius:999px; cursor:pointer; color:#444; }
 @media (max-width:640px) {
   .wish-box { top:auto; left:0; width:auto; max-height:86vh; max-height:86svh; border-radius:18px 18px 0 0; animation:wish-up .25s ease-out; }

@@ -191,6 +191,14 @@
       return '・' + (x.na ? x.n : x.f) + (x.sp ? '／' + x.sp : x.v ? '／' + x.v : '') + ' × ' + (x.q || 1) + (x.p ? '（' + money(x.p * (x.q || 1)) + '）' : '') + (x.na ? '（賣貨便目前沒有）' : '');
     }).join('\n') + '\n合計 ' + money(wish.reduce(function (s, x) { return s + (x.p || 0) * (x.q || 1); }, 0)) + '\n' + MYSHIP;
   }
+  function copyText(txt) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = txt; ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;font-size:16px';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { ta.setSelectionRange(0, txt.length); ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    ta.remove();
+    return ok;
+  }
   function wishInit() {
     wishLoad();
     wishFab = document.createElement('button'); wishFab.type = 'button'; wishFab.className = 'wish-fab'; wishFab.hidden = true;
@@ -200,7 +208,8 @@
       '<div class="wish-hd"><b>想買清單</b><button class="wish-x" aria-label="關閉">✕</button></div>' +
       '<a class="wish-go" href="' + MYSHIP + '" rel="noopener" data-track-label="想買清單">去賣貨便下單</a>' +
       '<ul class="wish-list"></ul>' +
-      '<div class="wish-ft"><div class="wish-sum"></div><div class="wish-acts"><button data-a="copy">複製清單</button><button data-a="clear">清空</button></div></div></div>';
+      '<div class="wish-ft"><div class="wish-sum"></div><div class="wish-copybox" hidden><small>長按下面的文字全選、複製</small><textarea readonly rows="5"></textarea></div>' +
+        '<div class="wish-acts"><button data-a="copy">複製清單</button><button data-a="clear">清空</button></div></div></div>';
     document.body.appendChild(wishFab); document.body.appendChild(wishPn);
     wishFab.addEventListener('click', function () { wishOpen(true); });
     wishPn.addEventListener('click', function (e) {
@@ -213,9 +222,14 @@
       if (x && a === 'x') { wish.splice(+li.getAttribute('data-i'), 1); return wishSave(); }
       if (a === 'clear') { wish = []; return wishSave(); }
       if (a === 'copy') {
-        var txt = wishText(), done = function () { t.textContent = '已複製'; setTimeout(function () { t.textContent = '複製清單'; }, 1500); };
-        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, function () { prompt('複製這段文字', txt); });
-        else prompt('複製這段文字', txt);
+        // 複製：1. 傳統的 execCommand（點的當下同步做，最多瀏覽器吃）2. clipboard API 3. 都不行就把文字直接放在清單裡給人長按複製
+        // （clipboard API 在臉書、LINE 內建瀏覽器常被擋，prompt() 有些地方也不能用——他按了沒反應，2026-10-05）
+        var txt = wishText(), box = wishPn.querySelector('.wish-copybox');
+        var done = function () { box.hidden = true; t.textContent = '已複製'; setTimeout(function () { t.textContent = '複製清單'; }, 1500); };
+        var show = function () { box.hidden = false; var ta = box.querySelector('textarea'); ta.value = txt; ta.focus(); ta.select(); };
+        if (copyText(txt)) done();
+        else if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, show);
+        else show();
       }
     });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !wishPn.hidden) wishOpen(false); });
