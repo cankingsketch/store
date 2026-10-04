@@ -96,6 +96,26 @@
       "special": "album"
     },
     {
+      "id": "couplet",
+      "section": "postcard",
+      "name": "龍會罐通燙金春聯",
+      "price": 50,
+      "note": "15cm・萊妮紙",
+      "imgs": [
+        "img/opt/chunlian_photo-l.webp"
+      ],
+      "video": "",
+      "shopee": "",
+      "date": "2026-10-05",
+      "view3d": {
+        "module": "couplet3d.js",
+        "art": "img/post/cl-l.webp",
+        "thumb": "img/post/cl-s.webp",
+        "hint": "移動滑鼠，春聯會跟著傾斜"
+      },
+      "special": "couplet"
+    },
+    {
       "id": "post",
       "section": "postcard",
       "name": "空罐原創明信片",

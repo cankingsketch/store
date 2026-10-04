@@ -135,7 +135,16 @@
   /* 卡冊縮圖：圖裁到書本身（上下不留白），底邊跟右邊明信片對齊同一條水平線（他要的） */
   .albumcard .ph { position:relative; display:block; height:178px; margin-top:1px; background:none; }   /* 放大 20%（他要的），底邊仍跟明信片同一條線 */
   .albumcard .ph img { width:100%; height:100%; object-fit:contain; object-position:center bottom; display:block; }
-  .albumcard .tx { margin-top:10px; text-align:center; }   /* 名稱、價格置中在卡冊正下方（他要的，不要偏左） */
+  .albumcard .tx { margin-top:10px; text-align:center; }
+  /* 燙金春聯的方塊：圖擺成斗方（龍頭的角朝上，-45 度） */
+  .cplcard { display:flex; align-items:center; gap:22px; width:100%; max-width:960px; margin:16px auto 0; padding:14px 26px 14px 14px; box-sizing:border-box;
+    cursor:pointer; text-align:left; font:inherit; color:inherit; }
+  .cplcard .ph { width:132px; height:132px; flex:none; display:flex; align-items:center; justify-content:center; transition:transform .15s; }
+  .cplcard:hover .ph { transform:translateY(-3px); }
+  .cplcard .ph img { width:71%; transform:rotate(-45deg); box-shadow:0 2px 4px rgba(0,0,0,.14), 0 8px 14px rgba(0,0,0,.12); }
+  .cplcard b { display:block; font-size:17px; font-weight:800; color:var(--ink); line-height:1.35; }
+  .cplcard .nt { display:block; margin-top:4px; font-size:13px; color:var(--mute); }
+  .cplcard .pr { display:block; margin-top:6px; font-size:14px; color:var(--ink); }   /* 名稱、價格置中在卡冊正下方（他要的，不要偏左） */
   .albumcard b { display:block; font-size:17px; font-weight:800; color:var(--ink); line-height:1.35; }
   .albumcard .pr { display:block; margin-top:6px; font-size:14px; color:var(--ink); }
   @media (max-width:760px) {
@@ -227,11 +236,11 @@
 <body>
 <div id="app"></div>
 <script src="stickers.js?v=71bd9139"></script>
-<script src="shared.js?v=57db5f6d"></script>
+<script src="shared.js?v=40c8b7c2"></script>
 <script src="shop-v3.js?v=da31c7eb"></script>
 <script src="tees-data.js?v=8cfe961e"></script>
 <script src="books-data.js?v=cfe048a8"></script>
-<script src="postcards.js?v=7f6c5190"></script>
+<script src="postcards.js?v=59f9de09"></script>
 <script>
 (function () {
   // 商品資料在 data/products.json（後台 admin.html 讀寫的就是這份）；這裡只負責畫出來。
@@ -303,6 +312,7 @@
   // 二創明信片不在商品資料裡（後台沒有這一項），名稱、價格寫在這裡；價格先照原創的單張價
   var FANP = { name: '空罐二創明信片', price: 44, shopee: '' };
   var ALBUM = LIST.filter(function (x) { return x.special === 'album'; })[0];
+  var CPL = LIST.filter(function (x) { return x.special === 'couplet'; })[0];      // 燙金春聯：明信片下面自己一個方塊（他要的，2026-10-05）
   // 服飾區的商品（破防襪）接在 T 恤後面；盲盒自己一條（他要的）；其他周邊是下面的方格
   var APPAREL = sect('apparel');
   var BLINDS = sect('blind');
@@ -344,6 +354,8 @@
     '<div class="pcpair white-box' + (ALBUM ? '' : ' solo') + '">' + (ALBUM ? '<button class="albumcard" id="albumcard"><span class="ph"><img src="img/album-3d-v3.jpg" alt="' + CK.esc(ALBUM.name) + '"></span>' +
       '<span class="tx"><b>' + CK.esc(ALBUM.name) + '</b><span class="pr">' + CK.priceText(ALBUM.price, ALBUM.from) + '</span></span></button>' : '') +
     '<div class="stkwall pcwall" id="pcwall"><div class="stkfade"><div class="stkrow pcrow" id="pcrow">' + CK_POSTCARDS.stripHtml() + '</div></div><div class="stkwall-foot"><span class="pr">單張 NT$44</span></div></div></div>' +
+    (CPL ? '<button class="cplcard white-box" data-prod="' + CPL.id + '"><span class="ph"><img src="img/post/cl-s.webp" alt="' + CK.esc(CPL.name) + '"></span>' +
+      '<span class="tx"><b>' + CK.esc(CPL.name) + '</b><span class="nt">' + CK.esc(CPL.note) + '</span><span class="pr">' + CK.priceText(CPL.price, CPL.from) + '</span></span></button>' : '') +
     // 二創明信片：明信片下面自己一條（他要的，2026-10-03），排法跟明信片一樣；單面，點開只放大不翻
     '</div></section><section class="band b-stripe b-fan"><div class="wrap"><div class="sect-title">二創明信片</div>' +
     '<div class="pcpair white-box solo"><div class="stkwall pcwall" id="fcwall"><div class="stkfade"><div class="stkrow pcrow" id="fcrow">' + CK_FANCARDS.stripHtml() + '</div></div>' +
