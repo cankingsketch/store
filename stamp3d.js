@@ -4,7 +4,9 @@
 // 進入時折射、穿過磚：撞到頂面背後是白墨、撞到底面就穿進橡皮章看到凸起的線，其他地方直接穿出去
 // （不做內部反彈，側面才不會映出一堆倒影）。shared.js 需要時才動態載入。
 // 蓋章（他選的 B）：磚底下鋪一張紙，點一下印章 → 抬起、移到紙上、壓下去、抬起來移到旁邊，紙上留下章印。
-// 壓到紙的那一下有一聲短短悶悶的「啪」（Web Audio 即時合成，沒有音檔；2026-10-04 他要的）
+// 蓋下去的動態（2026-10-04 他要的）：往下加速落到紙上 →「咚」→ 底下的軟水晶膠被壓扁、往外擠一點 →
+// 前後輕輕晃兩下把墨壓實（沙沙的紙張摩擦聲）→ 抬起時水晶膠黏著紙被拉長一下才「啵」地離開、彈回原狀 → 移到旁邊放著。
+// 聲音都用 Web Audio 即時合成，沒有音檔：落下是厚實的低音「咚」＋壓克力的「叩」，晃的時候是紙張摩擦，離開是一聲小小的撕離聲。
 // 章印＝橡皮章圖的 R（凸起的線；從磚頂往下看是正的，蓋出來也是正的），墨色有顆粒、偶爾沒吃到墨、邊緣微暈、每次歪一點。
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 
@@ -27,8 +29,9 @@ const float RAD = 1.6;           // 導圓角半徑
 // 壓克力實際折射率 1.49，但那樣從上面看，底下的橡皮章會被「拉近」到只剩 2/3 深，看起來像浮在中間；
 // 調低一點，視差大一些，橡皮章才看得出是在最底下
 const float IOR = 1.28;
-const float RT = ${RUBBER_T.toFixed(2)};
-const float FLOOR_Y = -${(H / 2 + RUBBER_T).toFixed(2)};
+uniform float uRT;                // 橡皮章（軟水晶膠）目前的厚度：蓋下去會被壓薄
+#define RT uRT
+#define FLOOR_Y (-B.y - uRT)
 const vec3 L = normalize(vec3(-0.45, 0.8, 0.45));
 
 float sd(vec3 p) { vec3 q = abs(p) - B + RAD; return length(max(q, 0.)) + min(max(q.x, max(q.y, q.z)), 0.) - RAD; }
@@ -202,7 +205,7 @@ export function create(printUrl, rubberUrl) {
     tPrint: { value: null }, tRubber: { value: null },
     uCamL: { value: new THREE.Vector3() }, uRot: { value: new THREE.Matrix3() },
     uBg: { value: new THREE.Vector3(...BG) },
-    uAspect: { value: 0.7 }, uPrintW: { value: PRINT_W }, uRubW: { value: RUBBER_W },
+    uAspect: { value: 0.7 }, uPrintW: { value: PRINT_W }, uRubW: { value: RUBBER_W }, uRT: { value: RUBBER_T },
     uPx: { value: 0.002 }, uPixAng: { value: 0.001 }
   };
   let dirty = true;
@@ -294,25 +297,49 @@ export function create(printUrl, rubberUrl) {
 
   // ---- 蓋章動畫：抬起 → 移到要蓋的地方 → 壓下 → 抬起 → 移到旁邊放著 ----
   const REST = { x: -W * 1.05, y: 16, z: -W * 0.55, r: 0.25 };     // 蓋完放在左後方，章印才看得到
-  const cur = { x: 0, y: 0, z: 0, r: 0 };
+  const cur = { x: 0, y: 0, z: 0, r: 0, rx: 0, rz: 0, sq: 0 };   // sq：水晶膠被壓扁的程度（1＝壓到底，負的＝被拉長）
   let anim = null, stamps = 0;
   const ease = t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-  function tween(from, to, ms, done) { return { from: Object.assign({}, from), to, ms, t0: performance.now(), done }; }
-  // 蓋章聲：橡皮壓到紙上的悶響＝一小段低通雜訊＋很低的「咚」。AudioContext 在點擊那一下開（iPhone 規定）
-  let ac = null;
-  function thud() {
-    if (!ac) return;
-    const t = ac.currentTime, n = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
-    const buf = ac.createBuffer(1, ac.sampleRate * 0.12, ac.sampleRate), d = buf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-    n.buffer = buf; f.type = 'lowpass'; f.frequency.value = 700;
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.5, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.1);
-    n.connect(f).connect(g).connect(ac.destination); n.start(t);
-    const o = ac.createOscillator(), og = ac.createGain();
-    o.type = 'sine'; o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(60, t + 0.12);
-    og.gain.setValueAtTime(0.0001, t); og.gain.exponentialRampToValueAtTime(0.35, t + 0.005); og.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
-    o.connect(og).connect(ac.destination); o.start(t); o.stop(t + 0.16);
+  const EASE_IN = t => t * t * t, EASE_OUT = t => 1 - Math.pow(1 - t, 3);
+  const EASE_OUT_BACK = t => 1 + 2.2 * Math.pow(t - 1, 3) + 1.2 * Math.pow(t - 1, 2);   // 稍微超過再回來（膠彈回去）
+  function tween(from, to, ms, done, ez) { return { from: Object.assign({}, from), to, ms, t0: performance.now(), done, ez: ez || ease }; }
+  // 蓋章聲。AudioContext 在點擊那一下開（iPhone 規定）
+  let ac = null, nbuf = null;
+  // 一段濾過的雜訊：type＝lowpass/bandpass/highpass，env＝[[秒, 音量], ...] 的音量折線
+  function hiss(at, type, freq, q, env) {
+    if (!nbuf) { nbuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = nbuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+    const t = ac.currentTime + at, n = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    n.buffer = nbuf; n.loop = true; f.type = type; f.frequency.value = freq; f.Q.value = q;
+    g.gain.setValueAtTime(0.0001, t); env.forEach(([k, v]) => g.gain.linearRampToValueAtTime(v, t + k));
+    n.connect(f).connect(g).connect(ac.destination); n.start(t); n.stop(t + env[env.length - 1][0] + 0.02);
   }
+  function hum(at, f0, f1, len, vol, type) {
+    const t = ac.currentTime + at, o = ac.createOscillator(), g = ac.createGain();
+    o.type = type || 'sine'; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + len);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    o.connect(g).connect(ac.destination); o.start(t); o.stop(t + len + 0.02);
+  }
+  const SND = {
+    // 落下：厚實的低音「咚」＋桌面悶響＋壓克力磚本身的一聲「叩」
+    thud() {
+      if (!ac) return;
+      hum(0, 120, 44, 0.32, 0.6); hum(0, 240, 110, 0.09, 0.18, 'triangle');
+      hiss(0, 'lowpass', 380, 0.7, [[0.004, 0.55], [0.05, 0.25], [0.2, 0]]);
+      hiss(0, 'bandpass', 1900, 2.5, [[0.002, 0.16], [0.03, 0]]);
+    },
+    // 晃兩下：紙張摩擦的沙沙聲，兩個起伏跟著晃的節奏
+    rub(len) {
+      if (!ac) return;
+      hiss(0, 'bandpass', 3200, 0.8, [[0.06, 0.07], [len * 0.4, 0.02], [len * 0.62, 0.075], [len, 0]]);
+      hiss(0, 'bandpass', 900, 0.9, [[0.06, 0.05], [len * 0.4, 0.015], [len * 0.62, 0.05], [len, 0]]);
+    },
+    // 離開紙：水晶膠從紙上撕離的一小聲「啵」
+    peel() {
+      if (!ac) return;
+      hiss(0, 'highpass', 2600, 0.7, [[0.01, 0.06], [0.08, 0]]);
+      hum(0.02, 520, 260, 0.06, 0.07);
+    }
+  };
   function stampOnce() {
     if (anim) return;
     try {
@@ -323,15 +350,21 @@ export function create(printUrl, rubberUrl) {
     const SPOTS = [[0, 2], [32, -10], [30, 26], [-26, 24], [2, 34]];   // 避開左後方（印章蓋完放那裡）
     if (stamps && stamps % SPOTS.length === 0) clearPaper();
     const s = SPOTS[stamps % SPOTS.length];
-    const T = { x: s[0] + (Math.random() - 0.5) * 6, y: 0, z: s[1] + (Math.random() - 0.5) * 6, r: (Math.random() - 0.5) * 0.18 };
-    const up = Object.assign({}, T, { y: 14 });
+    const T = { x: s[0] + (Math.random() - 0.5) * 6, y: 0, z: s[1] + (Math.random() - 0.5) * 6, r: (Math.random() - 0.5) * 0.18, rx: 0, rz: 0, sq: 0 };
+    const at = o => Object.assign({}, T, o);
+    const ROCK = 0.022, RUB = 0.42;                       // 晃的角度（弧度，約 1.3°）、晃的總時間
     const steps = [
-      tween(cur, { x: cur.x, y: Math.max(cur.y, 14), z: cur.z, r: cur.r }, cur.y > 10 ? 1 : 220),
-      tween(null, up, 380),
-      tween(null, T, 170, () => { inkAt(T.x, T.z, T.r); thud(); stamps++; }),
-      tween(null, T, 90),
-      tween(null, up, 200),
-      tween(null, REST, 420)
+      tween(cur, { x: cur.x, y: Math.max(cur.y, 14), z: cur.z, r: cur.r, rx: 0, rz: 0, sq: 0 }, cur.y > 10 ? 1 : 220),
+      tween(null, at({ y: 14 }), 380),
+      tween(null, T, 150, () => { inkAt(T.x, T.z, T.r); SND.thud(); stamps++; }, EASE_IN),   // 加速落下，碰到紙「咚」
+      tween(null, at({ sq: 1 }), 110, () => SND.rub(RUB), EASE_OUT),                          // 水晶膠被壓扁、往外擠
+      tween(null, at({ sq: 1, rx: ROCK }), RUB * 0.3 * 1000),                                  // 前後晃兩下把墨壓實
+      tween(null, at({ sq: 1, rx: -ROCK * 0.8, rz: ROCK * 0.5 }), RUB * 0.4 * 1000),
+      tween(null, at({ sq: 1 }), RUB * 0.3 * 1000),
+      tween(null, at({ sq: 1 }), 60, () => SND.peel()),
+      tween(null, at({ sq: -0.35 }), 170),                                                     // 抬起：膠還黏著紙，被拉長一下
+      tween(null, at({ y: 14, sq: 0 }), 240, null, EASE_OUT_BACK),                             // 離開、彈回原狀
+      tween(null, Object.assign({ rx: 0, rz: 0, sq: 0 }, REST), 420)
     ];
     let i = 0;
     function next() {
@@ -355,11 +388,13 @@ export function create(printUrl, rubberUrl) {
     if (!dirty && !anim && Math.abs(nx - rx) < 1e-5 && Math.abs(ny - ry) < 1e-5) return;   // 沒在動就不重畫（這個 shader 很吃 GPU）
     rx = nx; ry = ny; dirty = false;
     if (anim) {
-      const k = Math.min(1, (performance.now() - anim.t0) / anim.ms), e = ease(k);
-      ['x', 'y', 'z', 'r'].forEach(p => { cur[p] = anim.from[p] + (anim.to[p] - anim.from[p]) * e; });
+      const k = Math.min(1, (performance.now() - anim.t0) / anim.ms), e = anim.ez(k);
+      Object.keys(anim.to).forEach(p => { cur[p] = anim.from[p] + (anim.to[p] - anim.from[p]) * e; });
       if (k >= 1) { const a = anim; anim = null; if (a.done) a.done(); a.next(); }
     }
-    block.position.set(cur.x, cur.y, cur.z); block.rotation.set(0, cur.r, 0);
+    // 水晶膠壓扁：變薄 40%（磚跟著往下沉）、往外擠 3%；拉長時反過來
+    uni.uRT.value = RUBBER_T * (1 - 0.4 * cur.sq); uni.uRubW.value = RUBBER_W * (1 + 0.03 * cur.sq);
+    block.position.set(cur.x, cur.y - RUBBER_T * 0.4 * cur.sq, cur.z); block.rotation.set(cur.rx, cur.r, cur.rz);
     shadow.position.x = cur.x; shadow.position.z = cur.z; shadow.rotation.z = cur.r;
     shadowA.value = 0.16 * Math.max(0.25, 1 - cur.y / 30);
     world.rotation.set(BASE_X + rx, BASE_Y + ry, 0, 'XYZ');
