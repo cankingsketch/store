@@ -7,6 +7,8 @@
 //   ・環境光照抄印章的攝影棚（上方柔光、左右窗光、地平線暗板），轉動時反光會在表面和切邊上滑過
 //   ・左右拖：整組轉（放開帶慣性，可以轉一整圈）；上下拖：從比較高或比較低的角度看
 //   ・下面一排按鈕切換 7 組；隱藏款先是黑色剪影＋「點一下揭曉」，點了轉一圈揭曉（他選的方式，2026-10-04）
+//   ・名店選（assets/meiten/）每組多一個幸運轉盤：裝在轉盤柱上，按住轉盤拖＝轉它（放開帶慣性），輕點轉盤＝隨機甩一圈，
+//     玩法跟畫圖抉擇轉盤一樣；按其他地方拖才是轉整組（set.json 有 wheel 才有）
 // 素材由 tools/sticker-preview/build_standee.py 從工廠排版產生：index.json＝有哪幾組，每組一個資料夾，
 // set.json 是尺寸、插孔、外形（單位 mm）。
 // 介面跟其他 3D 模組一樣：create(素材根目錄) → { mount(host), pointer(x, y) }
@@ -18,6 +20,8 @@ const BEVEL = 0.3;                // 切邊導圓角（mm），邊緣才會反�
 // 俯角範圍、一打開的角度：幾乎正面、往右偏一點、只往下看一點（他截圖指定的，2026-10-04；隱藏款揭曉也停在這）
 const TILT_MIN = 4, TILT_MAX = 40, TILT0 = 7, YAW0 = 6;
 const BG = new THREE.Color(0.965, 0.962, 0.952);             // 燈箱背景色（.pl-3d 的漸層中間值），跟印章一樣
+const WHEEL_T = 2;                // 轉盤厚度（mm）
+const WHEEL_GAP = 1;              // 轉盤跟柱子之間的空隙（轉軸那段）
 
 // ---- 攝影棚環境（照 stamp3d.js 的 env()）：畫成一張全景圖，給壓克力反射、折射用 ----
 function studio(renderer) {
@@ -119,6 +123,9 @@ export function create(dir) {
     pick(+b.dataset.k);
   });
   let list = [], cur = -1, revealed = false, prints = [];
+  // 轉盤：wheelSpin＝轉了幾度、wheelVel＝每秒幾度
+  let wheelGroup = null, wheelMeshes = [], wheelSpin = 0, wheelVel = 0;
+  const ray = new THREE.Raycaster();
   const root = new THREE.Group(); scene.add(root);
   const loader = new THREE.TextureLoader();
   let host = null, set = null, base = '', root0 = '', target = new THREE.Vector3(), dist = 300;
@@ -156,6 +163,7 @@ export function create(dir) {
       }
     });
     root.clear();
+    wheelGroup = null; wheelMeshes = []; wheelSpin = 0; wheelVel = 0;
     prints.forEach(p => { if (p.sil) p.sil.dispose(); });   // 剪影材質不在場景裡時（已揭曉）上面丟不到
     prints = [];
   }
@@ -180,7 +188,7 @@ export function create(dir) {
     root.add(sh);
 
     // ---- 每一片：插腳中心對準插孔，站在底座上面（插腳插進底座那段不做） ----
-    set.pieces.forEach(p => {
+    set.pieces.forEach((p, pi) => {
       const g = new THREE.Group();
       g.position.set(p.x - hw, 0, p.y - hd);
       g.add(slab(p.outline, PIECE_T, [faceMat, sideMat]));
@@ -192,6 +200,23 @@ export function create(dir) {
       pb.position.set(p.w / 2, p.h / 2, -PIECE_T / 2 - 0.03);
       g.add(pf); g.add(pb);
       root.add(g);
+      // 轉盤（名店選）：裝在轉盤柱這一片的前面，繞自己的中心轉
+      if (set.wheel && set.wheel.piece === pi) {
+        const w = set.wheel, r = w.d / 2, wg = new THREE.Group();
+        wg.position.set(w.cx, w.cy, PIECE_T / 2 + WHEEL_GAP + WHEEL_T / 2);
+        const circle = []; for (let i = 0; i < 72; i++) { const a = i / 72 * Math.PI * 2; circle.push([Math.cos(a) * r, Math.sin(a) * r]); }
+        const disc = slab(circle, WHEEL_T, [faceMat, sideMat]);
+        const wf = new THREE.Mesh(new THREE.PlaneGeometry(w.d, w.d), printMat(tex(base + w.img), THREE.FrontSide));
+        const wbk = new THREE.Mesh(new THREE.PlaneGeometry(w.d, w.d), printMat(tex(base + w.back), THREE.BackSide));
+        wf.position.z = WHEEL_T / 2 + 0.03; wbk.position.z = -WHEEL_T / 2 - 0.03;
+        // 轉軸：柱子和轉盤之間一小段透明的圓柱
+        const axle = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, WHEEL_GAP + 0.4, 24), sideMat);
+        axle.rotation.x = Math.PI / 2; axle.position.set(w.cx, w.cy, PIECE_T / 2 + WHEEL_GAP / 2);
+        wg.add(disc); wg.add(wf); wg.add(wbk);
+        g.add(wg); g.add(axle);
+        prints.push({ mesh: wf }, { mesh: wbk });
+        wheelGroup = wg; wheelMeshes = [disc, wf, wbk];
+      }
     });
 
     // 鏡頭：整組（底座對角線＋最高的那片）都要塞得下，轉一圈也不會出框
@@ -254,7 +279,13 @@ export function create(dir) {
   el.addEventListener('pointerdown', e => {
     if (e.button) return;
     if (spin) return;                                    // 揭曉動畫中不能拖
-    drag = { x: e.clientX, y: e.clientY, yaw0: yaw, tilt0: tilt, hist: [], moved: false };
+    drag = { x: e.clientX, y: e.clientY, yaw0: yaw, tilt0: tilt, hist: [], moved: false, mode: 'orbit' };
+    if (wheelGroup && hitWheel(e)) {                      // 按到轉盤：轉它，不轉整組
+      const c = wheelScreen();
+      drag.mode = 'wheel'; drag.c = c; drag.a = Math.atan2(e.clientY - c[1], e.clientX - c[0]) * 180 / Math.PI;
+      drag.sign = wheelFacing() ? -1 : 1;                 // 從背後看，順時針是反過來的
+      wheelVel = 0;
+    }
     yawVel = 0;
     try { el.setPointerCapture(e.pointerId); } catch (err) {}
     el.style.cursor = 'grabbing';
@@ -263,6 +294,14 @@ export function create(dir) {
     if (!drag) return;
     const now = performance.now(), w = el.clientWidth || 400;
     if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 6) drag.moved = true;
+    if (drag.mode === 'wheel') {
+      const a = Math.atan2(e.clientY - drag.c[1], e.clientX - drag.c[0]) * 180 / Math.PI;
+      const dd = ((a - drag.a) % 360 + 540) % 360 - 180;
+      drag.a = a; wheelSpin += drag.sign * dd;
+      drag.hist.push([now, drag.sign * dd]);
+      while (drag.hist.length && now - drag.hist[0][0] > 90) drag.hist.shift();
+      kick(); return;
+    }
     const ny = drag.yaw0 - (e.clientX - drag.x) / w * 220;   // 拖過整個寬度≈轉 220 度
     drag.hist.push([now, ny - yaw]);
     while (drag.hist.length && now - drag.hist[0][0] > 90) drag.hist.shift();
@@ -273,6 +312,13 @@ export function create(dir) {
   function up() {
     if (!drag) return;
     const d = drag; drag = null; el.style.cursor = 'grab';
+    if (d.mode === 'wheel') {
+      const sum = d.hist.reduce((s, h) => s + h[1], 0), span = d.hist.length > 1 ? d.hist[d.hist.length - 1][0] - d.hist[0][0] : 0;
+      // 輕點：隨機甩一圈；拖：照放開時的速度繼續轉（最高跟畫圖抉擇轉盤一樣 6000）
+      wheelVel = !d.moved ? (900 + Math.random() * 900) * (Math.random() < 0.5 ? -1 : 1)
+        : (span > 8 ? Math.max(-6000, Math.min(6000, sum / span * 1000)) : 0);
+      kick(); return;
+    }
     // 隱藏款還沒揭曉時，輕點一下＝揭曉
     if (!d.moved && list[cur] && list[cur].hidden && !revealed) { reveal(); return; }
     const sum = d.hist.reduce((s, h) => s + h[1], 0), span = d.hist.length > 1 ? d.hist[d.hist.length - 1][0] - d.hist[0][0] : 0;
@@ -284,6 +330,23 @@ export function create(dir) {
   el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
   window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
   el.addEventListener('lostpointercapture', up);
+
+  // 轉盤：有沒有按到、中心在畫面上哪裡、正面有沒有朝著鏡頭
+  function hitWheel(e) {
+    const r = canvas.getBoundingClientRect();
+    ray.setFromCamera(new THREE.Vector2((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
+    return ray.intersectObjects(wheelMeshes, false).length > 0;
+  }
+  function wheelScreen() {
+    const v = new THREE.Vector3(); wheelGroup.getWorldPosition(v); v.project(camera);
+    const r = canvas.getBoundingClientRect();
+    return [r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height];
+  }
+  function wheelFacing() {
+    const p = new THREE.Vector3(), n = new THREE.Vector3(0, 0, 1);
+    wheelGroup.getWorldPosition(p); n.applyQuaternion(wheelGroup.getWorldQuaternion(new THREE.Quaternion()));
+    return n.dot(camera.position.clone().sub(p)) > 0;
+  }
 
   function kick() { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } }
   function frame(now) {
@@ -297,6 +360,15 @@ export function create(dir) {
       if (!spin.swapped && e > 0.5) { spin.swapped = true; setPrints(true); }
       if (k >= 1) { spin = null; yaw = YAW0; }
     }
+    if (wheelGroup) {
+      if (wheelVel && !(drag && drag.mode === 'wheel')) {
+        wheelSpin += wheelVel * dt;
+        const sg = Math.sign(wheelVel);
+        wheelVel -= wheelVel * 0.9 * dt + sg * 90 * dt;        // 摩擦：跟畫圖抉擇轉盤一樣
+        if (Math.sign(wheelVel) !== sg || Math.abs(wheelVel) < 6) wheelVel = 0;
+      }
+      wheelGroup.rotation.z = wheelSpin * Math.PI / 180;
+    }
     if (!drag && yawVel) {
       yaw += yawVel * dt;
       yawVel *= Math.pow(0.04, dt);
@@ -306,11 +378,11 @@ export function create(dir) {
     camera.position.set(target.x + dist * Math.cos(rt) * Math.sin(ry), target.y + dist * Math.sin(rt), target.z + dist * Math.cos(rt) * Math.cos(ry));
     camera.lookAt(target);
     renderer.render(scene, camera);
-    if (drag || yawVel || spin) kick();
+    if (drag || yawVel || spin || wheelVel) kick();
   }
 
   window.addEventListener('resize', resize);
-  el.dataset.sd = '1'; el.sdState = () => ({ yaw, tilt, hx, hy, dist, yawVel, drag: !!drag }); el.sdScene = () => ({ root, prints, set, kick });   // 除錯用
+  el.dataset.sd = '1'; el.sdState = () => ({ yaw, tilt, hx, hy, dist, yawVel, drag: !!drag, wheelSpin, wheelVel }); el.sdScene = () => ({ root, prints, set, kick });   // 除錯用
   start(dir);
 
   return {

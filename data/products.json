@@ -76,7 +76,14 @@
       ],
       "video": "https://www.instagram.com/reel/DFmxVTeMvKm/",
       "shopee": "https://shopee.tw/product/12223072/43651692652",
-      "date": "2026-07-07"
+      "date": "2026-07-07",
+      "view3d": {
+        "module": "standee3d.js",
+        "art": "assets/meiten/",
+        "uv": "",
+        "thumb": "img/opt/img-9472_orig-s.webp",
+        "hint": ""
+      }
     },
     {
       "id": "album",
