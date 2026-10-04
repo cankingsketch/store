@@ -12,7 +12,7 @@
 //   ・有轉盤的時候右上角多一顆「特效」開關（跟畫圖抉擇轉盤共用開關狀態）：打開才載入 wheel-fx.js＋charm-fx.js 的音效，
 //     轉動有跑燈、嗶嗶聲，停下來指到的那格亮紅框＋中獎音效＋星星
 //   ・轉盤一轉，鏡頭就往轉盤拉近（轉盤變兩倍大，實品字太小、轉完看不出指到什麼——他說的）；
-//     停下來再留 3.5 秒給人看結果，然後拉回來；中途拖整組就馬上拉回來
+//     停下來不拉回去，可以在這個距離繼續轉；輕點轉盤以外的地方才回到原本的距離（他說的）
 // 素材由 tools/sticker-preview/build_standee.py 從工廠排版產生：index.json＝有哪幾組，每組一個資料夾，
 // set.json 是尺寸、插孔、外形（單位 mm）。
 // 介面跟其他 3D 模組一樣：create(素材根目錄) → { mount(host), pointer(x, y) }
@@ -190,7 +190,7 @@ export function create(dir) {
       }
     });
     root.clear();
-    wheelGroup = null; wheelMeshes = []; wheelSpin = 0; wheelVel = 0; zoom = 0; zoomHold = 0;
+    wheelGroup = null; wheelMeshes = []; wheelSpin = 0; wheelVel = 0; zoom = 0; zoomed = false;
     prints.forEach(p => { if (p.sil) p.sil.dispose(); });   // 剪影材質不在場景裡時（已揭曉）上面丟不到
     prints = [];
   }
@@ -305,8 +305,8 @@ export function create(dir) {
 
   // ---- 轉動：yaw＝左右、tilt＝俯角（滑鼠移動時微微偏 hx/hy，看得出前後層次） ----
   let yaw = YAW0, tilt = TILT0, yawVel = 0, drag = null, raf = 0, last = 0, hx = 0, hy = 0;
-  // 拉近轉盤：zoom 0＝原本的鏡頭、1＝對準轉盤、距離剩一半（轉盤看起來兩倍大）；zoomHold＝停下來之後留到幾點再拉回
-  let zoom = 0, zoomHold = 0;
+  // 拉近轉盤：zoom 0＝原本的鏡頭、1＝對準轉盤、距離剩一半（轉盤看起來兩倍大）；zoomed＝要不要拉近
+  let zoom = 0, zoomed = false;
   const wheelPos = new THREE.Vector3(), camTarget = new THREE.Vector3();
   el.addEventListener('pointerdown', e => {
     if (e.button) return;
@@ -319,7 +319,6 @@ export function create(dir) {
       wheelVel = 0;
       if (fx && fxOn) fxUnlock();
     }
-    if (drag.mode !== 'wheel') zoomHold = 0;
     yawVel = 0;
     try { el.setPointerCapture(e.pointerId); } catch (err) {}
     el.style.cursor = 'grabbing';
@@ -355,6 +354,8 @@ export function create(dir) {
       if (!wheelVel && fx && fxOn) fx.stop(wheelSpin, wheelFacing());   // 拖完直接停住：當場開獎
       kick(); return;
     }
+    // 拉近轉盤時，輕點轉盤以外的地方＝回到原本的距離
+    if (!d.moved && zoomed) { zoomed = false; yawVel = 0; kick(); return; }
     // 隱藏款還沒揭曉時，輕點一下＝揭曉
     if (!d.moved && list[cur] && list[cur].hidden && !revealed) { reveal(); return; }
     const sum = d.hist.reduce((s, h) => s + h[1], 0), span = d.hist.length > 1 ? d.hist[d.hist.length - 1][0] - d.hist[0][0] : 0;
@@ -405,7 +406,7 @@ export function create(dir) {
         if (Math.sign(wheelVel) !== sg || Math.abs(wheelVel) < 6) { wheelVel = 0; if (fx && fxOn) fx.stop(wheelSpin, wheelFacing()); }   // 停了：開獎
       }
       wheelGroup.rotation.z = wheelSpin * Math.PI / 180;
-      if (wDrag || wheelVel) zoomHold = now + 3500;
+      if (wDrag || wheelVel) zoomed = true;
       fxBusy = false;
       if (fx && fxOn) {
         let v = wheelVel;
@@ -418,7 +419,7 @@ export function create(dir) {
       yawVel *= Math.pow(0.04, dt);
       if (Math.abs(yawVel) < 2) yawVel = 0;
     }
-    const zTo = wheelGroup && now < zoomHold ? 1 : 0;
+    const zTo = wheelGroup && zoomed ? 1 : 0;
     zoom += (zTo - zoom) * (1 - Math.exp(-dt * 4));
     if (Math.abs(zTo - zoom) < 0.002) zoom = zTo;
     camTarget.copy(target);
@@ -428,7 +429,7 @@ export function create(dir) {
     camera.position.set(camTarget.x + dz * Math.cos(rt) * Math.sin(ry), camTarget.y + dz * Math.sin(rt), camTarget.z + dz * Math.cos(rt) * Math.cos(ry));
     camera.lookAt(camTarget);
     renderer.render(scene, camera);
-    if (drag || yawVel || spin || wheelVel || fxBusy || zoom || now < zoomHold) kick();
+    if (drag || yawVel || spin || wheelVel || fxBusy || (zoom !== (zoomed ? 1 : 0))) kick();
   }
 
   window.addEventListener('resize', resize);
@@ -441,7 +442,7 @@ export function create(dir) {
     mount(h) {
       host = h;
       if (el.parentNode !== h) { h.innerHTML = ''; h.appendChild(el); }
-      yaw = YAW0; tilt = TILT0; yawVel = 0; hx = hy = 0; drag = null; zoom = 0; zoomHold = 0; el.style.cursor = 'grab';
+      yaw = YAW0; tilt = TILT0; yawVel = 0; hx = hy = 0; drag = null; zoom = 0; zoomed = false; el.style.cursor = 'grab';
       resize(); kick();
     },
     pointer(x, y) { if (drag) return; hx = -(x - 0.5) * 16; hy = (y - 0.5) * 6; kick(); }
