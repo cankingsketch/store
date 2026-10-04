@@ -9,8 +9,9 @@
 //   ・下面一排按鈕切換 7 組；隱藏款先是黑色剪影＋「點一下揭曉」，點了轉一圈揭曉（他選的方式，2026-10-04）
 //   ・名店選（assets/meiten/）每組多一個幸運轉盤：裝在轉盤柱上，按住轉盤拖＝轉它（放開帶慣性），輕點轉盤＝隨機甩一圈，
 //     玩法跟畫圖抉擇轉盤一樣；按其他地方拖才是轉整組（set.json 有 wheel 才有）
-//   ・有轉盤的時候右上角多一顆「特效」開關（跟畫圖抉擇轉盤共用開關狀態）：打開才載入 wheel-fx.js＋charm-fx.js 的音效，
-//     轉動有跑燈、嗶嗶聲，停下來指到的那格亮紅框＋中獎音效＋星星
+//   ・有轉盤的時候：轉動有嗶嗶聲、跑燈，停下來指到的那格亮起來＋投幣聲＋星星（wheel-fx.js＋charm-fx.js 的音效）。
+//     原本右上角有「特效」開關，他說拿掉、讓人一進來直接點轉盤就能轉 → 沒有開關、一律開著；
+//     打開有轉盤的那組時才在背景載入（兩支小程式，沒有圖），第一次碰轉盤時順便開聲音（iPhone 要在點的那一下開）
 //   ・通學路有「📱 AR」開關（2026-10-04）：實品掃 QR Code（ar.cankingstore.com）手機對準人物那片，整組角色的動畫會浮在立牌前面；
 //     這裡直接在立牌前面播（動畫裡的人物剛好疊在立牌的人物上），可以照樣拖著轉。
 //     試過做一支迷你手機、動畫只在手機螢幕裡播——在手機上看太小，他說取消。素材 build_standee_ar.py 做的
@@ -108,7 +109,7 @@ export function create(dir) {
   // 切換按鈕＋隱藏款的提示（疊在畫面上）
   const ui = document.createElement('div');
   ui.innerHTML = '<div class="sd-tag" hidden></div><div class="sd-reveal" hidden>點一下揭曉</div><div class="sd-vars"></div>' +
-    '<div class="sd-btns"><button class="sd-fx" type="button" hidden>🔈 特效</button><button class="sd-ar" type="button" hidden>📱 AR</button></div>';
+    '<div class="sd-btns"><button class="sd-ar" type="button" hidden>📱 AR</button></div>';
   el.appendChild(ui);
   if (!document.getElementById('sd-style')) {
     const st = document.createElement('style'); st.id = 'sd-style';
@@ -137,25 +138,17 @@ export function create(dir) {
     pick(+b.dataset.k);
   });
   let list = [], cur = -1, revealed = false, prints = [];
-  // ---- 轉盤特效開關（只有名店選有轉盤）：打開才 import wheel-fx.js 和 charm-fx.js（音效） ----
-  const fxBtn = ui.querySelector('.sd-fx');
-  let fx = null, fxOn = false, fxLoading = null, fxUnlock = null, fxBusy = false;
-  const fxStore = { get() { try { return localStorage.getItem('ck-charm-fx') === '1'; } catch (e) { return false; } },
-    set(v) { try { localStorage.setItem('ck-charm-fx', v ? '1' : '0'); } catch (e) {} } };
+  // ---- 轉盤特效（只有名店選有轉盤）：沒有開關，打開有轉盤的那組時才 import wheel-fx.js 和 charm-fx.js（音效） ----
+  let fx = null, fxOn = false, fxUnlock = null, fxBusy = false;
   const fxBind = () => { if (fx && wheelGroup) fx.bind(wheelGroup, set.wheel.d / 2, WHEEL_T / 2 + 0.03); };
-  function setFx(v) {
-    fxOn = v; fxStore.set(v);
-    fxBtn.classList.toggle('on', v); fxBtn.textContent = (v ? '🔊' : '🔈') + ' 特效';
-    if (v && !fx && !fxLoading) {
-      const mod = n => window.CK_MOD ? window.CK_MOD(n) : './' + n;
-      fxLoading = Promise.all([import(mod('wheel-fx.js')), import(mod('charm-fx.js'))])
-        .then(([w, cf]) => { fx = w.create(THREE, cf.SFX); fxUnlock = cf.unlock; fxBind(); fx.show(fxOn); if (fxOn) fxUnlock(); kick(); })
-        .catch(() => { fxLoading = null; });
-    }
-    if (fx) { fx.show(v); if (v) fxUnlock(); kick(); }
+  function loadFx() {
+    if (fxOn) { fxBind(); return; }
+    fxOn = true;
+    const mod = n => window.CK_MOD ? window.CK_MOD(n) : './' + n;
+    Promise.all([import(mod('wheel-fx.js')), import(mod('charm-fx.js'))])
+      .then(([w, cf]) => { fx = w.create(THREE, cf.SFX); fxUnlock = cf.unlock; fxBind(); fx.show(true); kick(); })
+      .catch(() => { fxOn = false; });
   }
-  fxBtn.addEventListener('pointerdown', e => e.stopPropagation());   // 按開關不要變成拖曳
-  fxBtn.addEventListener('click', () => setFx(!fxOn));
   // ---- AR 動畫開關（通學路）：打開才載入目前這組的 ar.webp；不記住（每次進來都是關的，不要一進來就載） ----
   const arBtn = ui.querySelector('.sd-ar');
   let arOn = false, arMesh = null, arTex = null, arReady = 0, arT = 0, arIdx = 0, arToken = 0, pieceGroups = [];
@@ -296,11 +289,10 @@ export function create(dir) {
         wheelGroup = wg; wheelMeshes = [disc, wf, wbk];
       }
     });
-    fxBtn.hidden = !wheelGroup;
     arBtn.hidden = !set.ar;
     // 名店選：左上角一行細字，說轉盤背面是空白的、可以自己寫（他要的，跟隱藏款機率同一個樣式）
     if (wheelGroup && tagEl.hidden) { tagEl.textContent = '轉盤背面是空白的，可以寫上自己的菜單'; tagEl.hidden = false; }
-    if (wheelGroup) { if (fxStore.get() && !fxOn) setFx(true); else fxBind(); }
+    if (wheelGroup) loadFx();
 
     // 鏡頭：整組（底座對角線＋最高的那片）都要塞得下，轉一圈也不會出框
     const tall = Math.max.apply(null, set.pieces.map(p => p.h));
