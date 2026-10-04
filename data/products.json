@@ -54,7 +54,7 @@
       "view3d": {
         "module": "standee3d.js",
         "art": "assets/standee/",
-        "uv": "",
+        "uv": "assets/standee/box/",
         "thumb": "img/opt/1240798645_orig-s.webp",
         "hint": ""
       }

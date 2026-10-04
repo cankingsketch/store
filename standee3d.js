@@ -16,6 +16,7 @@
 //     這裡直接在立牌前面播（動畫裡的人物剛好疊在立牌的人物上），可以照樣拖著轉。
 //     試過做一支迷你手機、動畫只在手機螢幕裡播——在手機上看太小，他說取消。素材 build_standee_ar.py 做的
 //     （一組一張拼格子的 webp、幾百 KB），開關打開才載入、而且只載目前這一組；隱藏款要先揭曉才有
+//   ・通學路一打開是一個沒拆的小外盒（box/box.json），點了拆開、隨機抽一組跳出來（下面「拆盲盒」那段）
 //   ・轉盤一轉，鏡頭就往轉盤拉近（轉盤變兩倍大，實品字太小、轉完看不出指到什麼——他說的）；
 //     停下來不拉回去，可以在這個距離繼續轉；輕點轉盤以外的地方才回到原本的距離（他說的）
 // 素材由 tools/sticker-preview/build_standee.py 從工廠排版產生：index.json＝有哪幾組，每組一個資料夾，
@@ -89,7 +90,7 @@ function slab(pts, t, mats) {
   return new THREE.Mesh(geo, mats);                      // ExtrudeGeometry：群組 0＝正反面、1＝切邊
 }
 
-export function create(dir) {
+export function create(dir, boxDir) {   // boxDir：小外盒的素材資料夾（products.json 的 view3d.uv；有才演拆盒子）
   const el = document.createElement('div');
   el.style.cssText = 'position:absolute;inset:0;touch-action:none;cursor:grab;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none';
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
@@ -135,7 +136,7 @@ export function create(dir) {
   varsBox.addEventListener('pointerdown', e => e.stopPropagation());      // 按按鈕不要變成拖曳
   varsBox.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
-    pick(+b.dataset.k);
+    boxOff(); pick(+b.dataset.k);
   });
   let list = [], cur = -1, revealed = false, prints = [];
   // ---- 轉盤特效（只有名店選有轉盤）：沒有開關，打開有轉盤的那組時才 import wheel-fx.js 和 charm-fx.js（音效） ----
@@ -161,6 +162,179 @@ export function create(dir) {
     const it = list[cur]; if (!it || it.hidden || wheelGroup) return;
     tagEl.textContent = '盲盒內附QR 掃描之後可以看到立牌的AR動畫喔~'; tagEl.hidden = !arOn;
   };
+  // ---- 拆盲盒（2026-10-05 他要的）：素材資料夾有 box/box.json 的（通學路）一打開是一個沒拆的小外盒，
+  //      點一下：盒子抖一抖 → 盒蓋彈開（光＋紙花）→ 抽到的那組立牌從盒子裡跳出來 → 「抽到了！」＋「再抽一次」。
+  //      機率照實際：隱藏款 1/64，其他 6 款平分。下面那排按鈕照樣可以直接看某一組（看了就不演盒子）。
+  //      盒子是 build_box.py 從工廠刀模檔切的六個面（8 × 3 × 9.6 cm）；盒蓋鉸鏈放在後緣，往後掀才不會擋住鏡頭。
+  const HIDDEN_ODDS = 64;
+  const boxUI = document.createElement('div');
+  boxUI.innerHTML = '<div class="sd-hint" hidden>點盒子拆開</div><div class="sd-got" hidden></div><button class="sd-again" type="button" hidden>再抽一次</button>';
+  el.appendChild(boxUI);
+  if (!document.getElementById('sd-box-style')) {
+    const st = document.createElement('style'); st.id = 'sd-box-style';
+    st.textContent =
+      '.sd-hint{position:absolute;left:50%;top:14px;transform:translateX(-50%);padding:6px 16px;border-radius:999px;background:rgba(43,47,69,.85);color:#fff;' +
+        'font-size:14px;font-weight:800;letter-spacing:.08em;pointer-events:none;animation:sd-hintb 1.6s ease-in-out infinite}' +
+      '@keyframes sd-hintb{50%{transform:translateX(-50%) translateY(3px)}}' +
+      '.sd-got{position:absolute;left:50%;top:14px;transform:translateX(-50%);padding:7px 18px;border-radius:999px;background:#ffd23a;color:#5a3a00;' +
+        'font-size:16px;font-weight:900;letter-spacing:.06em;pointer-events:none;box-shadow:0 4px 14px rgba(240,168,0,.35);animation:sd-gotin .45s cubic-bezier(.2,1.6,.4,1)}' +
+      '.sd-got.hid{background:#2b2f45;color:#ffe27a;box-shadow:0 0 18px rgba(255,210,58,.6)}' +
+      '@keyframes sd-gotin{from{transform:translateX(-50%) scale(.3);opacity:0}}' +
+      '.sd-again{position:absolute;left:50%;bottom:52px;transform:translateX(-50%);border:0;border-radius:999px;background:var(--red2,#e5483d);color:#fff;' +
+        'font-size:14px;font-weight:800;padding:8px 20px;cursor:pointer;letter-spacing:.06em;box-shadow:0 4px 12px rgba(229,72,61,.3)}' +
+      '.sd-hint[hidden],.sd-got[hidden],.sd-again[hidden]{display:none}';
+    document.head.appendChild(st);
+  }
+  const hintEl = boxUI.querySelector('.sd-hint'), gotEl = boxUI.querySelector('.sd-got'), againBtn = boxUI.querySelector('.sd-again');
+  againBtn.addEventListener('pointerdown', e => e.stopPropagation());
+  againBtn.addEventListener('click', () => boxReset());
+  let box = null, boxPhase = 'off', boxT0 = 0, boxView = 0, boxPending = null, sfx = null, parts = [];
+  const boxGroup = new THREE.Group(), lidPivot = new THREE.Group(), flash = new THREE.Group();
+  boxGroup.visible = false; scene.add(boxGroup); scene.add(flash);
+  function boxBuild(j, dir) {
+    const W = j.w, H = j.h, Dp = j.d, inside = new THREE.MeshStandardMaterial({ color: 0xf3eee5, roughness: 0.9, side: THREE.BackSide });
+    const paper = img => { const m = new THREE.MeshStandardMaterial({ map: tex(dir + img), roughness: 0.55, metalness: 0, envMapIntensity: 0.55 }); return m; };
+    const face = (w, h, img, pos, rot, parent) => {
+      const g = new THREE.PlaneGeometry(w, h);
+      const o = new THREE.Mesh(g, paper(img)), i = new THREE.Mesh(g, inside);
+      o.position.copy(pos); o.rotation.set(rot[0], rot[1], rot[2]); i.position.copy(pos); i.rotation.copy(o.rotation);
+      (parent || boxGroup).add(o); (parent || boxGroup).add(i);
+    };
+    const V = (x, y, z) => new THREE.Vector3(x, y, z);
+    face(W, H, j.faces.front, V(0, H / 2, Dp / 2), [0, 0, 0]);
+    face(W, H, j.faces.back, V(0, H / 2, -Dp / 2), [0, Math.PI, 0]);
+    face(Dp, H, j.faces.left, V(-W / 2, H / 2, 0), [0, -Math.PI / 2, 0]);
+    face(Dp, H, j.faces.right, V(W / 2, H / 2, 0), [0, Math.PI / 2, 0]);
+    face(W, Dp, j.faces.bottom, V(0, 0, 0), [Math.PI / 2, 0, Math.PI]);
+    lidPivot.position.set(0, H, -Dp / 2); boxGroup.add(lidPivot);
+    face(W, Dp, j.faces.top, V(0, 0, Dp / 2), [-Math.PI / 2, 0, 0], lidPivot);
+    // 盒子底下的影子
+    const sc = document.createElement('canvas'); sc.width = sc.height = 128;
+    const sg = sc.getContext('2d'), gr = sg.createRadialGradient(64, 64, 6, 64, 64, 64);
+    gr.addColorStop(0, 'rgba(40,35,30,.3)'); gr.addColorStop(1, 'rgba(40,35,30,0)'); sg.fillStyle = gr; sg.fillRect(0, 0, 128, 128);
+    const sh = new THREE.Mesh(new THREE.PlaneGeometry(W * 1.6, Dp * 2.6), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sc), transparent: true, depthWrite: false }));
+    sh.rotation.x = -Math.PI / 2; sh.position.y = -0.3; boxGroup.add(sh);
+    box = j;
+  }
+  // 光：盒子打開那一下往上射的一團光（canvas 畫的放射光）
+  let glowSpr = null;
+  function burstFX() {
+    if (!glowSpr) {
+      const c = document.createElement('canvas'); c.width = c.height = 256;
+      const g = c.getContext('2d'), gr = g.createRadialGradient(128, 128, 4, 128, 128, 128);
+      gr.addColorStop(0, 'rgba(255,250,215,1)'); gr.addColorStop(0.35, 'rgba(255,214,90,.55)'); gr.addColorStop(1, 'rgba(255,214,90,0)');
+      g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+      glowSpr = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+      flash.add(glowSpr);
+    }
+    glowSpr.position.set(0, box.h + 4, 0); glowSpr.scale.setScalar(10); glowSpr.material.opacity = 1; glowSpr.visible = true;
+    const COLORS = [0xff5a4f, 0xffd23a, 0x4fb3ff, 0x7bd88f, 0xffffff, 0xff8fc7];
+    for (let k = 0; k < 46; k++) {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.4), new THREE.MeshBasicMaterial({ color: COLORS[k % COLORS.length], side: THREE.DoubleSide }));
+      m.position.set((Math.random() - 0.5) * box.w * 0.6, box.h, (Math.random() - 0.5) * box.d * 0.6);
+      const a = Math.random() * Math.PI * 2, sp = 40 + Math.random() * 70;
+      parts.push({ m, vx: Math.cos(a) * sp * 0.6, vy: 120 + Math.random() * 110, vz: Math.sin(a) * sp * 0.6, rx: Math.random() * 10, ry: Math.random() * 10, life: 1.6 + Math.random() * 0.8, t: 0 });
+      flash.add(m);
+    }
+  }
+  function boxStart(dir) {
+    root.visible = false;                                // 盒子載好之前立牌先藏著（不然會先閃一下）
+    fetch(dir + 'box.json').then(r => r.ok ? r.json() : null).then(j => {
+      if (!j) { root.visible = true; kick(); return; }
+      boxBuild(j, dir);
+      boxReset(true);
+      // 音效：盒子出現時在背景先載（小程式，沒有圖），第一次點盒子時開聲音（iPhone 要在點的那一下開）
+      const mod = n => window.CK_MOD ? window.CK_MOD(n) : './' + n;
+      import(mod('charm-fx.js')).then(m => { sfx = m; }).catch(() => {});
+    }).catch(() => { root.visible = true; kick(); });
+  }
+  // 回到沒拆的盒子
+  function boxReset(first) {
+    if (!box) return;
+    boxPhase = 'idle'; boxT0 = performance.now(); boxView = 1;
+    boxGroup.visible = true; boxGroup.position.set(0, 0, 0); boxGroup.rotation.set(0, 0, 0); boxGroup.scale.setScalar(1);
+    lidPivot.rotation.x = 0; root.visible = false;
+    hintEl.hidden = false; gotEl.hidden = true; againBtn.hidden = true; revealEl.hidden = true;
+    yaw = YAW0; tilt = TILT0; yawVel = 0; spin = null;
+    Array.prototype.forEach.call(varsBox.children, b => b.classList.remove('on'));
+    kick();
+  }
+  // 點盒子：抽一組
+  function boxOpen(force) {
+    if (boxPhase !== 'idle') return;
+    const hidIdx = list.findIndex(it => it.hidden), normal = list.map((it, i) => i).filter(i => !list[i].hidden);
+    const k = force != null ? force : hidIdx >= 0 && Math.random() < 1 / HIDDEN_ODDS ? hidIdx : normal[Math.floor(Math.random() * normal.length)];
+    if (list[k].hidden) revealed = false;               // 抽到隱藏款：先剪影，跳出來之後再揭曉
+    hintEl.hidden = true;
+    cur = -1; boxPending = pick(k, true) || Promise.resolve();   // cur 先清掉：抽到同一組也重新載入
+    boxPhase = 'shake'; boxT0 = performance.now();
+    if (sfx) sfx.SFX.rattle();
+    kick();
+  }
+  // 選了下面的按鈕：不演盒子了
+  function boxOff() {
+    if (boxPhase === 'off') return;
+    boxPhase = 'off'; boxGroup.visible = false; root.visible = true; boxView = 0;
+    hintEl.hidden = true; gotEl.hidden = true; againBtn.hidden = !box; againBtn.textContent = '拆一盒';
+  }
+  const easeOutBack = t => 1 + 2.4 * Math.pow(t - 1, 3) + 1.4 * Math.pow(t - 1, 2);
+  // 每一格：盒子的動畫；回傳 true＝還在動
+  function boxFrame(now, dt) {
+    for (let i = parts.length - 1; i >= 0; i--) {             // 紙花
+      const p = parts[i]; p.t += dt;
+      p.vy -= 260 * dt; p.vx *= 0.985; p.vz *= 0.985;
+      p.m.position.x += p.vx * dt; p.m.position.y += p.vy * dt; p.m.position.z += p.vz * dt;
+      p.m.rotation.x += p.rx * dt; p.m.rotation.y += p.ry * dt;
+      if (p.m.position.y < 0.5) { p.m.position.y = 0.5; p.vy = 0; p.vx *= 0.8; p.vz *= 0.8; }
+      if (p.t > p.life) { flash.remove(p.m); p.m.geometry.dispose(); p.m.material.dispose(); parts.splice(i, 1); }
+    }
+    if (glowSpr && glowSpr.visible) {
+      glowSpr.material.opacity -= dt * 1.4; glowSpr.scale.multiplyScalar(1 + dt * 2.2);
+      if (glowSpr.material.opacity <= 0) glowSpr.visible = false;
+    }
+    if (boxPhase === 'off') return parts.length > 0 || (glowSpr && glowSpr.visible);
+    const t = (now - boxT0) / 1000;
+    if (boxPhase === 'idle') {
+      // 每 2.4 秒輕輕跳一下、歪一下：提示可以點
+      const c = t % 2.4, h = c < 0.5 ? Math.sin(c / 0.5 * Math.PI) : 0;
+      boxGroup.position.y = h * 4; boxGroup.rotation.z = h * 0.06 * Math.sin(c * 20);
+      return true;
+    }
+    if (boxPhase === 'shake') {
+      boxGroup.rotation.z = Math.sin(t * 46) * 0.09 * (1 - t / 0.8); boxGroup.position.y = Math.abs(Math.sin(t * 23)) * 2.5;
+      if (t > 0.8) { boxPhase = 'open'; boxT0 = now; boxGroup.rotation.z = 0; boxGroup.position.y = 0; if (sfx) sfx.SFX.lidPop(); burstFX(); }
+      return true;
+    }
+    if (boxPhase === 'open') {
+      lidPivot.rotation.x = -2.1 * easeOutBack(Math.min(1, t / 0.35));
+      if (t > 0.45 && boxPending) {
+        const go = () => { boxPhase = 'rise'; boxT0 = performance.now(); root.visible = true; kick(); };
+        boxPending.then(go, go); boxPending = null; boxPhase = 'wait';
+      }
+      return true;
+    }
+    if (boxPhase === 'wait') return true;
+    if (boxPhase === 'rise') {
+      const k = Math.min(1, t / 1.0), e = easeOutBack(k);
+      // 立牌從盒口往上跳、轉半圈落到桌上；盒子往下沉、縮小淡出；鏡頭從盒子慢慢拉到立牌
+      root.scale.setScalar(0.3 + 0.7 * e);
+      root.position.y = box.h * 0.7 * (1 - k) + Math.sin(k * Math.PI) * 26;
+      root.rotation.y = (1 - e) * Math.PI;
+      boxGroup.position.y = -box.h * 1.2 * k * k; boxGroup.scale.setScalar(1 - 0.5 * k);
+      boxView = 1 - k;
+      if (k >= 1) {
+        boxPhase = 'off'; boxGroup.visible = false; root.position.y = 0; root.scale.setScalar(1); root.rotation.y = 0; boxView = 0;
+        const it = list[cur];
+        Array.prototype.forEach.call(varsBox.children, (b, i) => b.classList.toggle('on', i === cur));
+        gotEl.textContent = it.hidden ? '★ 抽到隱藏款！ ★' : '抽到了！' + it.name; gotEl.classList.toggle('hid', !!it.hidden); gotEl.hidden = false;
+        againBtn.textContent = '再抽一次'; againBtn.hidden = false;
+        if (sfx) { if (it.hidden) sfx.SFX.don(); else sfx.SFX.tada(); }
+        if (it.hidden && !revealed) setTimeout(() => { if (list[cur] && list[cur].hidden && !revealed) reveal(); }, 500);
+      }
+      return true;
+    }
+    return false;
+  }
   function arStop() {
     arToken++;
     if (arMesh) { arMesh.parent && arMesh.parent.remove(arMesh); arMesh.geometry.dispose(); arMesh.material.dispose(); }
@@ -311,15 +485,15 @@ export function create(dir) {
     return fetch(base + 'set.json').then(r => r.json()).then(j => { set = j; build(); });
   }
   // 換一組：按鈕狀態、隱藏款的標籤和提示
-  function pick(k) {
+  function pick(k, quiet) {
     if (k === cur || !list[k]) return;
     cur = k;
     const it = list[k];
-    Array.prototype.forEach.call(varsBox.children, (b, i) => b.classList.toggle('on', i === k));
+    if (!quiet) Array.prototype.forEach.call(varsBox.children, (b, i) => b.classList.toggle('on', i === k));   // 從盒子抽的：落地才亮，不然會先爆雷
     tagEl.hidden = !it.hidden; tagEl.textContent = '隱藏款機率為 1/64';
-    revealEl.hidden = !(it.hidden && !revealed);
+    revealEl.hidden = quiet || !(it.hidden && !revealed);
     yaw = YAW0; yawVel = 0; spin = null;
-    load(root0 + it.id + '/');
+    return load(root0 + it.id + '/');
   }
   // 揭曉：固定的動畫，剛好轉一整圈、停在一打開的斜前方角度（不能用慣性：停在哪不一定，他看到停在側面覺得怪）。
   // 轉到一半（背對觀眾的時候）換成真的圖
@@ -338,6 +512,7 @@ export function create(dir) {
       varsBox.innerHTML = list.map((it, i) => '<button data-k="' + i + '"' + (it.hidden ? ' class="hid"' : '') + '>' +
         (it.hidden ? '？ ' : '') + it.name + '</button>').join('');
       cur = -1; pick(0);
+      if (boxDir) boxStart(boxDir.replace(/\/?$/, '/')); else { root.visible = true; kick(); }
     });
   }
 
@@ -358,6 +533,8 @@ export function create(dir) {
   el.addEventListener('pointerdown', e => {
     if (e.button) return;
     if (spin) return;                                    // 揭曉動畫中不能拖
+    if (boxPhase !== 'off' && boxPhase !== 'idle') return;   // 拆盒中不能拖
+    if (boxPhase === 'idle' && sfx) sfx.unlock();         // iPhone：聲音要在點的那一下開
     drag = { x: e.clientX, y: e.clientY, yaw0: yaw, tilt0: tilt, hist: [], moved: false, mode: 'orbit' };
     if (wheelGroup && hitWheel(e)) {                      // 按到轉盤：轉它，不轉整組
       const c = wheelScreen();
@@ -401,6 +578,7 @@ export function create(dir) {
       if (!wheelVel && fx && fxOn) fx.stop(wheelSpin, wheelFacing());   // 拖完直接停住：當場開獎
       kick(); return;
     }
+    if (boxPhase === 'idle' && !d.moved) { boxOpen(); return; }      // 點盒子：拆開
     // 拉近轉盤時，輕點轉盤以外的地方＝回到原本的距離
     if (!d.moved && zoomed) { zoomed = false; yawVel = 0; kick(); return; }
     // 隱藏款還沒揭曉時，輕點一下＝揭曉
@@ -477,8 +655,13 @@ export function create(dir) {
     const zTo = wheelGroup && zoomed ? 1 : 0;
     zoom += (zTo - zoom) * (1 - Math.exp(-dt * 4));
     if (Math.abs(zTo - zoom) < 0.002) zoom = zTo;
+    const boxBusy = box ? boxFrame(now, dt) : false;
     camTarget.copy(target);
-    const dz = dist * (1 - 0.5 * zoom);
+    let dz = dist * (1 - 0.5 * zoom);
+    if (box && boxView > 0) {                            // 盒子：鏡頭對準盒子中間，距離照盒子大小
+      const bd = Math.max(box.h * 0.75, box.w * 0.9) / Math.tan(camera.fov * Math.PI / 360) / Math.min(1, camera.aspect || 1) * 1.05;
+      camTarget.lerp(new THREE.Vector3(0, box.h * 0.48, 0), boxView); dz = dz + (bd - dz) * boxView;
+    }
     const ry = (yaw + hx) * Math.PI / 180, rt = (tilt + hy) * Math.PI / 180;
     if (zoom && wheelGroup) {
       wheelGroup.getWorldPosition(wheelPos); camTarget.lerp(wheelPos, zoom);
@@ -490,11 +673,12 @@ export function create(dir) {
     camera.position.set(camTarget.x + dz * Math.cos(rt) * Math.sin(ry), camTarget.y + dz * Math.sin(rt), camTarget.z + dz * Math.cos(rt) * Math.cos(ry));
     camera.lookAt(camTarget);
     renderer.render(scene, camera);
-    if (drag || yawVel || spin || wheelVel || fxBusy || (zoom !== (zoomed ? 1 : 0)) || (arMesh && arReady)) kick();
+    if (drag || yawVel || spin || wheelVel || fxBusy || (zoom !== (zoomed ? 1 : 0)) || (arMesh && arReady) || boxBusy) kick();
   }
 
   window.addEventListener('resize', resize);
   el.dataset.sd = '1'; el.sdState = () => ({ yaw, tilt, hx, hy, dist, yawVel, drag: !!drag, wheelSpin, wheelVel }); el.sdScene = () => ({ root, prints, set, kick });   // 除錯用
+  el.sdBox = k => boxOpen(k);                                                          // 除錯用：指定抽到第幾組
   el.sdWheel = v => { wheelVel = v; kick(); }; el.sdFx = () => fx;                    // 除錯用：直接甩轉盤
   start(dir);
 
