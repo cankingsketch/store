@@ -6,6 +6,7 @@
 // 轉軸是黏在下面的，表面看不到（他說的），所以不畫鉚釘；停下來也不顯示結果（他說大家自己會看）。
 // 素材由 tools/sticker-preview/build_spinner.py 從 不畫畫_廠商用_50套.psd 產生，三張同一個框，下面的轉軸位置是它量出來的。
 // 介面跟其他 3D 模組一樣：create(正面圖, 指針圖) → { mount(host), pointer(x, y) }；背面圖、剪影圖＝正面圖檔名的 -front 換成 -back／-edge
+// 右上角「特效」開關（2026-10-04）：打開才載入 charm-fx.js（音效、跑燈、中獎演出），關著的時候完全不載；開關狀態記在這支手機
 
 const AXIS = [0.4436, 0.4883];    // 轉軸在圖上的位置（寬、高的比例）
 const ASPECT = 1021 / 1331;       // 圖的高／寬
@@ -32,6 +33,9 @@ function addStyle() {
     // 指針浮在正面上一點點，影子打在底板上、方向不跟著轉；翻到背面時看不到
     '.charmspin .cs-ptr{position:absolute;inset:0;transform:translateZ(' + (THICK / 2 + 8) + 'px);filter:drop-shadow(3px 6px 4px rgba(30,20,10,.32))}' +
     '.charmspin .cs-ptr img{will-change:transform}' +
+    '.charmspin .cs-fxbtn{position:absolute;right:12px;top:12px;z-index:5;border:1.5px solid #ddd;background:#fff;color:#777;border-radius:999px;' +
+      'padding:5px 12px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.04em;box-shadow:0 2px 6px rgba(0,0,0,.06)}' +
+    '.charmspin .cs-fxbtn.on{background:#ffd23a;border-color:#f0a800;color:#7a4b00;box-shadow:0 0 10px rgba(255,190,0,.6)}' +
     // 上層壓克力：整片淡淡的反光，跟著傾斜移動
     '.charmspin .cs-glare{position:absolute;inset:1.5%;border-radius:4%;transform:translateZ(' + (THICK / 2 + 12) + 'px);pointer-events:none;mix-blend-mode:screen;' +
       'background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.28) 45%,rgba(255,255,255,.06) 55%,transparent 70%) no-repeat;background-size:250% 250%}';
@@ -49,7 +53,7 @@ export function create(frontUrl, ptrUrl) {
     const z = -THICK / 2 + THICK * (i + 0.5) / SLICES;
     slices += '<img class="cs-slice" src="' + edgeUrl + '" alt="" style="transform:translateZ(' + z.toFixed(1) + 'px)">';
   }
-  el.innerHTML = '<div class="cs-card">' + slices +
+  el.innerHTML = '<button class="cs-fxbtn" type="button">🔈 特效</button><div class="cs-card">' + slices +
     '<div class="cs-face cs-back"><img alt=""></div><div class="cs-face cs-front"><img alt=""></div>' +
     '<div class="cs-ptr"><img alt=""></div><div class="cs-glare"></div></div>';
   const card = el.querySelector('.cs-card'), glare = el.querySelector('.cs-glare');
@@ -60,6 +64,25 @@ export function create(frontUrl, ptrUrl) {
   el.querySelector('.cs-back img').src = backUrl;
   ptr.src = ptrUrl;
   ptr.style.transformOrigin = (AXIS[0] * 100) + '% ' + (AXIS[1] * 100) + '%';
+
+  // ---- 特效開關：打開才 import charm-fx.js（版本號照 CK_MOD，跟其他 3D 程式一樣） ----
+  const fxBtn = el.querySelector('.cs-fxbtn');
+  let fx = null, fxOn = false, fxLoading = null;
+  const store = { get() { try { return localStorage.getItem('ck-charm-fx') === '1'; } catch (e) { return false; } },
+    set(v) { try { localStorage.setItem('ck-charm-fx', v ? '1' : '0'); } catch (e) {} } };
+  function setFx(on) {
+    fxOn = on; store.set(on);
+    fxBtn.classList.toggle('on', on); fxBtn.textContent = (on ? '🔊' : '🔈') + ' 特效';
+    if (on && !fx && !fxLoading) {
+      const url = window.CK_MOD ? window.CK_MOD('charm-fx.js') : './charm-fx.js';
+      fxLoading = import(url).then(m => m.attach({ el, card, base: frontUrl.replace(/[^/]*$/, ''), thick: THICK }))
+        .then(f => { fx = f; el.csFx = f; fx.show(fxOn); if (fxOn) fx.unlockAudio(); kick(); })   // el.csFx：除錯用
+        .catch(() => { fxLoading = null; });
+    }
+    if (fx) { fx.show(on); if (on) fx.unlockAudio(); }
+  }
+  fxBtn.addEventListener('pointerdown', e => e.stopPropagation());   // 按開關不要變成拖曳
+  fxBtn.addEventListener('click', () => setFx(!fxOn));
 
   let host = null;
   function layout() {
@@ -118,9 +141,10 @@ export function create(frontUrl, ptrUrl) {
     if (!drag) return;
     const d = drag; drag = null; el.classList.remove('drag');
     if (d.mode === 'spin') {
+      if (fx && fxOn) fx.unlockAudio();                    // iPhone：聲音要在使用者點的那一下開
       if (!d.moved) vel = (900 + Math.random() * 900) * (Math.random() < 0.5 ? -1 : 1);   // 輕點角色：隨機甩一圈
       else vel = Math.max(-6000, Math.min(6000, speed(d)));   // 最高速 6000（每秒約 17 圈，他嫌 2600 不夠快）
-      if (Math.abs(vel) < 40) vel = 0; else spinning = true;
+      if (Math.abs(vel) < 40) { vel = 0; if (fx && fxOn) fx.stop(rot); } else spinning = true;   // 拖完直接停住：當場開獎
     } else {
       // 輕點：翻面；拖：照放開時的方向和速度，停在最近的正面或背面
       if (!d.moved) turnTo = Math.round(turn / 180) * 180 + 180;
@@ -140,7 +164,7 @@ export function create(frontUrl, ptrUrl) {
       // 摩擦：比例減速＋固定減速，快的時候掉得快、最後慢慢停
       const s = Math.sign(vel);
       vel -= vel * 0.9 * dt + s * 90 * dt;
-      if (Math.sign(vel) !== s || Math.abs(vel) < 6) { vel = 0; spinning = false; }
+      if (Math.sign(vel) !== s || Math.abs(vel) < 6) { vel = 0; spinning = false; if (fx && fxOn) fx.stop(rot); }   // 停了：開獎
     }
     if (!drag) {                                         // 翻面：彈簧追上 turnTo
       turnVel += (turnTo - turn) * 140 * dt; turnVel *= Math.pow(0.0009, dt);
@@ -155,6 +179,10 @@ export function create(frontUrl, ptrUrl) {
       backSide.forEach(x => { x.style.visibility = ff ? 'hidden' : ''; });
     }
     ptr.style.transform = 'rotate(' + rot.toFixed(2) + 'deg)';
+    if (fx && fxOn) {
+      const dv = drag && drag.mode === 'spin' ? speed(drag) : vel;
+      fx.frame({ rot, vel: dv, active: !!(drag && drag.mode === 'spin') || spinning, front: ff });
+    }
     card.style.transform = 'rotateX(' + rx.toFixed(2) + 'deg) rotateY(' + (ry + turn).toFixed(2) + 'deg)';
     glare.style.backgroundPosition = (50 + (ry + norm(turn) * 0.1) * 4).toFixed(1) + '% ' + (50 - rx * 4).toFixed(1) + '%';
     if (spinning || drag || turn !== turnTo || Math.abs(ty - rx) + Math.abs(tx - ry) > 0.01) kick();
@@ -167,6 +195,7 @@ export function create(frontUrl, ptrUrl) {
       if (el.parentNode !== h) { h.innerHTML = ''; h.appendChild(el); }
       tx = ty = rx = ry = 0; turn = turnTo = turnVel = 0;   // 每次打開都從正面開始
       layout(); kick();
+      if (store.get() && !fxOn) setFx(true);              // 上次開著：這次也開（聲音要等第一次點轉盤才會響，iPhone 的規定）
     },
     pointer(x, y) { if (drag) return; tx = (x - 0.5) * 2 * TILT_Y; ty = -(y - 0.5) * 2 * TILT_X; kick(); }
   };
