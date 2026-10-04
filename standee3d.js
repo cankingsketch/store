@@ -423,9 +423,15 @@ export function create(dir) {
     zoom += (zTo - zoom) * (1 - Math.exp(-dt * 4));
     if (Math.abs(zTo - zoom) < 0.002) zoom = zTo;
     camTarget.copy(target);
-    if (zoom && wheelGroup) { wheelGroup.getWorldPosition(wheelPos); camTarget.lerp(wheelPos, zoom); }
     const dz = dist * (1 - 0.5 * zoom);
     const ry = (yaw + hx) * Math.PI / 180, rt = (tilt + hy) * Math.PI / 180;
+    if (zoom && wheelGroup) {
+      wheelGroup.getWorldPosition(wheelPos); camTarget.lerp(wheelPos, zoom);
+      // 轉盤放在畫面偏右，左邊留給人物（他說人物也是看點）：往右推畫面寬的 17%，但轉盤右緣不能出框（手機直式會推少一點）
+      const halfW = dz * Math.tan(camera.fov * Math.PI / 360) * (camera.aspect || 1);
+      const sh = Math.max(0, Math.min(halfW * 0.34, halfW - set.wheel.d / 2 * 1.2)) * zoom;
+      camTarget.x -= Math.cos(ry) * sh; camTarget.z += Math.sin(ry) * sh;
+    }
     camera.position.set(camTarget.x + dz * Math.cos(rt) * Math.sin(ry), camTarget.y + dz * Math.sin(rt), camTarget.z + dz * Math.cos(rt) * Math.cos(ry));
     camera.lookAt(camTarget);
     renderer.render(scene, camera);
