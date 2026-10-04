@@ -166,7 +166,7 @@ export function create(dir) {
   });
   const arTag = () => {                                  // 左上角細字：AR 打開時說怎麼玩（隱藏款那組照樣顯示機率）
     const it = list[cur]; if (!it || it.hidden || wheelGroup) return;
-    tagEl.textContent = '掃立牌附的 QR Code，用手機看角色動起來'; tagEl.hidden = !arOn;
+    tagEl.textContent = '盲盒內附QR 掃描之後可以看到立牌的AR動畫喔~'; tagEl.hidden = !arOn;
   };
   function arStop() {
     arToken++;
