@@ -16,7 +16,7 @@
 //     這裡直接在立牌前面播（動畫裡的人物剛好疊在立牌的人物上），可以照樣拖著轉。
 //     試過做一支迷你手機、動畫只在手機螢幕裡播——在手機上看太小，他說取消。素材 build_standee_ar.py 做的
 //     （一組一張拼格子的 webp、幾百 KB），開關打開才載入、而且只載目前這一組；隱藏款要先揭曉才有
-//   ・通學路一打開是一個沒拆的小外盒（box/box.json），點了拆開、隨機抽一組跳出來（下面「拆盲盒」那段）
+//   ・通學路、名店選一打開是一個沒拆的小外盒（box/box.json），點了拆開、隨機抽一組跳出來（下面「拆盲盒」那段）
 //   ・轉盤一轉，鏡頭就往轉盤拉近（轉盤變兩倍大，實品字太小、轉完看不出指到什麼——他說的）；
 //     停下來不拉回去，可以在這個距離繼續轉；輕點轉盤以外的地方才回到原本的距離（他說的）
 // 素材由 tools/sticker-preview/build_standee.py 從工廠排版產生：index.json＝有哪幾組，每組一個資料夾，
@@ -198,22 +198,25 @@ export function create(dir, boxDir) {   // boxDir：小外盒的素材資料夾�
     const W = j.w, H = j.h, Dp = j.d, inside = new THREE.MeshBasicMaterial({ color: 0xf1ebe0, side: THREE.BackSide });
     // 紙盒：跟立牌的印刷一樣用自發光，顏色才會跟實品一樣亮（一般材質靠打光，整個偏暗偏灰——他說的）；
     // k＝這一面的亮度，正面最亮、側面暗一點，看得出是個盒子；再加一點點反光
-    const paper = (img, k) => { const t = tex(dir + img);
-      return new THREE.MeshPhysicalMaterial({ color: 0x000000, emissive: new THREE.Color(k, k, k), emissiveMap: t, roughness: 0.55, metalness: 0, envMapIntensity: 0.18 }); };
-    const face = (w, h, img, pos, rot, parent, k) => {
+    // 有局部上光的（名店選：霧膜＋UV 光）：底是霧面，上光的地方加一層亮面 clearcoat，轉動時那幾塊會反光
+    const paper = (key, k) => { const t = tex(dir + j.faces[key]), uv = j.gloss && j.gloss[key];
+      const o = { color: 0x000000, emissive: new THREE.Color(k, k, k), emissiveMap: t, roughness: 0.55, metalness: 0, envMapIntensity: 0.18 };
+      if (uv) Object.assign(o, { roughness: 0.85, clearcoat: 1, clearcoatMap: tex(dir + uv), clearcoatRoughness: 0.06, envMapIntensity: 0.7 });
+      return new THREE.MeshPhysicalMaterial(o); };
+    const face = (w, h, key, pos, rot, parent, k) => {
       const g = new THREE.PlaneGeometry(w, h);
-      const o = new THREE.Mesh(g, paper(img, k || 1)), i = new THREE.Mesh(g, inside);
+      const o = new THREE.Mesh(g, paper(key, k || 1)), i = new THREE.Mesh(g, inside);
       o.position.copy(pos); o.rotation.set(rot[0], rot[1], rot[2]); i.position.copy(pos); i.rotation.copy(o.rotation);
       (parent || boxGroup).add(o); (parent || boxGroup).add(i);
     };
     const V = (x, y, z) => new THREE.Vector3(x, y, z);
-    face(W, H, j.faces.front, V(0, H / 2, Dp / 2), [0, 0, 0], null, 1);
-    face(W, H, j.faces.back, V(0, H / 2, -Dp / 2), [0, Math.PI, 0], null, 0.92);
-    face(Dp, H, j.faces.left, V(-W / 2, H / 2, 0), [0, -Math.PI / 2, 0], null, 0.8);
-    face(Dp, H, j.faces.right, V(W / 2, H / 2, 0), [0, Math.PI / 2, 0], null, 0.88);
-    face(W, Dp, j.faces.bottom, V(0, 0, 0), [Math.PI / 2, 0, Math.PI], null, 0.7);
+    face(W, H, 'front', V(0, H / 2, Dp / 2), [0, 0, 0], null, 1);
+    face(W, H, 'back', V(0, H / 2, -Dp / 2), [0, Math.PI, 0], null, 0.92);
+    face(Dp, H, 'left', V(-W / 2, H / 2, 0), [0, -Math.PI / 2, 0], null, 0.8);
+    face(Dp, H, 'right', V(W / 2, H / 2, 0), [0, Math.PI / 2, 0], null, 0.88);
+    face(W, Dp, 'bottom', V(0, 0, 0), [Math.PI / 2, 0, Math.PI], null, 0.7);
     lidPivot.position.set(0, H, -Dp / 2); boxGroup.add(lidPivot);
-    face(W, Dp, j.faces.top, V(0, 0, Dp / 2), [-Math.PI / 2, 0, 0], lidPivot, 1);
+    face(W, Dp, 'top', V(0, 0, Dp / 2), [-Math.PI / 2, 0, 0], lidPivot, 1);
     // 盒子底下的影子
     const sc = document.createElement('canvas'); sc.width = sc.height = 128;
     const sg = sc.getContext('2d'), gr = sg.createRadialGradient(64, 64, 6, 64, 64, 64);

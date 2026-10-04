@@ -76,7 +76,7 @@
       "view3d": {
         "module": "standee3d.js",
         "art": "assets/meiten/",
-        "uv": "",
+        "uv": "assets/meiten/box/",
         "thumb": "img/opt/img-9472_orig-s.webp",
         "hint": ""
       }
