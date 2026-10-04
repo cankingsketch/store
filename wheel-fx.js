@@ -1,7 +1,7 @@
 // 名店選幸運轉盤的「特效」（2026-10-04 他要的，跟畫圖抉擇轉盤同一套感覺）。standee3d.js 的「特效」開關打開才載入這支。
-//   ・轉動中：指針指到的那一格淡淡亮黃色、一格一格跟著跳（小瑪莉跑燈）；每經過一格「嗶」一聲，快的時候底下一層「嗡」；
+//   ・轉動中：指針指到的那一格淡淡亮黃色、一格一格跟著跳（小瑪莉跑燈）；每經過一格「啵」一聲（他選的 H），快的時候底下一層「嗡」；
 //     轉盤外圈印好的 24 顆燈泡跟著跑馬燈閃，轉越快跑越快
-//   ・停下來：指到的那一格亮紅框閃三下、整格變亮、從那格噴星星，配中獎音效（他選的拉霸機風格，二獎那一版）。
+//   ・停下來：指到的那一格亮紅框閃三下、整格變亮、從那格噴星星，配中獎音效（他選的 2：拉霸機短版，旋律＋1 枚投幣）。
 //     8 格都一樣（他說只是食物不同，沒有大小獎）。從背面看時（背面沒有字）只放音效
 //   ・指針：每家店人物手上拿的東西（酒瓶、咖啡杯、壽司盤、筷子、肉盤、聖代）伸向轉盤左邊。
 //     他指定以居酒屋酒瓶指的方向為準、六家都用同一格：酒瓶的延長線正好穿過轉盤中心，在 3D 畫面上約 253°
@@ -105,7 +105,7 @@ export function create(THREE, SFX) {
       const speed = Math.abs(vel), idx = idxAt(spin);
       if (active) {
         if (winT >= 0) { winT = -1; frame.material.opacity = glow.material.opacity = 0; }   // 又開始轉：收掉上一次的演出
-        if (lastIdx !== -1 && idx !== lastIdx) SFX.tick(speed);
+        if (lastIdx !== -1 && idx !== lastIdx) SFX.pop();
         SFX.whir(speed);
         place(hiMesh, idx); hiMesh.material.opacity = facing ? 0.3 : 0;
       } else SFX.whir(0);
@@ -137,7 +137,7 @@ export function create(THREE, SFX) {
       const idx = idxAt(spin);
       winIdx = idx; winFront = facing; winT = 0;
       place(hiMesh, idx); place(frame, idx); place(glow, idx);
-      SFX.dododo();
+      SFX.short();
       if (facing) burst(idx);
     }
   };
