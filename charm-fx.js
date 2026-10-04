@@ -3,11 +3,11 @@
 //   ・音效：全部用 Web Audio 即時合成（方波、三角波、雜訊），不用下載任何音檔
 //   ・轉動中：箭頭每經過一個選項「嗶」一聲（快就密、音高；越慢越稀＝小瑪莉跑燈），快的時候底下一層「嗡」；
 //     箭頭指到的選項亮淡黃色，一格一格跟著跳
-//   ・停下來：九個選項各有一套演出（他說轉盤看心情，哪個是大獎不一定，所以沒有「沒中」，每個都要有戲）——
-//     顏色、效果字（JoJo／漫畫那種擬聲字，跳出來會抖）、集中線閃爍、畫面震動、專屬小動作、專屬音效。
-//     但還是有主次（他說的）：大獎＝畫、二獎＝好啦我畫、三獎＝畫一點——
-//     大獎：雙層金框跑馬燈、星星最多、「★大獎★」金牌、音效最長（重擊＋勝利旋律＋一長串投幣聲）
-//     二獎：單層金框、星星少一半、「二獎」銀牌；三獎：沒有框、小閃光、「三獎」銅牌
+//   ・停下來：只有三個「中獎」有演出，有主次（他說的）：大獎＝畫、二獎＝好啦我畫、三獎＝畫一點——
+//     效果字（JoJo／漫畫那種擬聲字，拆兩半放吊飾左上、右上，不擋中間）、集中線閃爍、震動、專屬音效；
+//     大獎：雙層金框跑馬燈、星星最多、音效最長（重擊＋勝利旋律＋一長串投幣聲）
+//     二獎：單層金框、星星少一半；三獎：沒有框、小閃光。不寫「大獎／二獎」字樣（他不要）
+//   ・其他六個（含再轉一次）：選項亮起來＋一聲「沒中」音效就好，不要其他特效（他說的）
 // 選項的位置、角度、文字形狀由 build_spinner.py 產生（charm-draw-fx.json、charm-draw-opt*.webp）。
 // 介面：attach({ el, card, base, thick }) → Promise<{ frame(state), stop(rot), show(on), unlockAudio() }>
 
@@ -27,12 +27,12 @@ const SHOW = {
   '畫':       { tier: 1, tint: 'gold',   sfx: 'ドンッ！',   lines: '#ffcf33', shake: 11, extra: ['party'],          sound: 'don' },
   '好啦我畫': { tier: 2, tint: 'orange', sfx: 'ドドドド',   lines: '#ffae2e', shake: 5,  extra: ['party', 'menace'], sound: 'dododo' },
   '畫一點':   { tier: 3, tint: 'pink',   sfx: 'キラーン☆', lines: '#ffb3d1', shake: 0,  extra: ['sparkle'],        sound: 'kiran' },
-  '再轉一次': { tint: 'gold',   sfx: '再一次！',   lines: '#ff5a3a', shake: 4,  extra: ['spin'],           sound: 'again' },
-  '今日封筆': { tint: 'grey',   sfx: 'ゴゴゴゴ',   lines: '#4a3d5c', shake: 3,  extra: ['menace', 'stamp', 'dark'], sound: 'gogogo' },
-  '不畫':     { tint: 'red',    sfx: 'ドーン！',   lines: '#ff3b2a', shake: 14, extra: [],                 sound: 'buzz' },
-  '等等再畫': { tint: 'violet', sfx: 'シーン…',   lines: null,      shake: 0,  extra: ['zzz'],            sound: 'shiin' },
-  '不會畫畫': { tint: 'blue',   sfx: 'ガーン',     lines: '#2b4a8f', shake: 6,  extra: ['gloom', 'tear'],  sound: 'gaan' },
-  '傻子才畫畫': { tint: 'violet', sfx: 'ズコーッ', lines: '#8a4dff', shake: 8,  extra: ['huh'],            sound: 'boing' }
+  '再轉一次': { tint: 'gold' },
+  '今日封筆': { tint: 'grey' },
+  '不畫': { tint: 'red' },
+  '等等再畫': { tint: 'violet' },
+  '不會畫畫': { tint: 'blue' },
+  '傻子才畫畫': { tint: 'violet' }
 };
 
 let styled = false;
@@ -60,22 +60,6 @@ function addStyle() {
     '.cfx-float{position:absolute;z-index:4;pointer-events:none;font-weight:900;font-style:italic;font-family:"Hiragino Sans","Yu Gothic","Meiryo",sans-serif;' +
       '-webkit-text-stroke:3px #1d1d1d;paint-order:stroke fill;animation:cfx-float 1.6s ease-out forwards}' +
     '@keyframes cfx-float{0%{transform:translate(-50%,0) scale(.4);opacity:0}15%{opacity:1;transform:translate(-50%,-6px) scale(1)}100%{transform:translate(-50%,-70px) scale(1.1);opacity:0}}' +
-    // 印章「封」
-    '.cfx-stamp{position:absolute;pointer-events:none;color:#d8261c;font-weight:900;font-family:"Hiragino Mincho ProN","Yu Mincho",serif;' +
-      'border:4px solid #d8261c;border-radius:6px;padding:0 4px;line-height:1.1;transform:translate(-50%,-50%) rotate(-12deg) scale(2.4);opacity:0;' +
-      'animation:cfx-stampin .22s cubic-bezier(.5,0,.8,.5) .15s forwards;mix-blend-mode:multiply}' +
-    '@keyframes cfx-stampin{to{transform:translate(-50%,-50%) rotate(-12deg) scale(1);opacity:.92}}' +
-    '.cfx-drop{position:absolute;pointer-events:none;width:12px;height:16px;background:#8fd3ff;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;' +
-      'border:2px solid #1d4f9a;animation:cfx-drop 1.2s ease-in .3s forwards;opacity:0}' +
-    '@keyframes cfx-drop{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(46px)}}' +
-    // 名次牌（大獎金、二獎銀、三獎銅）：畫面上方正中間掉下來
-    '.cfx-rank{position:absolute;left:50%;top:12px;z-index:5;pointer-events:none;padding:5px 18px 6px;border-radius:999px;font-weight:900;' +
-      'font-size:18px;letter-spacing:.12em;border:3px solid #1d1d1d;box-shadow:0 3px 0 #1d1d1d;transform:translate(-50%,-60px);' +
-      'animation:cfx-rank .5s cubic-bezier(.2,1.6,.4,1) forwards}' +
-    '.cfx-rank.t1{background:linear-gradient(#fff3a0,#ffc400);color:#7a3d00;font-size:22px;box-shadow:0 3px 0 #1d1d1d,0 0 18px #ffd23a}' +
-    '.cfx-rank.t2{background:linear-gradient(#ffffff,#c9d1da);color:#3a4654}' +
-    '.cfx-rank.t3{background:linear-gradient(#ffd9b8,#d8925a);color:#5a2c08}' +
-    '@keyframes cfx-rank{to{transform:translate(-50%,0)}}' +
     '.cfx-shake{animation:cfx-shake .45s linear}' +
     '@keyframes cfx-shake{0%,100%{translate:0 0}10%{translate:calc(var(--s)*-1px) calc(var(--s)*.6px)}20%{translate:calc(var(--s)*1px) calc(var(--s)*-.8px)}' +
       '30%{translate:calc(var(--s)*-.8px) calc(var(--s)*-.4px)}40%{translate:calc(var(--s)*.7px) calc(var(--s)*.7px)}55%{translate:calc(var(--s)*-.4px) 0}70%{translate:calc(var(--s)*.3px) calc(var(--s)*-.3px)}}';
@@ -147,18 +131,8 @@ const SFX = {
   dododo() { for (let i = 0; i < 4; i++) { noise(0.12, 0.3, 300, i * 0.11); tone('sine', 100 + i * 20, 60, 0.12, 0.35, i * 0.11); } jingle(0.5); },
   // キラーン：高音琶音＋一聲長的閃光
   kiran() { [1568, 2093, 2637, 3136].forEach((f, i) => tone('triangle', f, f, 0.18, 0.05, i * 0.06)); tone('sine', 2637, 3520, 0.6, 0.04, 0.3); },
-  // 再一次：嗶嗶往上
-  again() { tone('square', 660, 660, 0.08, 0.06); tone('square', 880, 880, 0.08, 0.06, 0.1); tone('square', 1320, 1320, 0.16, 0.06, 0.2); },
-  // ゴゴゴ：地鳴一直響，最後「咚」蓋章
-  gogogo() { noise(1.3, 0.35, 140, 0, 9); tone('sine', 55, 50, 1.3, 0.25); tone('sine', 160, 55, 0.18, 0.5, 0.3); noise(0.12, 0.4, 900, 0.3); },
-  // ブブー：答錯蜂鳴
-  buzz() { noise(0.25, 0.45, 300); tone('square', 140, 140, 0.18, 0.08, 0.05); tone('square', 140, 140, 0.42, 0.08, 0.28); },
-  // シーン：往下滑的咻～，然後安靜，最後一聲小小的「叮」
-  shiin() { tone('sine', 1400, 180, 0.7, 0.06); tone('sine', 2093, 2093, 0.5, 0.025, 1.0); },
-  // ガーン：悲傷喇叭 哇～哇～哇～哇～～
-  gaan() { [392, 370, 349].forEach((f, i) => tone('sawtooth', f, f * 0.97, 0.3, 0.05, i * 0.32)); tone('sawtooth', 330, 300, 0.9, 0.05, 0.96, 6); },
-  // ズコー：彈簧「啵嚶～」跌倒
-  boing() { tone('sine', 180, 620, 0.12, 0.12); tone('sine', 620, 120, 0.5, 0.1, 0.12, 14); noise(0.15, 0.25, 500, 0.6); }
+  // 沒中：輕輕的「噗噗～」往下兩聲（六個沒中的共用這一聲）
+  miss() { tone('triangle', 523, 523, 0.11, 0.09); tone('triangle', 392, 330, 0.38, 0.09, 0.15); }
 };
 
 export async function attach({ el, card, base, thick }) {
@@ -225,20 +199,23 @@ export async function attach({ el, card, base, thick }) {
   function perform(i) {
     reset();
     const o = opts[i], S = SHOW[o.name] || SHOW['不畫'], b = optBox(i), er = el.getBoundingClientRect();
-    show = S; hitIdx = i; t0 = performance.now(); fxUntil = t0 + ({ 1: 3400, 2: 2700, 3: 2200 }[S.tier] || 2600);
-    if (S.tier) addTemp(el, 'cfx-rank t' + S.tier, ['', '★ 大獎 ★', '二獎', '三獎'][S.tier]);
-    tint(i, S.tint); imgs[i].classList.add('hit');
-    if (SFX[S.sound]) SFX[S.sound]();
+    hitIdx = i; tint(i, S.tint); imgs[i].classList.add('hit');
+    if (!S.tier) { SFX.miss(); return; }                 // 沒中：亮一下＋一聲就好
+    show = S; t0 = performance.now(); fxUntil = t0 + { 1: 3400, 2: 2700, 3: 2200 }[S.tier];
+    SFX[S.sound]();
     // 震動
     if (S.shake) { el.style.setProperty('--s', S.shake); void el.offsetWidth; el.classList.add('cfx-shake'); timers.push(setTimeout(() => el.classList.remove('cfx-shake'), 500)); }
-    // 效果字：大字，放在選項旁邊比較空的那一側（畫面中間偏外），字大小跟著吊飾寬
-    const big = Math.max(34, b.cw * 0.12), t = TINT[S.tint];
-    const sx = Math.min(er.width - big * 2, Math.max(big * 2, b.x + (b.x < er.width / 2 ? 1 : -1) * big * 1.2));
-    const sy = Math.min(er.height - big, Math.max(big, b.y - big * 0.9));
-    const sfx = addTemp(el, 'cfx-sfx', S.sfx, { left: sx + 'px', top: sy + 'px', fontSize: big + 'px', color: t[1],
-      textShadow: '0 0 14px ' + t[2] + ',4px 5px 0 ' + t[2] });
-    sfx.style.setProperty('--r', (b.x < er.width / 2 ? -9 : 8) + 'deg');
-    timers.push(setTimeout(() => sfx.classList.add('out'), fxUntil - t0 - 500));
+    // 效果字：拆成兩半，前半在吊飾左上角外、後半在右上角（特效鈕下面），不擋中間的畫面（他圈的位置）
+    const big = Math.max(34, b.cw * 0.12), t = TINT[S.tint], cut = Math.ceil(S.sfx.length / 2);
+    [[S.sfx.slice(0, cut), 0.11, 0.27, -10], [S.sfx.slice(cut), 0.87, 0.24, 9]].forEach(([txt, fx, fy, r], k) => {
+      const w = addTemp(el, 'cfx-sfx', txt, { fontSize: big + 'px', color: t[1], textShadow: '0 0 14px ' + t[2] + ',4px 5px 0 ' + t[2] });
+      const hw = w.offsetWidth / 2 + 6;                  // 別超出畫面
+      w.style.left = Math.min(er.width - hw, Math.max(hw, fx * er.width)) + 'px';
+      w.style.top = (fy * er.height) + 'px';
+      w.style.setProperty('--r', r + 'deg');
+      if (k) w.style.animationDelay = '.14s,.42s';      // 後半晚一拍跳出來
+      timers.push(setTimeout(() => w.classList.add('out'), fxUntil - t0 - 500));
+    });
     // 小動作
     if (S.extra.includes('party')) burst(b, S.tier === 1 ? 28 : 14);
     if (S.tier === 1) timers.push(setTimeout(() => { burst(optBox(i), 18); }, 900));   // 大獎：第二波星星
@@ -250,16 +227,6 @@ export async function attach({ el, card, base, thick }) {
         addTemp(el, 'cfx-float', ch, { left: x + 'px', top: y + 'px', fontSize: (big * (0.55 + Math.random() * 0.35)) + 'px', color: t[1] });
       }, k * 150));
     }
-    if (S.extra.includes('stamp')) {                     // 「封」印章蓋在選項上
-      addTemp(layer, 'cfx-stamp', '封', { left: ((o.x + o.w / 2) * 100) + '%', top: ((o.y + o.h / 2) * 100) + '%', fontSize: (b.cw * 0.09) + 'px' });
-      timers.push(setTimeout(() => { el.style.setProperty('--s', 6); el.classList.remove('cfx-shake'); void el.offsetWidth; el.classList.add('cfx-shake'); }, 360));
-    }
-    if (S.extra.includes('zzz')) {
-      ['Z', 'z', 'Z'].forEach((z, k) => timers.push(setTimeout(() =>
-        addTemp(el, 'cfx-float', z, { left: (b.x + b.w * 0.6 + k * 10) + 'px', top: (b.y - 10) + 'px', fontSize: (big * (0.5 + k * 0.15)) + 'px', color: t[1] }), 300 + k * 350)));
-    }
-    if (S.extra.includes('tear')) addTemp(el, 'cfx-drop', '', { left: (b.x + b.w * 0.45) + 'px', top: (b.y + b.h * 0.4) + 'px' });
-    if (S.extra.includes('huh')) addTemp(el, 'cfx-float', '？', { left: (b.x) + 'px', top: (b.y - b.h * 0.6) + 'px', fontSize: big + 'px', color: '#ffe066' });
     loop();
   }
   function burst(b, n, small) {
@@ -289,31 +256,16 @@ export async function attach({ el, card, base, thick }) {
     const t = (now - t0) / 1000, fade = Math.min(1, (fxUntil - now) / 500);
     const x0 = cr.left - er.left, y0 = cr.top - er.top, w = cr.width, h = cr.height;
     const b = optBox(hitIdx);
-    // 暗角（今日封筆）：四周慢慢變暗
-    if (S.extra.includes('dark')) {
-      const gr = g.createRadialGradient(b.x, b.y, w * 0.1, b.x, b.y, Math.hypot(er.width, er.height) * 0.7);
-      gr.addColorStop(0, 'rgba(30,20,40,0)'); gr.addColorStop(1, 'rgba(30,20,40,' + (0.55 * fade * Math.min(1, t * 2)) + ')');
-      g.fillStyle = gr; g.fillRect(0, 0, er.width, er.height);
-    }
     // 集中線：從畫面外往選項集中，前 0.5 秒閃三下（漫畫那種），之後淡淡留著
     if (S.lines) {
       const flick = t < 0.5 ? (Math.floor(t * 12) % 2 ? 0.25 : 0.9) : 0.45;
       g.save(); g.globalAlpha = flick * fade;
-      const R1 = Math.hypot(er.width, er.height), R0 = w * 0.32, spin = S.extra.includes('spin') ? t * 1.6 : 0;
+      const R1 = Math.hypot(er.width, er.height), R0 = w * 0.32;
       for (let k = 0; k < 70; k++) {
-        const a = k / 70 * Math.PI * 2 + spin + (k * 0.37 % 0.06), wd = 0.006 + (k * 7 % 5) * 0.003, r0 = R0 * (0.85 + (k * 13 % 10) / 25);
+        const a = k / 70 * Math.PI * 2 + (k * 0.37 % 0.06), wd = 0.006 + (k * 7 % 5) * 0.003, r0 = R0 * (0.85 + (k * 13 % 10) / 25);
         g.beginPath(); g.moveTo(b.x + Math.cos(a) * r0, b.y + Math.sin(a) * r0);
         g.lineTo(b.x + Math.cos(a - wd) * R1, b.y + Math.sin(a - wd) * R1); g.lineTo(b.x + Math.cos(a + wd) * R1, b.y + Math.sin(a + wd) * R1);
         g.closePath(); g.fillStyle = S.lines; g.fill();
-      }
-      g.restore();
-    }
-    // 陰影直線（ガーン）：吊飾上半部一條條往下的深藍線
-    if (S.extra.includes('gloom')) {
-      g.save(); g.globalAlpha = 0.55 * fade * Math.min(1, t * 3);
-      for (let k = 0; k < 26; k++) {
-        const x = x0 + w * 0.06 + k / 26 * w * 0.88, len = h * (0.25 + ((k * 37) % 10) / 30) * Math.min(1, t * 2.5);
-        g.fillStyle = k % 3 ? 'rgba(25,40,110,.9)' : 'rgba(60,90,170,.8)'; g.fillRect(x, y0, 2.5, len);
       }
       g.restore();
     }
