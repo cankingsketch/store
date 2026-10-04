@@ -9,6 +9,8 @@
 //   ・下面一排按鈕切換 7 組；隱藏款先是黑色剪影＋「點一下揭曉」，點了轉一圈揭曉（他選的方式，2026-10-04）
 //   ・名店選（assets/meiten/）每組多一個幸運轉盤：裝在轉盤柱上，按住轉盤拖＝轉它（放開帶慣性），輕點轉盤＝隨機甩一圈，
 //     玩法跟畫圖抉擇轉盤一樣；按其他地方拖才是轉整組（set.json 有 wheel 才有）
+//   ・有轉盤的時候右上角多一顆「特效」開關（跟畫圖抉擇轉盤共用開關狀態）：打開才載入 wheel-fx.js＋charm-fx.js 的音效，
+//     轉動有跑燈、嗶嗶聲，停下來指到的那格亮紅框＋中獎音效＋星星
 // 素材由 tools/sticker-preview/build_standee.py 從工廠排版產生：index.json＝有哪幾組，每組一個資料夾，
 // set.json 是尺寸、插孔、外形（單位 mm）。
 // 介面跟其他 3D 模組一樣：create(素材根目錄) → { mount(host), pointer(x, y) }
@@ -99,7 +101,8 @@ export function create(dir) {
   const camera = new THREE.PerspectiveCamera(26, 1, 5, 2000);
   // 切換按鈕＋隱藏款的提示（疊在畫面上）
   const ui = document.createElement('div');
-  ui.innerHTML = '<div class="sd-tag" hidden></div><div class="sd-reveal" hidden>點一下揭曉</div><div class="sd-vars"></div>';
+  ui.innerHTML = '<div class="sd-tag" hidden></div><div class="sd-reveal" hidden>點一下揭曉</div><div class="sd-vars"></div>' +
+    '<button class="sd-fx" type="button" hidden>🔈 特效</button>';
   el.appendChild(ui);
   if (!document.getElementById('sd-style')) {
     const st = document.createElement('style'); st.id = 'sd-style';
@@ -113,7 +116,10 @@ export function create(dir) {
       '.sd-reveal{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);padding:8px 18px;border-radius:999px;background:rgba(43,47,69,.88);' +
         'color:#fff;font-size:15px;font-weight:800;letter-spacing:.08em;pointer-events:none;animation:sd-pulse 1.6s ease-in-out infinite}' +
       '@keyframes sd-pulse{50%{transform:translate(-50%,-50%) scale(1.06)}}' +
-      '.sd-tag[hidden],.sd-reveal[hidden]{display:none}';
+      '.sd-fx{position:absolute;right:12px;top:12px;border:1.5px solid #ddd;background:#fff;color:#777;border-radius:999px;' +
+        'padding:5px 12px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.04em;box-shadow:0 2px 6px rgba(0,0,0,.06)}' +
+      '.sd-fx.on{background:#ffd23a;border-color:#f0a800;color:#7a4b00;box-shadow:0 0 10px rgba(255,190,0,.6)}' +
+      '.sd-tag[hidden],.sd-reveal[hidden],.sd-fx[hidden]{display:none}';
     document.head.appendChild(st);
   }
   const varsBox = ui.querySelector('.sd-vars'), tagEl = ui.querySelector('.sd-tag'), revealEl = ui.querySelector('.sd-reveal');
@@ -123,6 +129,25 @@ export function create(dir) {
     pick(+b.dataset.k);
   });
   let list = [], cur = -1, revealed = false, prints = [];
+  // ---- 轉盤特效開關（只有名店選有轉盤）：打開才 import wheel-fx.js 和 charm-fx.js（音效） ----
+  const fxBtn = ui.querySelector('.sd-fx');
+  let fx = null, fxOn = false, fxLoading = null, fxUnlock = null, fxBusy = false;
+  const fxStore = { get() { try { return localStorage.getItem('ck-charm-fx') === '1'; } catch (e) { return false; } },
+    set(v) { try { localStorage.setItem('ck-charm-fx', v ? '1' : '0'); } catch (e) {} } };
+  const fxBind = () => { if (fx && wheelGroup) fx.bind(wheelGroup, set.wheel.d / 2, WHEEL_T / 2 + 0.03); };
+  function setFx(v) {
+    fxOn = v; fxStore.set(v);
+    fxBtn.classList.toggle('on', v); fxBtn.textContent = (v ? '🔊' : '🔈') + ' 特效';
+    if (v && !fx && !fxLoading) {
+      const mod = n => window.CK_MOD ? window.CK_MOD(n) : './' + n;
+      fxLoading = Promise.all([import(mod('wheel-fx.js')), import(mod('charm-fx.js'))])
+        .then(([w, cf]) => { fx = w.create(THREE, cf.SFX); fxUnlock = cf.unlock; fxBind(); fx.show(fxOn); if (fxOn) fxUnlock(); kick(); })
+        .catch(() => { fxLoading = null; });
+    }
+    if (fx) { fx.show(v); if (v) fxUnlock(); kick(); }
+  }
+  fxBtn.addEventListener('pointerdown', e => e.stopPropagation());   // 按開關不要變成拖曳
+  fxBtn.addEventListener('click', () => setFx(!fxOn));
   // 轉盤：wheelSpin＝轉了幾度、wheelVel＝每秒幾度
   let wheelGroup = null, wheelMeshes = [], wheelSpin = 0, wheelVel = 0;
   const ray = new THREE.Raycaster();
@@ -218,6 +243,8 @@ export function create(dir) {
         wheelGroup = wg; wheelMeshes = [disc, wf, wbk];
       }
     });
+    fxBtn.hidden = !wheelGroup;
+    if (wheelGroup) { if (fxStore.get() && !fxOn) setFx(true); else fxBind(); }
 
     // 鏡頭：整組（底座對角線＋最高的那片）都要塞得下，轉一圈也不會出框
     const tall = Math.max.apply(null, set.pieces.map(p => p.h));
@@ -285,6 +312,7 @@ export function create(dir) {
       drag.mode = 'wheel'; drag.c = c; drag.a = Math.atan2(e.clientY - c[1], e.clientX - c[0]) * 180 / Math.PI;
       drag.sign = wheelFacing() ? -1 : 1;                 // 從背後看，順時針是反過來的
       wheelVel = 0;
+      if (fx && fxOn) fxUnlock();
     }
     yawVel = 0;
     try { el.setPointerCapture(e.pointerId); } catch (err) {}
@@ -317,6 +345,7 @@ export function create(dir) {
       // 輕點：隨機甩一圈；拖：照放開時的速度繼續轉（最高跟畫圖抉擇轉盤一樣 6000）
       wheelVel = !d.moved ? (900 + Math.random() * 900) * (Math.random() < 0.5 ? -1 : 1)
         : (span > 8 ? Math.max(-6000, Math.min(6000, sum / span * 1000)) : 0);
+      if (!wheelVel && fx && fxOn) fx.stop(wheelSpin, wheelFacing());   // 拖完直接停住：當場開獎
       kick(); return;
     }
     // 隱藏款還沒揭曉時，輕點一下＝揭曉
@@ -361,13 +390,20 @@ export function create(dir) {
       if (k >= 1) { spin = null; yaw = YAW0; }
     }
     if (wheelGroup) {
-      if (wheelVel && !(drag && drag.mode === 'wheel')) {
+      const wDrag = !!(drag && drag.mode === 'wheel');
+      if (wheelVel && !wDrag) {
         wheelSpin += wheelVel * dt;
         const sg = Math.sign(wheelVel);
         wheelVel -= wheelVel * 0.9 * dt + sg * 90 * dt;        // 摩擦：跟畫圖抉擇轉盤一樣
-        if (Math.sign(wheelVel) !== sg || Math.abs(wheelVel) < 6) wheelVel = 0;
+        if (Math.sign(wheelVel) !== sg || Math.abs(wheelVel) < 6) { wheelVel = 0; if (fx && fxOn) fx.stop(wheelSpin, wheelFacing()); }   // 停了：開獎
       }
       wheelGroup.rotation.z = wheelSpin * Math.PI / 180;
+      fxBusy = false;
+      if (fx && fxOn) {
+        let v = wheelVel;
+        if (wDrag && drag.hist.length > 1) { const h = drag.hist, sp = h[h.length - 1][0] - h[0][0]; v = sp > 0 ? h.reduce((a, x) => a + x[1], 0) / sp * 1000 : 0; }
+        fxBusy = fx.frame(wheelSpin, v, wDrag || !!wheelVel, wheelFacing(), dt);
+      }
     }
     if (!drag && yawVel) {
       yaw += yawVel * dt;
@@ -378,11 +414,12 @@ export function create(dir) {
     camera.position.set(target.x + dist * Math.cos(rt) * Math.sin(ry), target.y + dist * Math.sin(rt), target.z + dist * Math.cos(rt) * Math.cos(ry));
     camera.lookAt(target);
     renderer.render(scene, camera);
-    if (drag || yawVel || spin || wheelVel) kick();
+    if (drag || yawVel || spin || wheelVel || fxBusy) kick();
   }
 
   window.addEventListener('resize', resize);
   el.dataset.sd = '1'; el.sdState = () => ({ yaw, tilt, hx, hy, dist, yawVel, drag: !!drag, wheelSpin, wheelVel }); el.sdScene = () => ({ root, prints, set, kick });   // 除錯用
+  el.sdWheel = v => { wheelVel = v; kick(); }; el.sdFx = () => fx;                    // 除錯用：直接甩轉盤
   start(dir);
 
   return {

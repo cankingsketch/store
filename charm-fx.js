@@ -106,7 +106,7 @@ function noise(len, vol, cut, at, wob) {
 const NOTE = { C5: 523, E5: 659, G5: 784, C6: 1047 };
 const seq = (notes, at) => { let t = at; notes.forEach(([n, b]) => { tone('square', NOTE[n], NOTE[n], b * 0.09 * 0.92, 0.05, t); t += b * 0.09; }); };
 const coin = at => { tone('square', 988, 988, 0.06, 0.045, at); tone('square', 1319, 1319, 0.16, 0.045, at + 0.06); };   // 投幣「叮鈴」
-const SFX = {
+export const SFX = {          // 名店選轉盤（wheel-fx.js）也用這套
   tick(speed) { const f = 900 + Math.min(1, speed / 2500) * 900; tone('square', f, f, 0.035, 0.045); },
   whir(speed) {
     const a = audio(); if (!a) return;
@@ -130,6 +130,8 @@ const SFX = {
   // 沒中（他選 F）：短短「喀」一聲機械聲，六個沒中的共用
   miss() { noise(0.05, 0.3, 1800); tone('square', 110, 90, 0.09, 0.07); }
 };
+
+export function unlock() { audio(); }        // iPhone：聲音要在使用者點的那一下開
 
 export async function attach({ el, card, base, thick }) {
   addStyle();
