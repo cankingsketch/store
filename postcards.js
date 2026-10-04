@@ -19,8 +19,8 @@
     return (x < 0 ? 99 : x) - (y < 0 ? 99 : y) || a[0] - b[0];
   });
   // 春聯也放進原創明信片牆（他要的，2026-10-04）：正方形、單面、自己的價格和賣貨便商品（不是明信片，所以不算在「N 款」裡）
-  // 圖：NAS 商品照片「春節_春聯_效果圖.png」（燙金效果）→ img/post/cl-l／-s.webp
-  CARDS.push(['cl', '龍會罐通燙金春聯', 'sq', { price: 50, single: 1, note: '15.2 × 15.2 cm・燙金・新年考生兩用' }]);
+  // 圖：build_chunlian.py 從工廠的 .ai 做的（印刷層＋金色燙金）；擺成斗方（尖端朝上），放大時燙金會發光、有一道光掃過
+  CARDS.push(['cl', '龍會罐通燙金春聯', 'sq', { price: 50, single: 1, dia: 1, foil: 'cl', note: '15.2 × 15.2 cm・燙金・新年考生兩用' }]);
   // 二創（单面資料夾的 A 編號）：[編號, 角色名, 橫?]
   var FAN = [
     [1, '靜謐'], [2, '凜'], [3, '雙貞德', 1], [4, '虞美人', 1], [5, '黑貞'], [6, '小霞|寶可夢'],
@@ -39,7 +39,7 @@
   });
   var pw, at = -1, prod = null;
   function esc(s) { return CK.esc(s); }
-  function cls(c) { return c.wide ? ' wide' : c.sq ? ' sq' : ''; }
+  function cls(c) { return c.wide ? ' wide' : c.sq ? ' sq' + (c.x && c.x.dia ? ' dia' : '') : ''; }
   function ensure() {
     if (pw) return;
     pw = document.createElement('div'); pw.className = 'lb pw';
@@ -144,7 +144,15 @@
     var c = list[i], card = pw.querySelector('.pw-card');
     card.classList.toggle('wide', c.wide); card.classList.remove('flipped');
     card.querySelector('.f').src = c.l;
-    card.classList.toggle('sq', c.sq);
+    card.classList.toggle('sq', c.sq); card.classList.toggle('dia', !!(c.x && c.x.dia));
+    // 燙金：外面一圈金光（一明一暗）＋只在燙金形狀上掃過的一道光
+    var flip = card.querySelector('.pw-flip');
+    Array.prototype.forEach.call(flip.querySelectorAll('.foil'), function (n) { n.remove(); });
+    if (c.x && c.x.foil) {
+      var m = 'url(' + P + c.x.foil + '-foil.webp)';
+      flip.insertAdjacentHTML('beforeend', '<img class="foil glow" src="' + P + c.x.foil + '-glow.webp" alt=""><i class="foil shine"></i>');
+      var sh = flip.querySelector('.shine'); sh.style.webkitMaskImage = sh.style.maskImage = m;
+    }
     if (O.single || (c.x && c.x.single)) card.querySelector('.b').removeAttribute('src');      // 單面：沒有背面
     else card.querySelector('.b').src = P + (c.wide ? 'back-h.webp' : 'back-v.webp');
     pw.querySelector('.pw-cap b').textContent = c.name;

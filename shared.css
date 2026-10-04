@@ -134,6 +134,7 @@ img { max-width:100%; }
 .pw-strip button { width:46px; height:64px; padding:2px; }
 .pw-strip button.wide { width:84px; }
 .pw-strip button.sq { width:64px; }
+.pw-strip button.dia img { transform:rotate(45deg) scale(.68); }
 .pw-strip img { object-fit:cover; border-radius:3px; }
 .lb-foot { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:14px 20px 16px; border-top:1px solid var(--line); background:#fff; }
 .lb-foot h3 { margin:0; font-size:19px; }
@@ -281,6 +282,10 @@ img { max-width:100%; }
   box-shadow:0 1px 2px rgba(0,0,0,.12), 0 6px 12px rgba(0,0,0,.10); transition:transform .18s, box-shadow .18s; }
 .pc.wide { width:156px; }
 .pc.sq { width:128px; }
+/* 斗方（春聯）：轉 45 度、尖端朝上；外框不要白底和方形影子，影子改在圖上 */
+.pc.sq.dia { width:150px; background:none; box-shadow:none; }
+.pc.sq.dia img { transform:rotate(45deg) scale(.7071); box-shadow:0 2px 4px rgba(0,0,0,.14), 0 8px 14px rgba(0,0,0,.14); }
+.pc.sq.dia:hover { box-shadow:none; }
 .pc img { width:100%; display:block; }
 .pc:hover { transform:rotate(0) translateY(-4px) scale(1.04); box-shadow:0 2px 4px rgba(0,0,0,.14), 0 14px 22px rgba(0,0,0,.16); z-index:1; }
 .pw-more { margin:22px 2px 0; color:var(--mute); font-size:13px; }
@@ -291,6 +296,16 @@ img { max-width:100%; }
 .pw-card { height:min(48vh,440px); aspect-ratio:2/3; cursor:pointer; transform:rotateY(var(--tx)) rotateX(var(--ty)); transition:transform .25s ease-out; transform-style:preserve-3d; }
 .pw-card.wide { height:auto; width:min(76%,560px); aspect-ratio:3/2; }
 .pw-card.sq { aspect-ratio:1/1; }
+.pw-card.dia .pw-flip { transform:rotate(45deg) scale(.7071); }
+@media (min-width:641px) { .pw-card.dia .pw-flip { transform:rotate(45deg) scale(.8); } }   /* 電腦上放大一點（手機會超出螢幕寬，維持 .7071） */
+/* 燙金發光：金光一明一暗、一道光斜斜掃過（只在燙金形狀上，mask 由 postcards.js 設） */
+.pw-flip .foil { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+.pw-flip img.foil.glow { box-shadow:none; background:none; object-fit:fill; mix-blend-mode:screen; animation:foil-glow 2.6s ease-in-out infinite alternate; }
+.pw-flip .foil.shine { -webkit-mask-size:100% 100%; mask-size:100% 100%; -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+  background:linear-gradient(120deg, rgba(255,255,255,0) 40%, rgba(255,252,225,.95) 50%, rgba(255,255,255,0) 60%) no-repeat;
+  background-size:250% 100%; mix-blend-mode:screen; animation:foil-sweep 3.4s ease-in-out infinite; }
+@keyframes foil-glow { from { opacity:.25; } to { opacity:.85; } }
+@keyframes foil-sweep { 0% { background-position:130% 0; } 55%, 100% { background-position:-30% 0; } }
 .pw-flip { position:relative; width:100%; height:100%; transform-style:preserve-3d; transition:transform .6s cubic-bezier(.2,.8,.2,1); }
 .pw-card.flipped .pw-flip { transform:rotateY(180deg); }   /* 不能叫 .back：樣品頁左上角的返回鈕就是 .back（固定在角落的深色膠囊） */
 .pw-flip img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; backface-visibility:hidden; -webkit-backface-visibility:hidden;
