@@ -267,7 +267,8 @@ export function create(dir, boxDir) {   // boxDir：小外盒的素材資料夾�
     boxPhase = 'idle'; boxT0 = performance.now(); boxView = 1;
     boxGroup.visible = true; boxGroup.position.set(0, 0, 0); boxGroup.rotation.set(0, 0, 0); boxGroup.scale.setScalar(1);
     lidPivot.rotation.x = 0; root.visible = false;
-    hintEl.hidden = true; gotEl.hidden = true; showAgain(false); revealEl.hidden = true;   // 「點盒子拆開」的字拿掉（他說不用提示），盒子自己會跳
+    hintEl.hidden = true; gotEl.hidden = true; showAgain(false); revealEl.hidden = true;
+    tagEl.style.visibility = 'hidden';                  // 盒子的時候不顯示左上角的說明（他說的），立牌出來才顯示   // 「點盒子拆開」的字拿掉（他說不用提示），盒子自己會跳
     yaw = YAW0; tilt = TILT0; yawVel = 0; spin = null;
     Array.prototype.forEach.call(varsBox.children, b => b.classList.remove('on'));
     kick();
@@ -288,7 +289,7 @@ export function create(dir, boxDir) {   // boxDir：小外盒的素材資料夾�
   function boxOff() {
     if (boxPhase === 'off') return;
     boxPhase = 'off'; boxGroup.visible = false; root.visible = true; boxView = 0;
-    hintEl.hidden = true; gotEl.hidden = true; showAgain(!!box);
+    hintEl.hidden = true; gotEl.hidden = true; showAgain(!!box); tagEl.style.visibility = '';
   }
   const easeOutBack = t => 1 + 2.4 * Math.pow(t - 1, 3) + 1.4 * Math.pow(t - 1, 2);
   // 每一格：盒子的動畫；回傳 true＝還在動
@@ -340,6 +341,7 @@ export function create(dir, boxDir) {   // boxDir：小外盒的素材資料夾�
         const it = list[cur];
         Array.prototype.forEach.call(varsBox.children, (b, i) => b.classList.toggle('on', i === cur));
         showAgain(true);                                 // 「抽到了！」的字拿掉了（他說的），只留一顆小盒子圖示可以再抽
+        tagEl.style.visibility = '';
         if (it.hidden && !revealed) setTimeout(() => { if (list[cur] && list[cur].hidden && !revealed) reveal(); }, 500);
       }
       return true;
@@ -547,7 +549,9 @@ export function create(dir, boxDir) {   // boxDir：小外盒的素材資料夾�
     if (boxPhase !== 'off' && boxPhase !== 'idle') return;   // 拆盒中不能拖
     if (boxPhase === 'idle' && sfx) sfx.unlock();         // iPhone：聲音要在點的那一下開
     drag = { x: e.clientX, y: e.clientY, yaw0: yaw, tilt0: tilt, hist: [], moved: false, mode: 'orbit' };
-    if (wheelGroup && hitWheel(e)) {                      // 按到轉盤：轉它，不轉整組
+    // 按到轉盤：轉它，不轉整組。盒子還沒拆完的時候不算（立牌藏著但轉盤還在原地，raycast 不管看不看得到——
+    // 名店選點盒子會點到轉盤、轉盤在響盒子卻沒開，他抓到的 bug）
+    if (wheelGroup && boxPhase === 'off' && hitWheel(e)) {
       const c = wheelScreen();
       drag.mode = 'wheel'; drag.c = c; drag.a = Math.atan2(e.clientY - c[1], e.clientX - c[0]) * 180 / Math.PI;
       drag.sign = wheelFacing() ? -1 : 1;                 // 從背後看，順時針是反過來的
