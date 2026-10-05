@@ -28,12 +28,12 @@
 
   // 賣貨便「空罐原創明信片」沒有的款（2026-10-04 對過；有上架了就從這裡拿掉）
   var NOT_ON_MYSHIP = ['月餅罐罐', '白花罐罐', '街頭風罐罐', '泳裝罐罐', '草莓吐司', '大姊沙發', '封面泳裝', '帝雉', '破防拉麵'];
-  // 二創裡 FGO 這 5 張：賣貨便是包成「FGO明信片組|共5張」（NT$200），沒有單張
+  // 二創裡 FGO 這 5 張：賣貨便是包成「FGO明信片組|共5張」（他說價格是 NT$160，賣貨便上原本寫 200），沒有單張
   var FGO = ['靜謐', '凜', '雙貞德', '虞美人', '黑貞'];
   // FGO 組合（2026-10-05 他要的）：實品是 5 張裝在一個透明塑膠套裡、正面貼我們的貼紙（NAS 明信片/FGO用貼紙.psd 的紫色那塊，
   // 貼在黑貞那張的右下：左 30.9%、上 59.5%、寬 59.1%、高 33.8%）。牆上這 5 張合成一個「套子」，點開先是裝在套子裡，
   // 點一下五張抽出來攤開；點其中一張再放大看
-  var FGO_SET = { name: 'FGO明信片組', members: FGO, cover: '黑貞', price: 200, f: 'FGO明信片組|共5張', sticker: 'fgo-sticker.webp', st: [0.3091, 0.5954, 0.591, 0.338] };
+  var FGO_SET = { name: 'FGO明信片組', members: FGO, cover: '黑貞', price: 160, f: 'FGO明信片組|共5張', sticker: 'fgo-sticker.webp', st: [0.3091, 0.5954, 0.591, 0.338] };
   // O：pre＝圖檔開頭（p／a）、single＝單面（不翻）、buyName＝賣貨便上找的名字、more＝牆最下面的一行小字
   function make(CARDS, O) {
   var list = CARDS.map(function (c, i) {
@@ -225,7 +225,7 @@
   // 購買區：放大某一張時「加到想買清單」記的是那一張
   function buy(c) {
     if (c && inSet(c)) return buySet();                 // 組合裡的那幾張不單賣：放大看的時候購買區還是整組
-    var w = !c ? null : FGO.indexOf(c.name) >= 0 ? { n: 'FGO明信片組', f: 'FGO明信片組|共5張', p: 200, img: c.s }
+    var w = !c ? null : FGO.indexOf(c.name) >= 0 ? { n: 'FGO明信片組', f: 'FGO明信片組|共5張', p: FGO_SET.price, img: c.s }
       : { v: c.name, sp: c.name, img: c.s, na: O.pre === 'p' && NOT_ON_MYSHIP.indexOf(c.name) >= 0 };
     if (c && c.x) w = { img: c.s };                          // 春聯：自己是一樣商品
     pw.querySelector('.lb-foot small').textContent = c && c.x ? (c.x.note || '') : '單張 NT$44・10 × 15 cm';
