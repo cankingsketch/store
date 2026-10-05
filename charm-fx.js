@@ -103,6 +103,28 @@ function noise(len, vol, cut, at, wob) {
   if (wob) { const l = a.createOscillator(), lg = a.createGain(); l.frequency.value = wob; lg.gain.value = vol * 0.6; l.connect(lg).connect(g.gain); l.start(t); l.stop(t + len); }
   s.connect(f).connect(g).connect(a.destination); s.start(t); s.stop(t + len + 0.05);
 }
+// 開盒「啵」專用：起音更快、不撐住的短音，和每 step 個取樣才換值的 8-bit 雜訊（像紅白機的雜訊聲道）
+function blip(type, f0, f1, len, vol, at) {
+  const a = audio(); if (!a) return;
+  const t = a.currentTime + (at || 0), o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.setValueAtTime(f0, t);
+  if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + len);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+  o.connect(g).connect(a.destination); o.start(t); o.stop(t + len + 0.02);
+}
+const bitBuf = {};
+function bitNoise(len, vol, cut, at, step) {
+  const a = audio(); if (!a) return;
+  if (!bitBuf[step]) {
+    const b = a.createBuffer(1, a.sampleRate, a.sampleRate), d = b.getChannelData(0);
+    let v = 0; for (let i = 0; i < d.length; i++) { if (i % step === 0) v = Math.random() < 0.5 ? -1 : 1; d[i] = v; }
+    bitBuf[step] = b;
+  }
+  const t = a.currentTime + (at || 0), s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+  s.buffer = bitBuf[step]; s.loop = true; f.type = 'lowpass'; f.frequency.value = cut;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.003); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+  s.connect(f).connect(g).connect(a.destination); s.start(t); s.stop(t + len + 0.05);
+}
 const NOTE = { C5: 523, E5: 659, G5: 784, C6: 1047 };
 const seq = (notes, at) => { let t = at; notes.forEach(([n, b]) => { tone('square', NOTE[n], NOTE[n], b * 0.09 * 0.92, 0.05, t); t += b * 0.09; }); };
 const coin = at => { tone('square', 988, 988, 0.06, 0.045, at); tone('square', 1319, 1319, 0.16, 0.045, at + 0.06); };   // 投幣「叮鈴」
@@ -134,6 +156,14 @@ export const SFX = {          // 名店選轉盤（wheel-fx.js）也用這套
     tone('square', 900, 90, 0.07, 0.12); noise(0.09, 0.4, 5000);
     tone('square', 300, 2400, 0.12, 0.06, 0.04);
     [2093, 2637, 3136, 2349, 2794, 3520, 2637, 3136].forEach((f, i) => tone('square', f, f, 0.035, 0.03, 0.16 + i * 0.045));
+  },
+  // 電影貼紙組開盒（shared.js）：拉炮太大聲，他說去 freesound 找真的開盒聲，挑了「Lid Flip/ Pop - 7」（#509505），
+  // 再要我用 8-bit 模擬它（試聽頁 open-sfx-pick.html 選 3）：蓋子擦一下 → 低「啵」→ 清脆「嗒」→ 兩聲小「叮」
+  lid() {
+    bitNoise(0.025, 0.05, 2500, 0, 6);
+    blip('square', 760, 260, 0.04, 0.09, 0.03);
+    blip('square', 2940, 2800, 0.03, 0.03, 0.04); bitNoise(0.09, 0.05, 6000, 0.04, 2);
+    blip('square', 1568, 1568, 0.06, 0.03, 0.14); blip('square', 2093, 2093, 0.12, 0.03, 0.2);
   },
   // 名店選轉盤用的（他在試聽頁 wheel-sfx-pick.html 選的）：轉過一格「啵」（H）、停下來只要一聲投幣（原本前面有段旋律，他說拿掉）
   pop() { tone('sine', 700, 1300, 0.05, 0.12); },
