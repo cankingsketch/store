@@ -237,6 +237,7 @@ img { max-width:100%; }
 .tile.set .stk.fan img:nth-child(3) { transform:translate(-50%,-46%) rotate(-1deg); }
 /* 組合預覽的舞台 */
 .sl .lb-panel { width:min(900px,100%); }
+.sl .lb-arrow { top:calc(min(66vh,560px) / 2 - 19px); z-index:5; }
 .sl-stage { position:relative; height:min(66vh,560px); overflow:hidden; background:var(--paper);
   background-image:radial-gradient(rgba(0,0,0,.055) 1px, transparent 1.2px); background-size:18px 18px; }
 .sl-box { position:absolute; inset:0; display:grid; place-items:center; perspective:1100px; cursor:pointer; transition:opacity .4s, transform .5s; }
@@ -397,6 +398,7 @@ img { max-width:100%; }
   .lb-stage { height:min(52vh, 500px); height:min(52svh, 500px); }
   .lb-arrow { top:calc(min(52svh, 500px) / 2 - 19px); }
   .sl-stage { height:min(56vh, 560px); height:min(56svh, 560px); }
+  .sl .lb-arrow { top:calc(min(56svh, 560px) / 2 - 19px); }
   .pw .pw-wall, .pw-zoom { height:min(60vh, 600px); height:min(60svh, 600px); }
   .pw-card { height:min(44vh, 440px); height:min(44svh, 440px); }
   /* 橫的明信片：iPhone（WebKit）只靠 aspect-ratio 算高度會算錯，吃到上面直式的高度、左右被裁掉（他反映的）。

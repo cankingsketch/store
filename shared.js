@@ -379,7 +379,12 @@
       return '<button class="set" data-go-set="' + t.id + '" title="' + esc(t.name) + '"><img src="' + setThumb(t) + '" alt="' + esc(t.name) + '" loading="lazy"><i>組合</i></button>';
     }).join('');
   }
+  // 單張和組合接成一條（照牆上的順序：單張在前、組合在後）：單張看到最後一張再往下＝第一個組合，第一張往回＝最後一個組合
   function go(d) {
+    var sets = SETS.filter(function (t) { return t.items && t.items.length; });
+    if (list === STICKERS && sets.length && (at + d >= list.length || at + d < 0)) {
+      close(); return openSet(sets[at + d < 0 ? sets.length - 1 : 0].id);
+    }
     at = (at + d + list.length) % list.length; caption();
     frame.contentWindow.postMessage({ type: 'ck-show', id: list[at].id, dir: d > 0 ? 1 : -1 }, '*');   // 貼紙從旁邊滑進來
   }
@@ -446,7 +451,9 @@
   function ensureSl() {
     if (sl) return;
     sl = document.createElement('div'); sl.className = 'lb sl';
+    // 左右箭頭（他說看完一組沒辦法往下看別的、不直覺）：換上一個／下一個組合，最後一組再往下接回單張貼紙
     sl.innerHTML = '<div class="lb-panel" role="dialog" aria-modal="true"><button class="lb-x" aria-label="關閉">✕</button>' +
+      '<button class="lb-arrow prev" aria-label="上一組">‹</button><button class="lb-arrow next" aria-label="下一組">›</button>' +
       '<div class="sl-stage"><div class="sl-box"></div><div class="sl-items"></div><div class="sl-hint"></div><div class="sl-photo" hidden></div></div>' +
       '<div class="lb-strip sl-strip"></div>' +
       '<div class="lb-foot"><div><h3></h3><small></small></div><div class="buybox"></div></div></div>';
@@ -466,8 +473,11 @@
       if (opened && cur.kind !== 'bottles' && sl.querySelector('.sl-photo').hidden && e.target.closest('.sl-stage')) return resetSet(true);
     });
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && sl.classList.contains('open') && !(lb && lb.classList.contains('open'))) closeSet();
+      if (!sl.classList.contains('open') || (lb && lb.classList.contains('open'))) return;
+      if (e.key === 'Escape') closeSet(); else if (e.key === 'ArrowLeft') setGo(-1); else if (e.key === 'ArrowRight') setGo(1);
     });
+    sl.querySelector('.lb-arrow.prev').addEventListener('click', function (e) { e.stopPropagation(); setGo(-1); });
+    sl.querySelector('.lb-arrow.next').addEventListener('click', function (e) { e.stopPropagation(); setGo(1); });
     // 盒子跟著游標轉一點
     sl.querySelector('.sl-stage').addEventListener('pointermove', function (e) {
       var r = this.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
@@ -750,6 +760,12 @@
     else if (v !== '3d') photo.innerHTML = '<img src="' + (cur.photos || [])[+v.slice(1)] + '" alt="' + esc(cur.name) + ' 商品圖">';
     else photo.innerHTML = '';
     Array.prototype.forEach.call(sl.querySelectorAll('.sl-strip [data-v]'), function (b) { b.classList.toggle('on', b.getAttribute('data-v') === v); });
+  }
+  function setGo(d) {
+    var sets = SETS.filter(function (t) { return t.items && t.items.length; });
+    var i = sets.indexOf(cur), j = i + d;
+    if ((j >= sets.length || j < 0) && STICKERS.length) { closeSet(); return open(STICKERS[j < 0 ? STICKERS.length - 1 : 0].id); }
+    openSet(sets[(j + sets.length) % sets.length].id);
   }
   function closeSet() { sheet3d(null); if (sl.querySelector('.sl-photo')) sl.querySelector('.sl-photo').innerHTML = ''; sl.classList.remove('open'); document.body.style.overflow = ''; }
 
