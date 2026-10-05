@@ -7,7 +7,7 @@
   window.CK_bgClick = function (el, e) { return e.target === el && lastDown === el; };
   // 點開才載入的 3D 程式（xxx3d.js）的網址：後面帶版本號，程式改了網址就變，瀏覽器不會拿快取的舊版
   // （Cloudflare 給 JS 快取 4 小時）。版本表由 build_site.py 發布時填進來；設計稿裡是空的，照原檔名載
-  var MODV = {"album3d.js": "0436370b", "badge3d.js": "32305ec9", "bottles3d.js": "6be0267a", "charm-fx.js": "69be04bf", "charm3d.js": "356c9986", "coaster3d.js": "273b0430", "stamp3d.js": "3ee7b51c", "standee3d.js": "326ea98e", "tshirt3d.js": "bf201bd1", "wheel-fx.js": "20905f91"};
+  var MODV = {"album3d.js": "0436370b", "badge3d.js": "32305ec9", "bottles3d.js": "6be0267a", "charm-fx.js": "9ec19ba7", "charm3d.js": "356c9986", "cinefx.js": "9ef1e3b3", "coaster3d.js": "273b0430", "stamp3d.js": "3ee7b51c", "standee3d.js": "326ea98e", "tshirt3d.js": "bf201bd1", "wheel-fx.js": "20905f91"};
   window.CK_MOD = function (name) { return './' + name + (MODV[name] ? '?v=' + MODV[name] : ''); };
 })();
 (function () {
@@ -465,6 +465,7 @@
     });
     sl.addEventListener('click', function (e) {
       if (CK_bgClick(sl, e) || e.target.closest('.lb-x')) return closeSet();
+      if (cinePlay && cinePlay.running && e.target.closest('.sl-stage')) return cinePlay.skip();
       var it = e.target.closest('[data-item]');
       if (!opened && (it || e.target.closest('.sl-box') || e.target.closest('.sl-hint'))) return burst();
       if (opened && it) return open(it.getAttribute('data-item'));
@@ -641,6 +642,7 @@
   // 收起來的樣子：盒子款把貼紙藏在盒口；一疊款就疊在中間
   function resetSet(animate) {
     opened = false;
+    cineStop();
     sheet3d(null);
     sl.classList.toggle('tilt', cur.kind === 'sheet');      // 電影貼紙組要打開後才擺動
     var st1 = sl.querySelector('.sl-stage'); ['--tx', '--ty'].forEach(function (v) { st1.style.removeProperty(v); });
@@ -698,8 +700,27 @@
       });
     }
   }
+  // 電影貼紙組（盒子）的首映演出：cinefx.js＋charm-fx.js 的音效，打開這個組合時才在背景載入；還沒載好就照舊直接打開
+  var cineMod = null, cineSfx = null, cinePlay = null;
+  function cineLoad() {
+    if (cineMod) return;
+    var mod = function (n) { return window.CK_MOD ? window.CK_MOD(n) : './' + n; };
+    import(mod('cinefx.js')).then(function (m) { cineMod = m; }).catch(function () {});
+    import(mod('charm-fx.js')).then(function (m) { cineSfx = m; }).catch(function () {});
+  }
+  function cineStop() { if (cinePlay) { cinePlay.stop(); cinePlay = null; } }
   function burst() {
     if (opened) return;
+    if (cur.kind === 'box' && cineMod) {
+      opened = true; sl.classList.add('tilt');
+      if (cineSfx) cineSfx.unlock();
+      place(false);                                      // 先擺好最後的位置，演出從盒口一張張飛過去
+      var els = Array.prototype.slice.call(sl.querySelectorAll('[data-item]'));
+      cinePlay = cineMod.play({ stage: sl.querySelector('.sl-stage'), box: sl.querySelector('.sl-box'), els: els,
+        items: cur.items.map(function (s) { return { rare: s.id === 'mv-stub' }; }), itemTf: itemTf, finals: layoutOpen(), z: stageSize(),
+        frame: sl.querySelector('.sl-frame'), sfx: cineSfx ? Object.assign({ SFX: cineSfx.SFX }, cineSfx.SFX) : null });
+      return;
+    }
     opened = true;
     if (cur.kind === 'box') sl.classList.add('tilt');
     var boxEl = sl.querySelector('.sl-box');
@@ -716,6 +737,7 @@
     ensureSl();
     cur = SETS.filter(function (t) { return t.id === id; })[0];
     sl.classList.toggle('sheet', cur.kind === 'sheet');
+    if (cur.kind === 'box') cineLoad();
     var st0 = sl.querySelector('.sl-stage'); ['--tx', '--ty', '--sx'].forEach(function (v) { st0.style.removeProperty(v); });
     sl.querySelector('.sl-items').innerHTML = (cur.kind === 'sheet' ? '<div class="sheetfilm"></div>' : '') + cur.items.map(function (s) {
       var th = 'assets/' + s.id + '-thumb.webp';
@@ -767,7 +789,7 @@
     if ((j >= sets.length || j < 0) && STICKERS.length) { closeSet(); return open(STICKERS[j < 0 ? STICKERS.length - 1 : 0].id); }
     openSet(sets[(j + sets.length) % sets.length].id);
   }
-  function closeSet() { sheet3d(null); if (sl.querySelector('.sl-photo')) sl.querySelector('.sl-photo').innerHTML = ''; sl.classList.remove('open'); document.body.style.overflow = ''; }
+  function closeSet() { cineStop(); sheet3d(null); if (sl.querySelector('.sl-photo')) sl.querySelector('.sl-photo').innerHTML = ''; sl.classList.remove('open'); document.body.style.overflow = ''; }
 
   // 透明貼紙板拿出來之後：直接換成 3D 預覽（整張板子，按住哪一枚就撕哪一枚），不用再點一次開另一個視窗。
   // iframe 的大小算成讓 3D 裡的板子剛好疊在平面板子的位置上（index.html 嵌入時每公釐像素＝min(寬×0.8/100, 高×0.74/124)）。
