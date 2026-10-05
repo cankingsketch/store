@@ -645,7 +645,7 @@
     sl.classList.toggle('tilt', cur.kind === 'sheet');      // 電影貼紙組要打開後才擺動
     var st1 = sl.querySelector('.sl-stage'); ['--tx', '--ty'].forEach(function (v) { st1.style.removeProperty(v); });
     var z = stageSize(), els = sl.querySelectorAll('[data-item]'), boxEl = sl.querySelector('.sl-box');
-    sl.querySelector('.sl-hint').hidden = false;
+    sl.querySelector('.sl-hint').hidden = true;            // 「點擊拿出來／打開／貼上」的提示拿掉了（他說的，跟盲盒一樣不寫字）
     boxEl.classList.remove('gone', 'lid-open');
     var fr0 = sl.querySelector('.sl-frame'); if (fr0) { fr0.style.transition = 'none'; fr0.style.opacity = 0; }
     boxEl.classList.toggle('flat', cur.kind === 'bottles');
