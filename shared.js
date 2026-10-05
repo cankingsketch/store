@@ -7,7 +7,7 @@
   window.CK_bgClick = function (el, e) { return e.target === el && lastDown === el; };
   // 點開才載入的 3D 程式（xxx3d.js）的網址：後面帶版本號，程式改了網址就變，瀏覽器不會拿快取的舊版
   // （Cloudflare 給 JS 快取 4 小時）。版本表由 build_site.py 發布時填進來；設計稿裡是空的，照原檔名載
-  var MODV = {"album3d.js": "0436370b", "badge3d.js": "32305ec9", "bottles3d.js": "6be0267a", "charm-fx.js": "9ec19ba7", "charm3d.js": "356c9986", "cinefx.js": "9ef1e3b3", "coaster3d.js": "273b0430", "stamp3d.js": "3ee7b51c", "standee3d.js": "326ea98e", "tshirt3d.js": "bf201bd1", "wheel-fx.js": "20905f91"};
+  var MODV = {"album3d.js": "0436370b", "badge3d.js": "32305ec9", "bottles3d.js": "6be0267a", "charm-fx.js": "69be04bf", "charm3d.js": "356c9986", "cinefx.js": "288231d1", "coaster3d.js": "273b0430", "stamp3d.js": "3ee7b51c", "standee3d.js": "326ea98e", "tshirt3d.js": "bf201bd1", "wheel-fx.js": "20905f91"};
   window.CK_MOD = function (name) { return './' + name + (MODV[name] ? '?v=' + MODV[name] : ''); };
 })();
 (function () {
@@ -465,7 +465,6 @@
     });
     sl.addEventListener('click', function (e) {
       if (CK_bgClick(sl, e) || e.target.closest('.lb-x')) return closeSet();
-      if (cinePlay && cinePlay.running && e.target.closest('.sl-stage')) return cinePlay.skip();
       var it = e.target.closest('[data-item]');
       if (!opened && (it || e.target.closest('.sl-box') || e.target.closest('.sl-hint'))) return burst();
       if (opened && it) return open(it.getAttribute('data-item'));
@@ -700,7 +699,8 @@
       });
     }
   }
-  // 電影貼紙組（盒子）的首映演出：cinefx.js＋charm-fx.js 的音效，打開這個組合時才在背景載入；還沒載好就照舊直接打開
+  // 電影貼紙組（盒子）開盒時：拉炮聲（charm-fx.js）＋彩帶（cinefx.js），打開這個組合時才在背景載入；還沒載好就照舊直接打開。
+  // （原本做了整套首映演出，他說只留彩帶和拉炮聲，2026-10-06）
   var cineMod = null, cineSfx = null, cinePlay = null;
   function cineLoad() {
     if (cineMod) return;
@@ -711,15 +711,9 @@
   function cineStop() { if (cinePlay) { cinePlay.stop(); cinePlay = null; } }
   function burst() {
     if (opened) return;
-    if (cur.kind === 'box' && cineMod) {
-      opened = true; sl.classList.add('tilt');
-      if (cineSfx) cineSfx.unlock();
-      place(false);                                      // 先擺好最後的位置，演出從盒口一張張飛過去
-      var els = Array.prototype.slice.call(sl.querySelectorAll('[data-item]'));
-      cinePlay = cineMod.play({ stage: sl.querySelector('.sl-stage'), box: sl.querySelector('.sl-box'), els: els,
-        items: cur.items.map(function (s) { return { rare: s.id === 'mv-stub' }; }), itemTf: itemTf, finals: layoutOpen(), z: stageSize(),
-        frame: sl.querySelector('.sl-frame'), sfx: cineSfx ? Object.assign({ SFX: cineSfx.SFX }, cineSfx.SFX) : null });
-      return;
+    if (cur.kind === 'box') {
+      if (cineSfx) { cineSfx.unlock(); cineSfx.SFX.popper(); }
+      if (cineMod) cinePlay = cineMod.confetti(sl.querySelector('.sl-stage'));
     }
     opened = true;
     if (cur.kind === 'box') sl.classList.add('tilt');

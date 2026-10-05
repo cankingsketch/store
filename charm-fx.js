@@ -135,12 +135,6 @@ export const SFX = {          // 名店選轉盤（wheel-fx.js）也用這套
     tone('square', 300, 2400, 0.12, 0.06, 0.04);
     [2093, 2637, 3136, 2349, 2794, 3520, 2637, 3136].forEach((f, i) => tone('square', f, f, 0.035, 0.03, 0.16 + i * 0.045));
   },
-  // 電影貼紙組的首映演出（cinefx.js）：投影機喀喀、倒數嗶、每張貼紙落定一個音（音階往上爬）、票根金光「鏘」、收尾和弦
-  projector() { for (let i = 0; i < 14; i++) noise(0.03, 0.18, 2400, i * 0.065); tone('sine', 58, 58, 1.0, 0.08); },
-  beep(hi) { const f = hi ? 1568 : 880; tone('square', f, f, hi ? 0.2 : 0.12, 0.06); },
-  cineNote(k) { const S = [523, 587, 659, 784, 880, 1047, 1175, 1319, 1568, 1760, 2093]; const f = S[Math.min(k, S.length - 1)]; tone('square', f, f, 0.07, 0.035); tone('triangle', f * 2, f * 2, 0.05, 0.02, 0.02); },
-  chime() { [1568, 2093, 2637, 3136].forEach((f, i) => tone('triangle', f, f, 0.5, 0.06, i * 0.05)); tone('square', 784, 784, 0.35, 0.04); noise(0.12, 0.25, 6000); },
-  chord() { [523, 659, 784, 1047].forEach(f => tone('square', f, f, 0.55, 0.03)); tone('triangle', 131, 131, 0.6, 0.15); },
   // 名店選轉盤用的（他在試聽頁 wheel-sfx-pick.html 選的）：轉過一格「啵」（H）、停下來只要一聲投幣（原本前面有段旋律，他說拿掉）
   pop() { tone('sine', 700, 1300, 0.05, 0.12); },
   short() { coin(0); },
