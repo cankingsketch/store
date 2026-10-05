@@ -30,6 +30,10 @@
   var NOT_ON_MYSHIP = ['月餅罐罐', '白花罐罐', '街頭風罐罐', '泳裝罐罐', '草莓吐司', '大姊沙發', '封面泳裝', '帝雉', '破防拉麵'];
   // 二創裡 FGO 這 5 張：賣貨便是包成「FGO明信片組|共5張」（NT$200），沒有單張
   var FGO = ['靜謐', '凜', '雙貞德', '虞美人', '黑貞'];
+  // FGO 組合（2026-10-05 他要的）：實品是 5 張裝在一個透明塑膠套裡、正面貼我們的貼紙（NAS 明信片/FGO用貼紙.psd 的紫色那塊，
+  // 貼在黑貞那張的右下：左 30.9%、上 59.5%、寬 59.1%、高 33.8%）。牆上這 5 張合成一個「套子」，點開先是裝在套子裡，
+  // 點一下五張抽出來攤開；點其中一張再放大看
+  var FGO_SET = { name: 'FGO明信片組', members: FGO, cover: '黑貞', price: 200, f: 'FGO明信片組|共5張', sticker: 'fgo-sticker.webp', st: [0.3091, 0.5954, 0.591, 0.338] };
   // O：pre＝圖檔開頭（p／a）、single＝單面（不翻）、buyName＝賣貨便上找的名字、more＝牆最下面的一行小字
   function make(CARDS, O) {
   var list = CARDS.map(function (c, i) {
@@ -37,6 +41,16 @@
     return { no: c[0], name: c[1], wide: c[2] === 1, sq: c[2] === 'sq', x: c[3] || null, s: P + id + '-s.webp', l: P + id + '-l.webp', rot: ((i * 37) % 9 - 4) * 0.6 };
   });
   var pw, at = -1, prod = null;
+  var SET = O.set || null;                               // 包成一組的那幾張：牆上不各自出現，合成一個套子
+  var inSet = function (c) { return SET && SET.members.indexOf(c.name) >= 0; };
+  var cover = SET ? list.filter(function (c) { return c.name === SET.cover; })[0] : null;
+  // 套子：卡片＋貼紙＋一層透明塑膠（反光、封口）；size＝牆上小卡（s）或展開前的大圖（l）
+  function sleeveHtml(size) {
+    var st = SET.st;
+    return '<span class="fs-slv"><img class="fs-card" src="' + (size === 'l' ? cover.l : cover.s) + '" alt="' + esc(SET.name) + '" draggable="false">' +
+      '<img class="fs-st" src="' + P + SET.sticker + '" alt="" draggable="false" style="left:' + (2.4 + st[0] * 95.2).toFixed(2) + '%;top:' + (2.4 + st[1] * 95.2).toFixed(2) +
+      '%;width:' + (st[2] * 95.2).toFixed(2) + '%"><i class="fs-film"></i></span>';
+  }
   function esc(s) { return CK.esc(s); }
   function cls(c) { return c.wide ? ' wide' : c.sq ? ' sq' + (c.x && c.x.dia ? ' dia' : '') : ''; }
   function ensure() {
@@ -47,12 +61,17 @@
       '<div class="pw-zoom" hidden><button class="pw-back">← 回到明信片牆</button><button class="lb-arrow prev" aria-label="上一張">‹</button><button class="lb-arrow next" aria-label="下一張">›</button>' +
       '<div class="pw-card"><div class="pw-flip"><img class="f" alt=""><img class="b" alt=""></div></div>' +
       '<div class="pw-cap"><b></b></div></div>' +
+      '<div class="pw-set" hidden><button class="pw-back">← 回到明信片牆</button><div class="fs-stage"></div></div>' +
       '<div class="lb-strip pw-strip"></div>' +           // 放大時下面一排全部明信片的縮圖，直接點想看的那張（跟貼紙預覽一樣）
       '<div class="lb-foot"><div><h3></h3><small></small></div><div class="buybox"></div></div></div>';
     document.body.appendChild(pw);
     CK.stripify(pw.querySelector('.pw-strip'));
     pw.addEventListener('click', function (e) {
       if (CK_bgClick(pw, e) || e.target.closest('.lb-x')) return close();
+      if (e.target.closest('[data-pc="set"]')) return openSet();
+      var fc = e.target.closest('[data-fs]');               // 攤開的五張：點一張放大
+      if (fc) return zoom(+fc.dataset.fs);
+      if (e.target.closest('.fs-stage .fs-slv')) return spread();
       var c = e.target.closest('[data-pc]');
       if (c) return zoom(+c.dataset.pc);
       var k = e.target.closest('[data-pk]');
@@ -126,13 +145,59 @@
     }, 180);
   }
   function wallHtml() {
-    return '<div class="pw-row">' + list.map(function (c, i) {
+    return '<div class="pw-row">' + (SET ? '<button class="pc fs" data-pc="set" style="--r:-1.5deg" title="' + esc(SET.name) + '">' + sleeveHtml('s') + '</button>' : '') +
+      list.map(function (c, i) {
+      if (inSet(c)) return '';
       return '<button class="pc' + cls(c) + '" data-pc="' + i + '" style="--r:' + c.rot + 'deg" title="' + esc(c.name) + '">' +
         '<img src="' + c.s + '" alt="' + esc(c.name) + '" loading="lazy"></button>';
     }).join('') + '</div>' + (O.more ? '<p class="pw-more">' + O.more + '</p>' : '');
   }
+  // 組合：先是裝在套子裡（會輕輕晃），點一下抽出來攤開
+  var spreading = false;
+  function openSet() {
+    at = -1; spreading = false;
+    pw.querySelector('.pw-zoom').hidden = true; pw.querySelector('.pw-strip').parentNode.hidden = false;   // 下面那排縮圖留著（藏起來面板會變矮、蓋到購買區）
+    var box = pw.querySelector('.pw-set'), stage = box.querySelector('.fs-stage');
+    box.hidden = false;
+    stage.innerHTML = '<div class="fs-big">' + sleeveHtml('l') + '</div>';
+    buySet();
+  }
+  function spread() {
+    if (spreading) return;
+    spreading = true;
+    var stage = pw.querySelector('.fs-stage'), big = stage.querySelector('.fs-big');
+    var members = list.map(function (c, i) { return [c, i]; }).filter(function (x) { return inSet(x[0]); });
+    // 套子往下退、卡片往上抽出來
+    big.classList.add('out');
+    // 卡片大小：兩邊超出面板一點點沒關係，不要為了塞下整個縮小（他說的）
+    var r = stage.getBoundingClientRect(), n = members.length, h = Math.min(r.height * 0.5, r.width * 0.46, 300);
+    var gap = Math.min(r.width * 0.17, h * 0.56);
+    members.forEach(function (m, k) {
+      var c = m[0], w = c.wide ? h : h * 2 / 3, d = k - (n - 1) / 2;          // 長邊一樣長：直的 h 高、橫的 h 寬
+      var el = document.createElement('button');
+      el.className = 'fs-pc' + (c.wide ? ' wide' : ''); el.dataset.fs = m[1]; el.title = c.name;
+      el.style.width = w + 'px'; el.style.height = (c.wide ? h * 2 / 3 * 1.0 : h) + 'px';
+      el.innerHTML = '<img src="' + c.s + '" alt="' + esc(c.name) + '" draggable="false">';
+      // 起點：疊在套子的位置；終點：扇形攤開
+      el.style.setProperty('--x', '0px'); el.style.setProperty('--y', (h * 0.15) + 'px'); el.style.setProperty('--r', '0deg');
+      stage.appendChild(el);
+      setTimeout(function () {
+        el.classList.add('in');
+        el.style.setProperty('--x', (d * gap) + 'px'); el.style.setProperty('--y', (Math.abs(d) * h * 0.06 - h * 0.05) + 'px');
+        el.style.setProperty('--r', (d * 7) + 'deg'); el.style.zIndex = 10 - Math.abs(Math.round(d));
+      }, 420 + k * 70);
+    });
+  }
+  var h3Html = '';                                       // 牆的標題（組合模式換成組合名，回來再換回）
+  function buySet() {
+    pw.querySelector('.lb-foot h3').innerHTML = esc(SET.name) + '<i class="tag setc">' + SET.members.length + ' 張</i>';
+    pw.querySelector('.lb-foot small').textContent = '5 張・10 × 15 cm';
+    pw.querySelector('.buybox').innerHTML = CK.buyBox(SET.name, SET.price, { findName: SET.f, wish: { n: SET.name, f: SET.f, p: SET.price, img: cover.s } });
+  }
   function zoom(i) {
     at = i;
+    if (pw.querySelector('.pw-set')) pw.querySelector('.pw-set').hidden = true;
+    if (h3Html) pw.querySelector('.lb-foot h3').innerHTML = h3Html;
     var z = pw.querySelector('.pw-zoom'), st = pw.querySelector('.pw-strip');
     z.hidden = i < 0; st.parentNode.hidden = i < 0;
     if (i < 0) return buy(null);
@@ -159,6 +224,7 @@
   }
   // 購買區：放大某一張時「加到想買清單」記的是那一張
   function buy(c) {
+    if (c && inSet(c)) return buySet();                 // 組合裡的那幾張不單賣：放大看的時候購買區還是整組
     var w = !c ? null : FGO.indexOf(c.name) >= 0 ? { n: 'FGO明信片組', f: 'FGO明信片組|共5張', p: 200, img: c.s }
       : { v: c.name, sp: c.name, img: c.s, na: O.pre === 'p' && NOT_ON_MYSHIP.indexOf(c.name) >= 0 };
     if (c && c.x) w = { img: c.s };                          // 春聯：自己是一樣商品
@@ -172,7 +238,9 @@
   }
   // 周邊頁的明信片列：一排小卡（點了直接放大那一張）
   function stripHtml() {
-    return list.map(function (c, i) {
+    return (SET ? '<button class="pc fs" data-pcs="-2" style="--r:-1.5deg" title="' + esc(SET.name) + '">' + sleeveHtml('s') + '</button>' : '') +
+      list.map(function (c, i) {
+      if (inSet(c)) return '';
       return '<button class="pc' + cls(c) + '" data-pcs="' + i + '" style="--r:' + c.rot + 'deg" title="' + esc(c.name) + '">' +
         '<img src="' + c.s + '" alt="' + esc(c.name) + '" loading="lazy" draggable="false"></button>';
     }).join('');
@@ -183,17 +251,20 @@
     pw.querySelector('.pw-strip').innerHTML = list.map(function (c, i) {
       return '<button class="' + cls(c).trim() + '" data-pk="' + i + '" title="' + esc(c.name) + '"><img src="' + c.s + '" alt="' + esc(c.name) + '" loading="lazy"></button>';
     }).join('');
-    pw.querySelector('.lb-foot h3').innerHTML = esc(p.name) + '<i class="tag setc">' + list.filter(function (c) { return !c.x; }).length + ' 款</i>';
+    // 款數：組合算一款
+    pw.querySelector('.lb-foot h3').innerHTML = h3Html = esc(p.name) + '<i class="tag setc">' + (list.filter(function (c) { return !c.x && !inSet(c); }).length + (SET ? 1 : 0)) + ' 款</i>';
     pw.querySelector('.lb-foot small').textContent ='單張 NT$44・10 × 15 cm';
     zoom(-1);
     pw.classList.add('open'); document.body.style.overflow = 'hidden';
     pw.querySelector('.pw-wall').scrollTop = 0;
-    if (startAt != null) zoom(startAt);
+    if (startAt === -2 && SET) openSet();                // 周邊頁點的是組合的套子
+    else if (startAt != null) zoom(startAt);
   }
   function close() { pw.classList.remove('open'); document.body.style.overflow = ''; }
   return { open: open, list: list, stripHtml: stripHtml };
   }
 
-  window.CK_POSTCARDS = make(CARDS, { pre: 'p', buyName: '空罐原創明信片', more: 'FGO 明信片組（5 張 NT$200）請到賣貨便看' });
-  window.CK_FANCARDS = make(FAN, { pre: 'a', single: true, buyName: '空罐二創明信片' });
+  // 原創牆最下面原本有一行「FGO 明信片組（5 張 NT$200）請到賣貨便看」：組合已經放進二創牆了，拿掉
+  window.CK_POSTCARDS = make(CARDS, { pre: 'p', buyName: '空罐原創明信片' });
+  window.CK_FANCARDS = make(FAN, { pre: 'a', single: true, buyName: '空罐二創明信片', set: FGO_SET });
 })();
