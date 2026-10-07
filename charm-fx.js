@@ -25,7 +25,8 @@ const TINT = {
 // 每個選項的演出：色、效果字、集中線顏色、震動強度、小動作、音效
 const SHOW = {
   '畫':       { tier: 1, tint: 'gold',   sfx: 'ドンッ！',   lines: '#ffcf33', shake: 11, extra: ['party'],          sound: 'don' },
-  '好啦我畫': { tier: 2, tint: 'orange', sfx: 'ドドドド',   lines: '#ffae2e', shake: 5,  extra: ['party', 'menace'], sound: 'dododo' },
+  '好啦我畫': { tier: 2, tint: 'orange', sfx: 'ドドドド',   lines: '#ffae2e', shake: 5,  extra: ['party', 'menace'], sound: 'dododo',
+    grad: 'linear-gradient(180deg,#ffa31a 10%,#ffe84a 90%)' },   // 效果字填漸層（2026-10-08 他說純黃改成橙黃到黃）
   '畫一點':   { tier: 3, tint: 'pink',   sfx: 'キラーン☆', lines: '#ffb3d1', shake: 0,  extra: ['sparkle'],        sound: 'kiran' },
   '再轉一次': { tint: 'gold' },
   '今日封筆': { tint: 'grey' },
@@ -53,6 +54,7 @@ function addStyle() {
       'font-family:"Hiragino Sans","Yu Gothic","Meiryo","Noto Sans JP",sans-serif;-webkit-text-stroke:5px #1d1d1d;paint-order:stroke fill;' +
       'transform:translate(-50%,-50%) rotate(var(--r,-8deg)) scale(0);animation:cfx-in .28s cubic-bezier(.2,1.6,.4,1) forwards,cfx-jit .07s steps(2) .28s infinite}' +
     '.cfx-sfx.out{animation:cfx-outa .35s ease-in forwards}' +
+    '.cfx-g{position:absolute;left:0;top:0;-webkit-text-stroke:0;text-shadow:none;color:transparent;-webkit-background-clip:text;background-clip:text}' +
     '@keyframes cfx-in{to{transform:translate(-50%,-50%) rotate(var(--r,-8deg)) scale(1)}}' +
     '@keyframes cfx-jit{0%{transform:translate(-50%,-50%) rotate(var(--r,-8deg)) translate(1.5px,-1px)}100%{transform:translate(-50%,-50%) rotate(var(--r,-8deg)) translate(-1.5px,1px)}}' +
     '@keyframes cfx-outa{to{transform:translate(-50%,-50%) rotate(var(--r,-8deg)) scale(1.25);opacity:0}}' +
@@ -246,8 +248,9 @@ export async function attach({ el, card, base, thick }) {
     if (S.shake) { el.style.setProperty('--s', S.shake); void el.offsetWidth; el.classList.add('cfx-shake'); timers.push(setTimeout(() => el.classList.remove('cfx-shake'), 500)); }
     // 效果字：拆成兩半，前半在吊飾左上角外、後半在右上角（特效鈕下面），不擋中間的畫面（他圈的位置）
     const big = Math.max(34, b.cw * 0.12), t = TINT[S.tint], cut = Math.ceil(S.sfx.length / 2);
+    const fill = txt => S.grad ? txt + '<span class="cfx-g" style="background-image:' + S.grad + '">' + txt + '</span>' : txt;
     [[S.sfx.slice(0, cut), 0.11, 0.27, -10], [S.sfx.slice(cut), 0.87, 0.24, 9]].forEach(([txt, fx, fy, r], k) => {
-      const w = addTemp(el, 'cfx-sfx', txt, { fontSize: big + 'px', color: t[1], textShadow: '0 0 14px ' + t[2] + ',4px 5px 0 ' + t[2] });
+      const w = addTemp(el, 'cfx-sfx', fill(txt), { fontSize: big + 'px', color: t[1], textShadow: '0 0 14px ' + t[2] + ',4px 5px 0 ' + t[2] });
       const hw = w.offsetWidth / 2 + 6;                  // 別超出畫面
       w.style.left = Math.min(er.width - hw, Math.max(hw, fx * er.width)) + 'px';
       w.style.top = (fy * er.height) + 'px';
@@ -263,7 +266,7 @@ export async function attach({ el, card, base, thick }) {
       const ch = S.sfx[0];
       for (let k = 0; k < 7; k++) timers.push(setTimeout(() => {
         const x = (k % 2 ? 0.12 : 0.88) * er.width + (Math.random() - 0.5) * 40, y = er.height * (0.25 + Math.random() * 0.5);
-        addTemp(el, 'cfx-float', ch, { left: x + 'px', top: y + 'px', fontSize: (big * (0.55 + Math.random() * 0.35)) + 'px', color: t[1] });
+        addTemp(el, 'cfx-float', fill(ch), { left: x + 'px', top: y + 'px', fontSize: (big * (0.55 + Math.random() * 0.35)) + 'px', color: t[1] });
       }, k * 150));
     }
     loop();
