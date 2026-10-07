@@ -26,7 +26,7 @@ const TINT = {
 const SHOW = {
   '畫':       { tier: 1, tint: 'gold',   sfx: 'ドンッ！',   lines: '#ffcf33', shake: 11, extra: ['party'],          sound: 'don' },
   '好啦我畫': { tier: 2, tint: 'orange', sfx: 'ドドドド',   lines: '#ffae2e', shake: 5,  extra: ['party', 'menace'], sound: 'dododo',
-    grad: 'linear-gradient(180deg,#ffa31a 10%,#ffe84a 90%)' },   // 效果字填漸層（2026-10-08 他說純黃改成橙黃到黃）
+    grad: 'linear-gradient(160deg,#ff7a00 15%,#ffb21e 50%,#fff04a 90%)' },   // 效果字填漸層：橙黃到黃，每個字各自從左上到右下（他給的 JoJo「ゴゴ」那種）
   '畫一點':   { tier: 3, tint: 'pink',   sfx: 'キラーン☆', lines: '#ffb3d1', shake: 0,  extra: ['sparkle'],        sound: 'kiran' },
   '再轉一次': { tint: 'gold' },
   '今日封筆': { tint: 'grey' },
@@ -54,7 +54,8 @@ function addStyle() {
       'font-family:"Hiragino Sans","Yu Gothic","Meiryo","Noto Sans JP",sans-serif;-webkit-text-stroke:5px #1d1d1d;paint-order:stroke fill;' +
       'transform:translate(-50%,-50%) rotate(var(--r,-8deg)) scale(0);animation:cfx-in .28s cubic-bezier(.2,1.6,.4,1) forwards,cfx-jit .07s steps(2) .28s infinite}' +
     '.cfx-sfx.out{animation:cfx-outa .35s ease-in forwards}' +
-    '.cfx-g{position:absolute;left:0;top:0;-webkit-text-stroke:0;text-shadow:none;color:transparent;-webkit-background-clip:text;background-clip:text}' +
+    '.cfx-g{position:absolute;left:0;top:0;-webkit-text-stroke:0;text-shadow:none;color:transparent}' +
+    '.cfx-g>span{-webkit-background-clip:text;background-clip:text}' +
     '@keyframes cfx-in{to{transform:translate(-50%,-50%) rotate(var(--r,-8deg)) scale(1)}}' +
     '@keyframes cfx-jit{0%{transform:translate(-50%,-50%) rotate(var(--r,-8deg)) translate(1.5px,-1px)}100%{transform:translate(-50%,-50%) rotate(var(--r,-8deg)) translate(-1.5px,1px)}}' +
     '@keyframes cfx-outa{to{transform:translate(-50%,-50%) rotate(var(--r,-8deg)) scale(1.25);opacity:0}}' +
@@ -248,7 +249,7 @@ export async function attach({ el, card, base, thick }) {
     if (S.shake) { el.style.setProperty('--s', S.shake); void el.offsetWidth; el.classList.add('cfx-shake'); timers.push(setTimeout(() => el.classList.remove('cfx-shake'), 500)); }
     // 效果字：拆成兩半，前半在吊飾左上角外、後半在右上角（特效鈕下面），不擋中間的畫面（他圈的位置）
     const big = Math.max(34, b.cw * 0.12), t = TINT[S.tint], cut = Math.ceil(S.sfx.length / 2);
-    const fill = txt => S.grad ? txt + '<span class="cfx-g" style="background-image:' + S.grad + '">' + txt + '</span>' : txt;
+    const fill = txt => S.grad ? txt + '<span class="cfx-g">' + Array.from(txt).map(c => '<span style="background-image:' + S.grad + '">' + c + '</span>').join('') + '</span>' : txt;
     [[S.sfx.slice(0, cut), 0.11, 0.27, -10], [S.sfx.slice(cut), 0.87, 0.24, 9]].forEach(([txt, fx, fy, r], k) => {
       const w = addTemp(el, 'cfx-sfx', fill(txt), { fontSize: big + 'px', color: t[1], textShadow: '0 0 14px ' + t[2] + ',4px 5px 0 ' + t[2] });
       const hw = w.offsetWidth / 2 + 6;                  // 別超出畫面
