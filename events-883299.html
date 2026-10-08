@@ -16,10 +16,13 @@
   .store .addr { margin:14px 0 0; font-size:14px; line-height:1.6; color:var(--ink); }
   .store .note { margin:6px 0 0; font-size:13px; line-height:1.6; color:var(--mute); }
   .store .v3-btns { justify-content:flex-start; margin-top:auto; padding-top:16px; }
-  .shot { max-width:420px; margin:0 auto; padding:10px; border-radius:22px; text-align:center; }
-  .shot img { display:block; width:100%; border-radius:14px; }
+  /* 店內實景：每家一張直式照片（2026-10-08 加南風窗簾、士林 Fourpics、草咖啡的轉蛋機） */
+  .shots { display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; }
+  .shot { margin:0; padding:10px; border-radius:22px; text-align:center; }
+  .shot a { display:block; }
+  .shot img { display:block; width:100%; aspect-ratio:9/16; object-fit:cover; border-radius:14px; }
   .shot p { margin:10px 0 2px; font-size:14px; color:var(--mute); }
-  @media (max-width:860px) { .stores { grid-template-columns:1fr; max-width:460px; margin:0 auto; } }
+  @media (max-width:860px) { .stores { grid-template-columns:1fr; max-width:460px; margin:0 auto; } .shots { grid-template-columns:1fr 1fr; } }
 </style>
 <meta name="description" content="空罐王商品的實體寄售店。">
 <link rel="canonical" href="https://cankingstore.com/events-883299">
@@ -45,7 +48,16 @@
   var STORES = [
     ['虎之穴 台北店', ['畫冊 5 款', '立牌 4 款'], '台北市中正區漢口街一段 85 號　博愛公元大樓 2F', '', '台北市中正區漢口街一段85號'],
     ['南風窗簾 基隆', ['轉蛋機 ×2', '可換零錢'], '基隆市仁愛區仁一路 233 號', '門口兩台轉蛋機，「今日吃甚麼?」共六款。', '基隆市仁愛區仁一路233號'],
+    ['Fourpics 士林夜市店', ['轉蛋機 ×2'], '台北市士林區文林路 29 號 1 樓', '店門口兩台轉蛋機，劍潭站 1 號出口附近。', '台北市士林區文林路29號'],
+    ['草咖啡 KUSA CAFE 西門', ['轉蛋機'], '臺北市中正區博愛路 52 號 1 樓', '店內一台轉蛋機，「今日吃甚麼?」共六款。', '臺北市中正區博愛路52號'],
     ['時尚小拉基 台中', ['明信片', '盲盒', '畫冊'], '臺中市北區精武路 320-6 號', '商品在 B1。', '臺中市北區精武路320-6號']
+  ];
+  // 店內實景：[照片, 說明]
+  var SHOTS = [
+    ['store-nanfeng.jpg', '南風窗簾（基隆）門口'],
+    ['store-shilin.jpg', 'Fourpics 士林夜市店門口'],
+    ['store-kusa.jpg', '草咖啡 KUSA CAFE（西門）店內'],
+    ['small-gabege1200_orig.jpg', '時尚小拉基（台中）B1']
   ];
   CK_SHOP.page('實體店寄售', [
     '<section class="band v3 b-stripe"><div class="v3-wrap">' + CK_SHOP.head('實體店寄售', 'STORES') +
@@ -56,7 +68,10 @@
       }).join('') + '</div>' +
     '</div></section>',
     '<section class="band v3 b-dots"><div class="v3-wrap">' + CK_SHOP.head('店內實景', 'IN STORE') +
-      '<div class="shot white-box"><img src="' + CK_SHOP.opt('small-gabege1200_orig.jpg', 'l') + '" alt="時尚小拉基 B1 櫃位"><p>時尚小拉基（台中）B1</p></div>' +
+      '<div class="shots">' + SHOTS.map(function (p) {
+        return '<figure class="shot white-box"><a href="' + CK_SHOP.opt(p[0], 'l') + '" target="_blank" rel="noopener"><img src="' + CK_SHOP.opt(p[0], 's') +
+          '" alt="' + p[1] + '" loading="lazy"></a><p>' + p[1] + '</p></figure>';
+      }).join('') + '</div>' +
     '</div></section>'
   ]);
 })();
