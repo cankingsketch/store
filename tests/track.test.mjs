@@ -162,6 +162,26 @@ console.log('\n[6b] 想買清單（kind = wish）跟外連點擊分開算');
   ok('其他 kind 一律當 other', k.kind === 'other', k);
 }
 
+console.log('\n[6c] 打開商品（kind = view）、商品名去空白合併');
+{
+  const e6 = { STATS: makeD1() };
+  const v = (label) => hit(e6, { channel: '商品頁', kind: 'view', label, url: 'view', page: '/goods' });
+  await v('下雨天杯墊'); await v('下雨天杯墊'); await v('下雨天杯墊'); await v('誇誇水晶印章');
+  await hit(e6, { channel: '賣貨便', kind: 'shop', label: '下雨天杯墊', url: 'https://myship.7-11.com.tw/a', page: '/goods' });
+  await hit(e6, { channel: 'Hahow', kind: 'shop', label: '速寫課1', url: 'https://hahow.in/a', page: '/lessons' });
+  await hit(e6, { channel: 'Hahow', kind: 'shop', label: '速寫課 1', url: 'https://hahow.in/a', page: '/lessons' });
+  const row = e6.STATS._raw.prepare("SELECT kind FROM clicks WHERE channel = '商品頁' LIMIT 1").get();
+  ok('view 照原樣存下來', row.kind === 'view', row);
+  const d = await (await ask(e6, '?days=7')).json();
+  ok('外連總數不算 view（3）', d.total === 3, d.total);
+  ok('通路裡沒有「商品頁」', !d.byChannel.some(c => c.channel === '商品頁'), d.byChannel);
+  ok('每日序列不算 view', d.byDay.every(x => x.n === 3), d.byDay);
+  ok('打開排行：下雨天杯墊 3 次、按購買 1', d.byView[0].label === '下雨天杯墊' && d.byView[0].n === 3 && d.byView[0].buy === 1, d.byView);
+  ok('沒人按購買的是 0', d.byView[1].label === '誇誇水晶印章' && d.byView[1].buy === 0, d.byView);
+  const sk = d.byLabel.filter(r => r.label.replace(/ /g, '') === '速寫課1');
+  ok('「速寫課1」「速寫課 1」合成一行 2 次', sk.length === 1 && sk[0].n === 2, d.byLabel);
+}
+
 console.log('\n[7] 天數參數');
 {
   const e3 = { STATS: makeD1() };

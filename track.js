@@ -99,6 +99,18 @@
     } catch (err) { /* 不影響網站 */ }
   };
 
+  /* 打開商品（shared.js 的 buyBox 呼叫）：記「哪個商品被看了」，kind 記成 view，跟點擊分開算。
+   * 同一個商品在同一次瀏覽只記一次（換圖、左右切換會重畫購買框），算的是「幾次造訪看了它」 */
+  var viewed = {};
+  window.CK_VIEW = function (label) {
+    try {
+      label = String(label || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+      if (!label || viewed[label]) return;
+      viewed[label] = 1;
+      send({ channel: '商品頁', kind: 'view', url: 'view', label: label, page: location.pathname.slice(0, 200) });
+    } catch (err) { /* 不影響網站 */ }
+  };
+
   document.addEventListener('click', function (e) {
     try {
       if (e.defaultPrevented || e.button !== 0) return;

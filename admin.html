@@ -654,6 +654,18 @@
     }).join('');
   }
 
+  // 被打開次數的長條，右邊數字寫「打開 → 購買（比例）」
+  function viewList(rows) {
+    var max = rows.reduce(function (m, r) { return Math.max(m, r.n); }, 0) || 1;
+    return rows.map(function (r) {
+      var pct = r.n ? Math.round(Math.min(r.buy, r.n) / r.n * 100) : 0;
+      return '<div class="bar">' +
+        '<div class="nm" title="' + esc(r.label) + '">' + esc(r.label) + '</div>' +
+        '<div class="tr"><i style="width:' + Math.max(2, (r.n / max) * 100) + '%"></i></div>' +
+        '<div class="vl" style="white-space:nowrap">' + r.n + ' → ' + r.buy + '（' + pct + '%）</div></div>';
+    }).join('');
+  }
+
   function section(title, inner) {
     return '<h2 style="font-size:15px;margin:22px 0 6px;">' + title + '</h2>' + inner;
   }
@@ -788,6 +800,11 @@
 
     html += section('哪個商品的購買鍵被按最多',
       barList((d.byLabel || []).map(function (r) { return { nm: r.label, n: r.n }; })));
+
+    // 商品被打開幾次 → 按購買幾次（2026-10-19 開始記）：同一次瀏覽同一個商品只算一次
+    html += section('哪個商品被打開最多（右邊是按購買的次數）',
+      (d.byView && d.byView.length ? viewList(d.byView) : '<p class="hint">這段期間還沒有資料（2026-10-19 開始記）</p>') +
+      '<p class="hint">打開的人多、按購買的人少，就是有興趣但沒下單：可能是價格、照片或說明的問題</p>');
 
     // 想買清單（2026-10-04）：大家很想買、但不一定點去下單的東西
     html += section('哪個商品被加到想買清單最多',

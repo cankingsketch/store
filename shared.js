@@ -99,8 +99,11 @@
   function priceText(price, from) { return price ? money(price) + (from ? ' 起' : '') : ''; }
   // 購買按鈕都標上商品名（data-track-label）：點擊統計（正式站的 track.js）才知道是在買哪個商品
   // 購買按鈕都帶 data-track-label，流量統計才知道點的是哪個商品；opt.trackLabel 可以另外指定（單張貼紙要記是哪一張）
+  // 購買框只在打開商品時才畫：順便記一次「看了這個商品」（2026-10-19，後台算「看了幾次 → 按購買幾次」）
   function buyBox(name, price, opt) {
-    return buyBoxHtml(name, price, opt).replace(/<a /g, '<a data-track-label="' + esc((opt && opt.trackLabel) || name) + '" ');
+    var label = (opt && opt.trackLabel) || name;
+    try { if (window.CK_VIEW) window.CK_VIEW(label); } catch (e) {}
+    return buyBoxHtml(name, price, opt).replace(/<a /g, '<a data-track-label="' + esc(label) + '" ');
   }
   function buyBoxHtml(name, price, opt) {
     opt = opt || {};

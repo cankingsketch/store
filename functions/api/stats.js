@@ -47,23 +47,24 @@ export async function onRequestGet({ request, env }) {
   try {
     const rows = (q, ...b) => db.prepare(q).bind(...b).all().then((r) => r.results || []);
 
-    // kind = 'wish' 是「加到想買清單」，不是外連：點擊的數字（總數、通路、每日、裝置、國家）都不算它
-    const [total, byChannel, byLabel, byDay, byPage, byDevice, byCountry, byWish] = await Promise.all([
-      rows(`SELECT COUNT(*) AS n, SUM(kind = 'shop') AS shop FROM clicks WHERE day >= ? AND kind <> 'wish'`, from),
+    // kind = 'wish' 是「加到想買清單」、'view' 是「打開商品看」，都不是外連：點擊的數字（總數、通路、每日、裝置、國家）都不算它們。
+    // 商品名一律去掉空白再分組：同一個東西改過名（「速寫課1」10/3 改成「速寫課 1」）才不會拆成兩行，顯示用其中一個寫法
+    const [total, byChannel, byLabel, byDay, byPage, byDevice, byCountry, byWish, byView] = await Promise.all([
+      rows(`SELECT COUNT(*) AS n, SUM(kind = 'shop') AS shop FROM clicks WHERE day >= ? AND kind NOT IN ('wish', 'view')`, from),
       rows(
-        `SELECT channel, kind, COUNT(*) AS n FROM clicks WHERE day >= ? AND kind <> 'wish'
+        `SELECT channel, kind, COUNT(*) AS n FROM clicks WHERE day >= ? AND kind NOT IN ('wish', 'view')
          GROUP BY channel, kind ORDER BY n DESC LIMIT ?`,
         from, TOP_N
       ),
       rows(
-        `SELECT label, COUNT(*) AS n FROM clicks
+        `SELECT MIN(label) AS label, COUNT(*) AS n FROM clicks
          WHERE day >= ? AND kind = 'shop' AND label <> ''
-         GROUP BY label ORDER BY n DESC LIMIT ?`,
+         GROUP BY REPLACE(label, ' ', '') ORDER BY n DESC LIMIT ?`,
         from, TOP_N
       ),
       rows(
         `SELECT day, COUNT(*) AS n, SUM(kind = 'shop') AS shop FROM clicks
-         WHERE day >= ? AND kind <> 'wish' GROUP BY day ORDER BY day`,
+         WHERE day >= ? AND kind NOT IN ('wish', 'view') GROUP BY day ORDER BY day`,
         from
       ),
       // 舊資料裡的 page 帶著 ?fbclid=... 之類的查詢字串（前端已修，但存下來的還在），
@@ -79,18 +80,28 @@ export async function onRequestGet({ request, env }) {
          GROUP BY 1 ORDER BY n DESC LIMIT ?`,
         from, TOP_N_PAGES
       ),
-      rows(`SELECT device, COUNT(*) AS n FROM clicks WHERE day >= ? AND kind <> 'wish' GROUP BY device`, from),
+      rows(`SELECT device, COUNT(*) AS n FROM clicks WHERE day >= ? AND kind NOT IN ('wish', 'view') GROUP BY device`, from),
       rows(
-        `SELECT country, COUNT(*) AS n FROM clicks WHERE day >= ? AND country <> '' AND kind <> 'wish'
+        `SELECT country, COUNT(*) AS n FROM clicks WHERE day >= ? AND country <> '' AND kind NOT IN ('wish', 'view')
          GROUP BY country ORDER BY n DESC LIMIT ?`,
         from, TOP_N
       ),
       // 加到想買清單最多的商品（label 是「商品・款式」）
       rows(
-        `SELECT label, COUNT(*) AS n FROM clicks
+        `SELECT MIN(label) AS label, COUNT(*) AS n FROM clicks
          WHERE day >= ? AND kind = 'wish' AND label <> ''
-         GROUP BY label ORDER BY n DESC LIMIT ?`,
+         GROUP BY REPLACE(label, ' ', '') ORDER BY n DESC LIMIT ?`,
         from, TOP_N
+      ),
+      // 被打開最多的商品，跟它的購買鍵被按了幾次（同名對照）：看的人多、按購買的少＝有興趣但沒下單
+      rows(
+        `SELECT MIN(v.label) AS label, COUNT(*) AS n,
+                (SELECT COUNT(*) FROM clicks s
+                  WHERE s.day >= ? AND s.kind = 'shop' AND REPLACE(s.label, ' ', '') = REPLACE(v.label, ' ', '')) AS buy
+         FROM clicks v
+         WHERE v.day >= ? AND v.kind = 'view' AND v.label <> ''
+         GROUP BY REPLACE(v.label, ' ', '') ORDER BY n DESC LIMIT ?`,
+        from, from, TOP_N
       ),
     ]);
 
@@ -110,6 +121,7 @@ export async function onRequestGet({ request, env }) {
       byCountry,
       byWish,
       wish: byWish.reduce((s, r) => s + r.n, 0),
+      byView,
       user: auth.email,
     });
   } catch (e) {
