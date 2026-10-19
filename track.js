@@ -19,6 +19,7 @@
     ['hahow.in', 'Hahow'],
     ['store.line.me', 'LINE STORE'],
     ['devilcase.net', 'DEVILCASE'],
+    ['rhinoshield.tw', '犀牛盾'],
     ['pressplay.cc', 'PressPlay'],
     ['forms.gle', '訂購表單'],
     ['docs.google.com', '訂購表單'],
@@ -32,7 +33,7 @@
   ];
 
   /* 購買通路（要算「導購成效」的），其餘算社群/其他外連 */
-  var SHOP = ['賣貨便', '蝦皮', 'Gumroad', 'Hahow', 'LINE STORE', 'DEVILCASE', 'PressPlay', '訂購表單'];
+  var SHOP = ['賣貨便', '蝦皮', 'Gumroad', 'Hahow', 'LINE STORE', 'DEVILCASE', '犀牛盾', 'PressPlay', '訂購表單'];
 
   function channelOf(host) {
     host = String(host || '').toLowerCase();

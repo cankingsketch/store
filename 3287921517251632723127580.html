@@ -12,6 +12,22 @@
   .phone-mq .mq { --n:2; }
   @media (max-width:760px) { .phone-mq .mq { --n:1.3; } }
   .cases-go { margin-top:26px; }
+  /* 犀牛盾（2026-10-19）：圖案放在犀牛盾客製化的圖庫裡、沒有單獨的連結 → 宣傳圖＋三步驟教學＋直接開客製化頁。
+     教學只寫找不到的地方，關鍵字跟犀牛盾畫面上的字一樣（他說要精簡，怕大家不讀） */
+  .rhino { display:grid; grid-template-columns:1fr 1fr; gap:22px; align-items:center; }
+  .rhino-pic { display:block; padding:10px; border-radius:22px; }
+  .rhino-pic img { display:block; width:100%; border-radius:14px; }
+  .rhino-how { padding:24px 22px; border-radius:22px; text-align:left; }
+  .rhino-how h3 { margin:0 0 4px; font-size:19px; font-weight:900; color:var(--ink); }
+  .rhino-how .sub { margin:0 0 14px; font-size:14px; color:var(--mute); }
+  .rhino-how ol { list-style:none; margin:0; padding:0; counter-reset:st; }
+  .rhino-how li { counter-increment:st; position:relative; padding:0 0 0 38px; margin:0 0 14px; font-size:15px; line-height:1.6; color:var(--ink); }
+  .rhino-how li::before { content:counter(st); position:absolute; left:0; top:-1px; width:27px; height:27px; border-radius:50%;
+    background:var(--red2); color:#fff; font-weight:900; font-size:14px; display:flex; align-items:center; justify-content:center; }
+  .rhino-how li b { color:var(--red2); }
+  .rhino-how li img { display:block; width:min(100%, 300px); margin-top:8px; border-radius:10px; border:1px solid #eee; }
+  .rhino-how .v3-btns { justify-content:flex-start; margin-top:6px; }
+  @media (max-width:760px) { .rhino { grid-template-columns:1fr; } }
 </style>
 <meta name="description" content="空罐王 × DEVILCASE 聯名手機殼。">
 <link rel="canonical" href="https://cankingstore.com/3287921517251632723127580">
@@ -33,6 +49,7 @@
 <script>
 (function () {
   var I = CK_SHOP.IMG, GO = 'https://devilcase.net/Canking';
+  var RHINO = 'https://rhinoshield.tw/ditto/customize?product_handle=clear-case-bumper-with-capture-button&product_type=PhoneCase';
   // 2026 惡魔盾宣傳圖（NAS 自繪/商品/手機殼/2026/宣傳圖，1800×1800 PNG → img/opt 的 webp）
   // 5b：他改過第 5 張（充電頭的字），換檔名避開快取
   var PICS = ['devilcase2026-1.png', 'devilcase2026-2.png', 'devilcase2026-3.png', 'devilcase2026-4.png', 'devilcase2026-5b.png'];
@@ -44,6 +61,16 @@
         }).join('') +
       '</div></div><button class="mq-arrow next" aria-label="下一張">›</button></div>' +
       '<div class="v3-btns cases-go"><a class="v3-btn" data-track-label="聯名手機殼" href="' + GO + '" target="_blank" rel="noopener">手機試衣間</a></div>' +
+    '</div></section>',
+    '<section class="band v3 b-stripe"><div class="v3-wrap">' + CK_SHOP.head('犀牛盾', 'RHINOSHIELD') +
+      '<div class="rhino">' +
+        '<a class="rhino-pic white-box" href="' + RHINO + '" target="_blank" rel="noopener" data-track-label="犀牛盾手機殼"><img src="' + CK_SHOP.opt('rhino2026.png', 'l') + '" alt="犀牛盾 × 空罐王 自由拼貼你的殼" loading="lazy"></a>' +
+        '<div class="rhino-how white-box"><h3>載具手機殼</h3><p class="sub">放上自己的手機條碼，結帳直接刷殼</p><ol>' +
+          '<li>進犀牛盾客製化，產品選<b>手機殼</b></li>' +
+          '<li>點左邊<b>背景</b>，找到空罐王的圖案<img src="img/opt/rhino-step-s.webp" alt="犀牛盾背景圖庫裡的空罐王圖案" loading="lazy"></li>' +
+          '<li>點<b>載具</b>輸入條碼，拖進圖上的白框</li>' +
+        '</ol><div class="v3-btns"><a class="v3-btn" data-track-label="犀牛盾手機殼" href="' + RHINO + '" target="_blank" rel="noopener">去犀牛盾設計</a></div></div>' +
+      '</div>' +
     '</div></section>'
   ]);
   CK_SHOP.carousel(document.querySelector('.phone-mq'));
