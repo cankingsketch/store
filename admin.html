@@ -666,6 +666,17 @@
     }).join('');
   }
 
+  /* 讀取失敗的訊息。後台頁面開著放太久，Cloudflare Access 的登入會過期（瀏覽器把 CF_Authorization 刪掉），
+     之後 /api/* 都會回「未通過驗證」。重新載入 /admin 就會走 Access 重新登入，所以直接給一顆按鈕（2026-10-21） */
+  function failHtml(e) {
+    var m = String((e && e.message) || e);
+    if (/Cloudflare Access|重新登入|無法驗證登入/.test(m)) {
+      return '<p class="empty">登入已過期（後台開著放太久）。' +
+        '<button type="button" onclick="location.reload()" style="margin-left:8px;padding:4px 12px;border:1px solid #e33;border-radius:999px;background:#fff;color:#e33;cursor:pointer">重新登入</button></p>';
+    }
+    return '<p class="empty">讀取失敗：' + esc(m) + '</p>';
+  }
+
   function section(title, inner) {
     return '<h2 style="font-size:15px;margin:22px 0 6px;">' + title + '</h2>' + inner;
   }
@@ -935,7 +946,7 @@
       })
       .catch(function (e) {
         $('tf-period').textContent = '';
-        $('tf-body').innerHTML = '<p class="empty">讀取失敗：' + esc(e.message || e) + '</p>';
+        $('tf-body').innerHTML = failHtml(e);
       })
       .then(function () { tfBusy = false; });
   }
@@ -1015,7 +1026,7 @@
       })
       .catch(function (e) {
         $('gs-period').textContent = '';
-        $('gs-body').innerHTML = '<p class="empty">讀取失敗：' + esc(e.message || e) + '</p>';
+        $('gs-body').innerHTML = failHtml(e);
       })
       .then(function () { salesBusy = false; });
   }
@@ -1035,7 +1046,7 @@
       })
       .catch(function (e) {
         $('st-period').textContent = '';
-        $('st-body').innerHTML = '<p class="empty">讀取失敗：' + esc(e.message || e) + '</p>';
+        $('st-body').innerHTML = failHtml(e);
       })
       .then(function () { busy = false; });
   }
