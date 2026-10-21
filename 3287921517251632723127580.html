@@ -13,30 +13,15 @@
   @media (max-width:760px) { .phone-mq .mq { --n:1.3; } }
   .cases-go { margin-top:26px; }
   .rhino-sec { margin-top:72px; }
-  /* 犀牛盾（2026-10-19）：圖案放在犀牛盾客製化的圖庫裡、沒有單獨的連結 → 宣傳圖＋三步驟教學＋直接開客製化頁。
-     教學只寫找不到的地方，關鍵字跟犀牛盾畫面上的字一樣（他說要精簡，怕大家不讀） */
-  /* 左圖右教學一樣大（他要的）：兩欄等寬、高度跟著宣傳圖拉齊，教學內容在框裡置中 */
-  .rhino { display:grid; grid-template-columns:1fr 1fr; gap:22px; align-items:stretch; }
-  .rhino-pic { display:block; padding:10px; border-radius:22px; }
-  .rhino-pic img { display:block; width:100%; border-radius:14px; }
-  .rhino-how { display:flex; flex-direction:column; justify-content:center; padding:24px 28px; border-radius:22px; text-align:left; }
-  .rhino-how h3 { margin:0 0 4px; font-size:19px; font-weight:900; color:var(--ink); }
-  .rhino-how .sub { margin:0 0 14px; font-size:14px; color:var(--mute); }
-  .rhino-how ol { list-style:none; margin:0; padding:0; counter-reset:st; }
-  .rhino-how li { counter-increment:st; position:relative; padding:0 0 0 38px; margin:0 0 14px; font-size:15px; line-height:1.6; color:var(--ink); }
-  .rhino-how li::before { content:counter(st); position:absolute; left:0; top:-1px; width:27px; height:27px; border-radius:50%;
-    background:var(--red2); color:#fff; font-weight:900; font-size:14px; display:flex; align-items:center; justify-content:center; }
-  .rhino-how li b { color:var(--red2); }
-  .rhino-how .v3-btns { justify-content:flex-start; margin-top:6px; }
-  @media (min-width:761px) {   /* 框跟宣傳圖一樣高，字放大一點才不會空空的 */
-    .rhino-how { padding:32px 40px; }
-    .rhino-how h3 { font-size:26px; }
-    .rhino-how .sub { font-size:16px; margin-bottom:22px; }
-    .rhino-how li { font-size:18px; padding-left:46px; margin-bottom:18px; }
-    .rhino-how li::before { width:32px; height:32px; font-size:16px; top:-2px; }
-    .rhino-how .v3-btns { margin-top:12px; }
-  }
-  @media (max-width:760px) { .rhino { grid-template-columns:1fr; } }
+  /* 犀牛盾（2026-10-19）：圖案在犀牛盾的創作者頁，宣傳圖＋流程說明圖（他做的截圖加上三步驟），點了都開創作者頁。
+     兩張圖的寬度、間距、卡片樣式跟上面惡魔盾的輪播一樣（他要上下對齊）：寬度用 .mq 的 --w、間距 20px */
+  .rhino { display:grid; grid-template-columns:1fr 1fr; gap:20px; width:min(1040px, 100vw - 64px); margin:0 auto; padding:6px 0; }
+  .rhino a { display:block; aspect-ratio:1 / 1; border-radius:16px; overflow:hidden; background:#fff;
+    border:3px solid #fff; box-shadow:0 2px 12px rgba(0,0,0,.09); }
+  .rhino img { display:block; width:100%; height:100%; object-fit:cover; transition:transform .35s; }
+  .rhino a:hover img { transform:scale(1.04); }
+  @media (orientation:portrait) { .rhino { width:calc(100vw - 24px); gap:10px; } }   /* 跟 .mq 直立時的 --w、--g 一樣 */
+  @media (max-width:760px) { .rhino { grid-template-columns:1fr; width:auto; } .rhino a { border-radius:10px; border-width:2px; } }
 </style>
 <meta name="description" content="空罐王 × DEVILCASE 聯名手機殼。">
 <link rel="canonical" href="https://cankingstore.com/3287921517251632723127580">
@@ -73,13 +58,12 @@
       // 犀牛盾跟上面的惡魔盾都是手機殼：放在同一條帶子裡，背景花紋一路延伸下去（他要的）
       '<div class="rhino-sec">' + CK_SHOP.head('犀牛盾', 'RHINOSHIELD') +
       '<div class="rhino">' +
-        '<a class="rhino-pic white-box" href="' + RHINO + '" target="_blank" rel="noopener" data-track-label="犀牛盾手機殼"><img src="' + CK_SHOP.opt('rhino2026.png', 'l') + '" alt="犀牛盾 × 空罐王 自由拼貼你的殼" loading="lazy"></a>' +
-        '<div class="rhino-how white-box"><h3>載具手機殼</h3><p class="sub">放上自己的手機條碼，結帳直接刷殼</p><ol>' +
-          '<li>進空罐王的犀牛盾頁，點喜歡的<b>手機殼</b></li>' +
-          '<li>點下方的<b>客製化設計</b></li>' +
-          '<li>點左邊<b>載具</b>建立條碼，貼到圖上的白框</li>' +
-        '</ol><div class="v3-btns"><a class="v3-btn" data-track-label="犀牛盾手機殼" href="' + RHINO + '" target="_blank" rel="noopener">去犀牛盾設計</a></div></div>' +
-      '</div></div>' +
+        '<a href="' + RHINO + '" target="_blank" rel="noopener" data-track-label="犀牛盾手機殼"><img src="' + CK_SHOP.opt('rhino2026.png', 'l') + '" alt="犀牛盾 × 空罐王 自由拼貼你的殼" loading="lazy"></a>' +
+        '<a href="' + RHINO + '" target="_blank" rel="noopener" data-track-label="犀牛盾手機殼"><img src="' + CK_SHOP.opt('rhino-howto.png', 'l') +
+          '" alt="載具手機殼：1 進空罐王的犀牛盾頁，點喜歡的手機殼　2 點下方的客製化設計　3 點左邊載具建立條碼，貼到圖上的白框" loading="lazy"></a>' +
+      '</div>' +
+      '<div class="v3-btns cases-go"><a class="v3-btn" data-track-label="犀牛盾手機殼" href="' + RHINO + '" target="_blank" rel="noopener">去犀牛盾設計</a></div>' +
+      '</div>' +
     '</div></section>'
   ]);
   CK_SHOP.carousel(document.querySelector('.phone-mq'));
