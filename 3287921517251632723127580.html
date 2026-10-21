@@ -13,7 +13,6 @@
   @media (max-width:760px) { .phone-mq .mq { --n:1.3; } }
   .cases-go { margin-top:26px; }
   .rhino-sec { margin-top:72px; }
-  .devil-sec { margin-top:40px; }
   /* 犀牛盾（2026-10-19）：圖案在犀牛盾的創作者頁，宣傳圖＋流程說明圖（他做的截圖加上三步驟），點了都開創作者頁。
      兩張圖的寬度、間距、卡片樣式跟上面惡魔盾的輪播一樣（他要上下對齊）：寬度用 .mq 的 --w、間距 20px */
   .rhino { display:grid; grid-template-columns:1fr 1fr; gap:20px; width:min(1040px, 100vw - 64px); margin:0 auto; padding:6px 0; }
@@ -49,9 +48,9 @@
   // 5b：他改過第 5 張（充電頭的字），換檔名避開快取
   var PICS = ['devilcase2026-1.png', 'devilcase2026-2.png', 'devilcase2026-3.png', 'devilcase2026-4.png', 'devilcase2026-5b.png'];
   CK_SHOP.page('聯名手機殼', [
-    '<section class="band v3 b-dots"><div class="v3-wrap">' + CK_SHOP.head('聯名手機殼', 'PHONE CASES') +
-      // 兩個品牌各一個小標題，格式跟下面的犀牛盾一樣（他要的）
-      '<div class="devil-sec">' + CK_SHOP.head('惡魔防摔殼', 'DEVILCASE') + '</div>' +
+    '<section class="band v3 b-dots"><div class="v3-wrap">' +
+      // 兩個品牌各一個標題，格式一樣（他要的）；「聯名手機殼」頁名已經在導覽列，不重複
+      CK_SHOP.head('惡魔防摔殼', 'DEVILCASE') +
       '<div class="mq-wrap phone-mq"><button class="mq-arrow prev" aria-label="上一張">‹</button><div class="mq"><div class="mq-track">' +
         PICS.map(function (s) {
           return '<a class="mq-card" href="' + GO + '" target="_blank" rel="noopener"><img src="' + CK_SHOP.opt(s, 'l') + '" alt="聯名手機殼" draggable="false"></a>';
