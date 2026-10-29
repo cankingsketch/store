@@ -26,6 +26,8 @@
   .step .n { width:34px; height:34px; margin:0 auto; border-radius:50%; background:var(--red2); color:#fff; font-weight:900; display:grid; place-items:center; }
   .step b { display:block; margin-top:10px; font-size:17px; font-weight:800; color:var(--ink); }
   .step p { margin:6px 0 0; font-size:13.5px; line-height:1.65; color:#555; }
+  .ask { margin:22px auto 0; text-align:center; font-size:15px; color:var(--ink); }
+  .ask a { margin-left:10px; font-weight:800; color:var(--red2); text-decoration:underline; text-underline-offset:3px; word-break:break-all; }
   .fine { margin:16px auto 0; max-width:760px; text-align:center; font-size:12.5px; color:#8a6f6b; line-height:1.6; }
   @media (max-width:760px) {
     .cc { grid-template-columns:1fr; gap:16px; padding:12px; }
@@ -79,6 +81,8 @@
         return '<div class="step white-box"><div class="n">' + (k + 1) + '</div><b>' + s[0] + '</b><p>' + s[1] + '</p></div>';
       }).join('') + '</div>' +
       '<p class="fine">※ 可放入 Apple 錢包及 Google 錢包，沒有扣款功能（扣款是平台端的擴充功能，需另付月費）。</p>' +
+      // 客製問題比較多（2026-10-29 他要的）：步驟下面放詢問信箱
+      '<p class="ask">有問題可以來信詢問<a href="mailto:canking2011@gmail.com">canking2011@gmail.com</a></p>' +
     '</div></section>'
   ]);
   var ALL = ['cashcard-hero.jpg'].concat(WORKS).map(function (s) { return CK_SHOP.opt(s, 'l'); });
