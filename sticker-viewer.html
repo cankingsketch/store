@@ -63,7 +63,7 @@
 </head>
 <body>
 <canvas id="stage"></canvas>
-<script src="stickers.js?v=71bd9139"></script>
+<script src="stickers.js?v=1420e667"></script>
 <div class="brand"><i>罐</i>空罐商店　貼紙預覽</div>
 <div class="caption"><b id="capName"></b><span id="capNote"></span></div>
 <div class="bar" id="bar"></div>
@@ -73,7 +73,7 @@
 <script id="fs" type="x-shader/x-fragment">#version 300 es
 precision highp float;
 uniform vec2 uRes, uCenter, uTex;     // 畫布、貼紙中心、貼圖在畫面上的大小（裝置像素）
-uniform float uPxmm, uCam, uScale, uAlpha, uLod, uPeel, uHolo, uDebug, uClear, uGloss;
+uniform float uPxmm, uCam, uScale, uAlpha, uLod, uPeel, uHolo, uDebug, uClear, uGloss, uFoilPattern;
 uniform float uStack;                 // 1＝兩層（電影票根釘在發票上）：uUnder 是下層、不會動；uArt/uMask 是上層、可以翻
 uniform float uSheet;                 // 1＝透明貼紙板：uUnder 是整張板子，uArt/uMask 是正在撕的那一枚（位置 uTopOff、大小 uTopTex）
 uniform vec2 uTopOff, uTopTex;
@@ -116,6 +116,23 @@ vec3 holo(vec2 mm){
   float n1=fbm(mm*.035+vec2(3.1,7.7));
   float n2=fbm(mm*.09+vec2(11.3,1.9));
   float view=uTilt.y*4.5+uTilt.x*3.2;
+  // 新款雷射銀底：方格／小米點；只作用在白墨之外，舊款保留原效果。
+  if (uFoilPattern > .5) {
+    vec2 q = mm * (uFoilPattern < 1.5 ? .55 : 2.4);
+    if (uFoilPattern > 1.5) q.x += mod(floor(q.y), 2.)*.5;
+    vec2 cell = floor(q), f = fract(q)-.5;
+    float phase, intensity;
+    if (uFoilPattern < 1.5) {
+      phase = mod(cell.x+cell.y, 2.)*.25 + hash(cell)*.3 + view;
+      intensity = mix(.55, 1., smoothstep(.0,.035,.5-max(abs(f.x),abs(f.y))));
+    } else {
+      float r = length(f);
+      phase = atan(f.y,f.x)/6.2831 + hash(cell)*.4 + view;
+      intensity = mix(.35, 1., 1.-smoothstep(.25,.31,r));
+    }
+    vec3 rainbow = .5+.5*cos(6.2831*(phase+vec3(0.,.33,.67)));
+    return mix(vec3(.78,.80,.83), rainbow, .66)*intensity;
+  }
   float phase=dot(mm,vec2(.016,.010))+n1*1.25+view;
   vec3 rb=.5+.5*cos(6.2831*(phase+vec3(0.,.33,.67)));
   float band=smoothstep(.40,.95,.5+.5*sin(6.2831*(phase*.5+n2*.9+view*.35)));
@@ -252,7 +269,7 @@ gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
 gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 var U = {};
-['uRes', 'uCenter', 'uTex', 'uPxmm', 'uCam', 'uScale', 'uAlpha', 'uLod', 'uPeel', 'uHolo', 'uDebug', 'uClear', 'uGloss', 'uStack', 'uSheet', 'uTopOff', 'uTopTex', 'uRot', 'uTilt', 'uM', 'uD',
+['uRes', 'uCenter', 'uTex', 'uPxmm', 'uCam', 'uScale', 'uAlpha', 'uLod', 'uPeel', 'uHolo', 'uDebug', 'uClear', 'uGloss', 'uFoilPattern', 'uStack', 'uSheet', 'uTopOff', 'uTopTex', 'uRot', 'uTilt', 'uM', 'uD',
  'uArt', 'uMask', 'uBack', 'uUnder'].forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
 
 function texture(source, premultiply, repeat) {
@@ -622,6 +639,7 @@ function draw() {
   gl.uniform1f(U.uDebug, showWhite ? 1 : 0);
   gl.uniform1f(U.uClear, S.clear ? 1 : 0);
   gl.uniform1f(U.uGloss, S.gloss ? 1 : 0);
+  gl.uniform1f(U.uFoilPattern, S.foilPattern === 'grid' ? 1 : S.foilPattern === 'rice' ? 2 : 0);
   gl.uniform1f(U.uStack, S.stack || S.sheet ? 1 : 0);
   gl.uniform1f(U.uSheet, S.sheet ? 1 : 0);
   // 上層：一般貼紙就是自己；貼紙板是正在撕的那一枚（還沒按過就沒有）
