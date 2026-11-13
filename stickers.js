@@ -6,8 +6,8 @@
 // set 有值的是「組合裡的一張」，不單賣、不進貼紙牆，只在組合預覽裡出現。
 window.CK_STICKERS = [
   // 2026-11-13：合併 AI 圖層，使用者確認圖案下白墨、透明處露銀底；亮膜。
-  { id: 'office', name: '喜歡上班', wMm: 71.7, hMm: 87.2, padMm: 5, holo: 1, gloss: 1, foilPattern: 'grid', material: '方格雷射銀＋亮膜', added: '2026-11-13' },
-  { id: 'chicken', name: '請你吃雞腿', wMm: 77.4, hMm: 92.2, padMm: 5, holo: 1, gloss: 1, foilPattern: 'rice', material: '小米點雷射銀＋亮膜', added: '2026-11-13' },
+  { id: 'office', thumbId: 'office-foil2', name: '喜歡上班', wMm: 71.7, hMm: 87.2, padMm: 5, holo: 1, gloss: 1, foilPattern: 'grid', material: '方格雷射銀＋亮膜', added: '2026-11-13' },
+  { id: 'chicken', thumbId: 'chicken-foil2', name: '請你吃雞腿', wMm: 77.4, hMm: 92.2, padMm: 5, holo: 1, gloss: 1, foilPattern: 'rice', material: '小米點雷射銀＋亮膜', added: '2026-11-13' },
   { id: 'onigiri',       name: '飯糰',       wMm: 81.1,  hMm: 87.2, padMm: 5, holo: 0, added: '2026-08-30' },
   { id: 'breakfast',     name: '早餐',       wMm: 101.3, hMm: 75.4, padMm: 5, holo: 0, added: '2026-08-30' },
   { id: 'buhuihuahua',   name: '不會畫畫', wMm: 80,    hMm: 67,   padMm: 5, holo: 1, added: '2026-09-25' },   // 最新款，其他都是舊款

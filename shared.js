@@ -253,7 +253,7 @@
       (p.note ? '<p>' + esc(p.note) + '</p>' : '') + '</section>';
   }
   function tile(s) {
-    var thumb = 'assets/' + s.id + '-thumb.webp';
+    var thumb = 'assets/' + (s.thumbId || s.id) + '-thumb.webp';
     var fx = s.holo ? 'assets/' + s.id + '-foil.png' : thumb;      // 雷射款：特效只落在沒白墨的地方
     return '<button class="tile' + (s.holo ? ' holo' : '') + '" data-sticker="' + s.id + '" style="--rot:' + rot(s.id) + 'deg;--mm:' + s.wMm + ";--mask:url('" + fx + "')\">" +
       '<span class="tags">' + (isNew(s) ? '<i class="tag new">NEW</i>' : '') + (s.holo ? '<i class="tag holo">雷射</i>' : '') + '</span>' +
@@ -306,7 +306,7 @@
     var SPEC_SETS = ['空罐表情貼', '通學路散步組合貼'];
     lb.querySelector('.buybox').innerHTML = buyBox(t ? t.name : '防水貼紙', t ? t.price : s.price, t
       ? { img: setThumb(t), wish: SPEC_SETS.indexOf(t.name) >= 0 ? { f: '防水貼紙 共11款', sp: t.name } : null }
-      : { trackLabel: '貼紙・' + s.name, wish: { v: s.name, f: '防水貼紙 共11款', sp: s.name, img: 'assets/' + s.id + '-thumb.webp' } });
+      : { trackLabel: '貼紙・' + s.name, wish: { v: s.name, f: '防水貼紙 共11款', sp: s.name, img: 'assets/' + (s.thumbId || s.id) + '-thumb.webp' } });
     // 提示只留撕／翻這種不講不會發現的操作，一句話（照ちいかわマーケット的做法，說明越少越好）
     lb.querySelector('.lb-hint').textContent = s.sheetView ? '按住一枚往內拖，可以撕起來' : s.stack ? '往左上拖，可以翻開票根'
       : s.paper ? '' : '按住邊緣往內拖，可以撕起來';
@@ -377,7 +377,7 @@
     var sets = SETS.filter(function (t) { return t.items && t.items.length; });
     el.hidden = list.length + sets.length < 2;
     el.innerHTML = el.hidden ? '' : list.map(function (s, i) {
-      return '<button data-k="' + i + '" title="' + esc(s.name) + '"><img src="assets/' + s.id + '-thumb.webp" alt="' + esc(s.name) + '" loading="lazy"></button>';
+      return '<button data-k="' + i + '" title="' + esc(s.name) + '"><img src="assets/' + (s.thumbId || s.id) + '-thumb.webp" alt="' + esc(s.name) + '" loading="lazy"></button>';
     }).join('') + sets.map(function (t) {
       return '<button class="set" data-go-set="' + t.id + '" title="' + esc(t.name) + '"><img src="' + setThumb(t) + '" alt="' + esc(t.name) + '" loading="lazy"><i>組合</i></button>';
     }).join('');
@@ -433,7 +433,7 @@
   function sheetHtml(t, k) {
     return '<span class="sheetcard" style="width:' + CARD.w * k + 'px;height:' + CARD.h * k + 'px">' +
       '<i class="film" style="top:' + CARD.top * k + 'px;height:' + (CARD.h - CARD.top) * k + 'px"></i>' + t.items.map(function (s) {
-      return '<img src="assets/' + s.id + '-thumb.webp" alt="" style="left:' + (s.sx - s.wMm / 2) * k + 'px;top:' + (CARD.top + s.sy - s.hMm / 2) * k + 'px;width:' + s.wMm * k + 'px">';
+      return '<img src="assets/' + (s.thumbId || s.id) + '-thumb.webp" alt="" style="left:' + (s.sx - s.wMm / 2) * k + 'px;top:' + (CARD.top + s.sy - s.hMm / 2) * k + 'px;width:' + s.wMm * k + 'px">';
     }).join('') + '</span>';
   }
   function setTile(t) {
@@ -441,7 +441,7 @@
     if (t.kind === 'sheet') pic = '<span class="stk sheetwrap">' + sheetHtml(t, 0.95) + '</span>';
     else if (t.kind === 'box') pic = '<span class="stk bxwrap">' + boxHtml(t, 1.25) + '</span>';
     else pic = '<span class="stk fan">' + t.items.slice(0, 3).map(function (s) {
-      return '<img src="assets/' + s.id + '-thumb.webp" alt="">';
+      return '<img src="assets/' + (s.thumbId || s.id) + '-thumb.webp" alt="">';
     }).join('') + '</span>';
     return '<button class="tile set set-' + t.kind + '" data-set="' + t.id + '" style="--rot:' + rot(t.id) + 'deg">' +
       '<span class="tags"><i class="tag setc">組合・' + t.items.length + ' ' + t.unit + '</i></span>' +
@@ -737,7 +737,7 @@
     if (cur.kind === 'box') cineLoad();
     var st0 = sl.querySelector('.sl-stage'); ['--tx', '--ty', '--sx'].forEach(function (v) { st0.style.removeProperty(v); });
     sl.querySelector('.sl-items').innerHTML = (cur.kind === 'sheet' ? '<div class="sheetfilm"></div>' : '') + cur.items.map(function (s) {
-      var th = 'assets/' + s.id + '-thumb.webp';
+      var th = 'assets/' + (s.thumbId || s.id) + '-thumb.webp';
       return '<button class="sl-item' + (s.gloss ? ' gloss' : '') + '" data-item="' + s.id + '" title="' + esc(s.name) + '"' + (s.gloss ? " style=\"--mask:url('" + th + "')\"" : '') + '><img src="' + th + '" alt="' + esc(s.name) + '"></button>';
     }).join('') + (cur.kind === 'sheet' ? '<div class="opp"></div>' : '');
     sl.querySelector('.sl-hint').textContent = cur.closedHint;

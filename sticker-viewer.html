@@ -63,7 +63,7 @@
 </head>
 <body>
 <canvas id="stage"></canvas>
-<script src="stickers.js?v=1ceb4f83"></script>
+<script src="stickers.js?v=5e6cd36c"></script>
 <div class="brand"><i>罐</i>空罐商店　貼紙預覽</div>
 <div class="caption"><b id="capName"></b><span id="capNote"></span></div>
 <div class="bar" id="bar"></div>
@@ -116,22 +116,45 @@ vec3 holo(vec2 mm){
   float n1=fbm(mm*.035+vec2(3.1,7.7));
   float n2=fbm(mm*.09+vec2(11.3,1.9));
   float view=uTilt.y*4.5+uTilt.x*3.2;
-  // 新款雷射銀底：方格／小米點；只作用在白墨之外，舊款保留原效果。
+  // 依實物：方格內有四個三角鏡面；小米點為不規則、重疊的圓形光斑。
+  // 紋路固定在銀底上；移動時只改各切面的反光，不讓圖案漂移。
   if (uFoilPattern > .5) {
-    vec2 q = mm * (uFoilPattern < 1.5 ? .55 : 2.4);
-    if (uFoilPattern > 1.5) q.x += mod(floor(q.y), 2.)*.5;
-    vec2 cell = floor(q), f = fract(q)-.5;
-    float phase, intensity;
+    float broad = dot(mm,vec2(.012,.008)) + view*.16;
+    vec3 silver = vec3(.72,.75,.80);
     if (uFoilPattern < 1.5) {
-      phase = mod(cell.x+cell.y, 2.)*.25 + hash(cell)*.3 + view;
-      intensity = mix(.55, 1., smoothstep(.0,.035,.5-max(abs(f.x),abs(f.y))));
-    } else {
-      float r = length(f);
-      phase = atan(f.y,f.x)/6.2831 + hash(cell)*.4 + view;
-      intensity = mix(.35, 1., 1.-smoothstep(.25,.31,r));
+      vec2 q = mm/3.2, cell = floor(q), f = fract(q)-.5;
+      float facet = abs(f.x)>abs(f.y) ? (f.x>0. ? 0. : 2.) : (f.y>0. ? 1. : 3.);
+      float orient = facet*1.570796;
+      float phase = broad + dot(cell,vec2(.035,.018)) + facet*.22;
+      float light = .5+.5*cos(orient+view*2.1+dot(cell,vec2(.19,.11)));
+      vec3 rainbow = .5+.5*cos(6.2831*(phase+vec3(0.,.33,.67)));
+      float colorBand = .5+.5*sin(6.2831*(broad*.65+cell.y*.025));
+      vec3 c = mix(silver, rainbow, .28+.57*colorBand)*(.48+.68*light);
+      // 僅細刻線，不畫黑棋盤邊框。
+      float edge = min(.5-max(abs(f.x),abs(f.y)),abs(abs(f.x)-abs(f.y)));
+      return mix(c*.82,c,smoothstep(0.,.014,edge));
     }
-    vec3 rainbow = .5+.5*cos(6.2831*(phase+vec3(0.,.33,.67)));
-    return mix(vec3(.78,.80,.83), rainbow, .66)*intensity;
+    vec2 q = mm*.8, cell = floor(q);
+    vec3 c = silver*(.82+.12*sin(broad*6.2831));
+    float aa = max(fwidth(q.x),fwidth(q.y))*.65;
+    // 每格兩枚偏移圓點，檢查鄰格以保留跨格重疊，沒有規則點陣。
+    for (int y=-1;y<=1;y++) for (int x=-1;x<=1;x++) {
+      vec2 g = cell+vec2(float(x),float(y));
+      for (int k=0;k<2;k++) {
+        vec2 seed = g+vec2(float(k)*37.1,float(k)*19.7);
+        vec2 center = g+vec2(hash(seed+2.3),hash(seed+7.9));
+        vec2 d = q-center;
+        float radius = .2+.22*hash(seed+13.4);
+        float cover = 1.-smoothstep(radius-aa,radius+aa,length(d));
+        float phase = hash(seed+31.7)+view*.42+broad*.12;
+        vec3 rainbow = .5+.5*cos(6.2831*(phase+vec3(0.,.33,.67)));
+        float shine = .5+.5*cos(view*3.+hash(seed+17.2)*6.2831);
+        vec3 dotColor = mix(vec3(.88,.90,.94),rainbow,.70)*(.72+.37*shine);
+        float glint = exp(-dot(d-vec2(-.06,-.07),d-vec2(-.06,-.07))/(radius*radius*.18));
+        c = mix(c,dotColor+vec3(.2*glint),cover);
+      }
+    }
+    return c;
   }
   float phase=dot(mm,vec2(.016,.010))+n1*1.25+view;
   vec3 rb=.5+.5*cos(6.2831*(phase+vec3(0.,.33,.67)));
@@ -541,7 +564,7 @@ var bar = document.getElementById('bar');
 STICKERS.forEach(function (s, i) {
   var b = document.createElement('button');
   b.className = 'thumb'; b.title = s.name; b.setAttribute('aria-label', s.name);
-  var im = document.createElement('img'); im.src = 'assets/' + s.id + '-thumb.webp'; im.alt = ''; im.loading = 'lazy';
+  var im = document.createElement('img'); im.src = 'assets/' + (s.thumbId || s.id) + '-thumb.webp'; im.alt = ''; im.loading = 'lazy';
   b.appendChild(im);
   b.addEventListener('click', function () { show(i); });
   bar.appendChild(b);
