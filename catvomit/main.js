@@ -731,7 +731,7 @@ function step(dt) {
       p.hitBowl = hit; if (hit) p.air = false;
     } else p.hitBowl = false;
     // 量杯
-    if (cup.visible && !p.carried) for (const s of CUP_SEGS) if (pushOutSeg(p, s[0], s[1], s[2], s[3], 5 + P.R)) p.air = false;
+    if (cup.visible && !p.carried && !p.floor) for (const s of CUP_SEGS) if (pushOutSeg(p, s[0], s[1], s[2], s[3], 5 + P.R)) p.air = false;
     // 從碗倒出來的：掉到杯口高度以下就一定在杯子裡面（看不見的漏斗），一滴都不漏
     if (p.pour && !p.carried && S.t > 0.8 && p.y < CUP.top + 14) { // 碗還在搬運（裡面的液體跟著碗走）時不吸
       const lo = CUP.x - P.CUP_W + 10, hi = CUP.x + P.CUP_W - 10;
@@ -761,7 +761,7 @@ function step(dt) {
     const cl = Math.hypot(cx, cy); if (cl > P.CMAX) { cx *= P.CMAX / cl; cy *= P.CMAX / cl; }
     p.vx = nvx + cx; p.vy = nvy + cy;
     // 倒的時候，量杯口上方像漏斗：從碗流下來的往杯口中央集中
-    if (S.name === 'pour' && !p.hitBowl && p.y > CUP.top - 10 && p.y < CUP.top + 280 && (p.pour || Math.abs(p.x - CUP.x) < 240)) {
+    if (S.name === 'pour' && !p.hitBowl && p.y > CUP.top - 10 && p.y < CUP.top + 280 && p.pour && !p.floor) { // 只吸碗裡倒出來的（11/26：以前連地上的液體也吸進杯口）
       p.vx += ((CUP.x - p.x) * 55 - p.vx * 14) * dt;
     }
     if (p.carried) { if (p.hitBowl) { p.vx *= P.BOWL_DAMP; p.vy *= P.BOWL_DAMP; } } // 碗裡的：速度是相對碗的
