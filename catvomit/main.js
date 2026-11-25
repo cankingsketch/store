@@ -538,7 +538,7 @@ const RAW = {}, BUF = {};
 // 乾嘔、咳嗽尖峰大、壓不到那麼響，這裡補；倒杯黏液聲是背景，壓低一點讓「啵」聽得到
 const VOL = { retch: 1, cough: 1.12, vomit: 0.56, pour: 0.56, meow_sweet1: 0.66, meow_sweet3: 0.66, meow_sad: 1.36 }; // 11/26 短時響度實測：主要音效約 -19、黏液聲 -24、啵 -21
 const SND = { on: true, pour: true, bloop: true, mlBeep: false, jingle: true, meow: true };
-const SFX_NAMES = ['retch', 'cough', 'vomit', 'pour', 'meow_sweet1', 'meow_sweet3', 'meow_sad'];
+const SFX_NAMES = ['retch', 'vomit', 'pour', 'meow_sweet1', 'meow_sweet3', 'meow_sad'];
 for (const n of SFX_NAMES) fetch(`sfx/${n}.mp3`).then(r => r.arrayBuffer()).then(b => RAW[n] = b).catch(() => {});
 function initAudio() {
   if (ac) { ac.resume(); return; }
@@ -847,8 +847,8 @@ function enter(name) {
   if (name === 'title' || name === 'idle') { setPose('normal'); S.dur = name === 'idle' ? 2.0 : 1e9; } // 開場先原地呼吸 2 秒
   if (name === 'idle') { blink.next = now + 0.6 + Math.random() * 0.4; blink.again = false; } // 待機 2 秒內一定眨一次
   if (name === 'pour') { blink.next = now + 0.35; blink.again = false; } // 吐完回到普通臉，很快眨一下
-  // 三下乾嘔對齊 retch 的三段聲音，第四下是最後的咳嗽
-  if (name === 'sick') { S.tagged = false; S.notice = false; S.dodge = null; S.dodgeT = -9; S.bangT = -9; pickAim(); S.juke = null; S.cornerT = 0; S.dur = 3.4; S.heaves = [0.0, 0.88, 2.02, 2.7]; S.played = 0; play('retch', 1); }
+  // 身體縮一下的時間點對齊 retch.mp3（用力乾嘔）每一下；不再播咳嗽
+  if (name === 'sick') { S.tagged = false; S.notice = false; S.dodge = null; S.dodgeT = -9; S.bangT = -9; pickAim(); S.juke = null; S.cornerT = 0; S.dur = 3.4; S.heaves = [0.25, 0.80, 0.99, 1.57, 1.77, 2.37, 2.57]; play('retch', 1); } // 對齊新乾嘔聲（用力乾嘔 C，11/26 他選的）每一下的時間；最後不再咳嗽
   if (name === 'vomit') {
     S.acc = 0; S.emitted = 0; S.alert = false; S.juke = null; S.dph = Math.random() * 6.28;
     // 連續吐 3 坨：累計到第幾顆為止
@@ -1104,8 +1104,7 @@ function update(dt) {
   if (S.name === 'idle' && S.t > S.dur) enter('sick');
   else if (S.name === 'sick') {
     let heave = 0;
-    for (const h of S.heaves) { const u = (S.t - h) / 0.36; if (u >= 0 && u < 1) heave = Math.sin(u * Math.PI); }
-    while (S.played < S.heaves.length && S.t >= S.heaves[S.played]) { if (S.played === 3) play('cough', 1); S.played++; }
+    for (const h of S.heaves) { const u = (S.t - h) / 0.22; if (u >= 0 && u < 1) heave = Math.sin(u * Math.PI); }
     avoid(dt);
     setPose(heave > 0.05 ? 'sick' : 'normal');
     sy = 1 - 0.06 * heave; sx = 1 + 0.035 * heave;
