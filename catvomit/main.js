@@ -1219,6 +1219,15 @@ function update(dt) {
   if (parts.length > MAX) parts.splice(0, parts.length - MAX);
 }
 
+// 開始畫面：標題底部貼在貓頭頂上方一點、START 的中線壓在貓腳附近（換算成畫面位置，各種螢幕比例都對得上）
+const TITLE_AT = { headTop: -872, gap: 12, startY: -1440 };   // PSD 座標：貓頭頂約 y 881、腳底約 y 1450
+function placeTitle() {
+  if (ui.title.classList.contains('hidden')) return;
+  const sy = (wy) => (1 - tmpV.set(P.FEET.x, wy, 0).project(cam).y) / 2 * SH;
+  const h1 = ui.title.querySelector('h1'), st = $('start');
+  h1.style.top = (sy(TITLE_AT.headTop) - TITLE_AT.gap - h1.offsetHeight) + 'px';
+  st.style.top = (sy(TITLE_AT.startY) - st.offsetHeight / 2) + 'px';
+}
 function placeCupNum() {
   if (ui.cupNum.classList.contains('hidden')) return;
   // 跟著量杯：放在杯底下方（鏡頭拉近後也對得上）
@@ -1274,7 +1283,7 @@ function draw(dt = 0) {
   liquidFree.fill(freeList); liquidStuck.fill(stuckList); liquidFloor.fill(floorList);
   liquidFree.draw(); liquidStuck.draw(); liquidFloor.draw();
   renderer.render(scene, cam);
-  placeCupNum();
+  placeCupNum(); placeTitle();
 }
 // 除錯用：__game.paused = true 後用 __game.tick(秒數) 固定 60 格推進
 // ---------- 試聽面板：網址加 ?listen ----------

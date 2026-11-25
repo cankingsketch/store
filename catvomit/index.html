@@ -29,7 +29,9 @@
     background:rgba(244,239,228,.72)}
   .hidden{display:none!important}
   h1{margin:0;font-size:34px;line-height:1.35;font-weight:900;letter-spacing:2px}
-  #title h1{position:absolute;left:0;right:0;top:24%}   /* 標題往上移到貓頭上方的空白處，START 留在原位 */
+  /* 開始畫面：讓人看到後面淡淡的貓。標題（上四下三、1.5 倍大）貼在貓頭上方，START 稍微壓在貓腳下；位置由 main.js 依貓在畫面上的位置算 */
+  #title h1{position:absolute;left:0;right:0;font-size:51px;line-height:1.25}
+  #title #start{position:absolute;left:0;right:0;margin:0 auto;width:fit-content}
   button{font:900 28px/1 "PingFang TC","Microsoft JhengHei",sans-serif;color:var(--stroke);background:#fff;
     border:5px solid var(--stroke);border-radius:14px;padding:16px 40px;cursor:pointer;touch-action:manipulation}
   button:active{transform:scale(.95)}
@@ -56,7 +58,7 @@
 <div id="stage">
   <div id="cupNum" class="hidden"></div>
   <div id="title" class="panel">
-    <h1>接住貓的嘔吐物</h1>
+    <h1>接住貓的<br>嘔吐物</h1>
     <button id="start">START</button>
   </div>
   <div id="result" class="panel hidden">
