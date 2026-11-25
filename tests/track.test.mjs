@@ -182,6 +182,23 @@ console.log('\n[6c] 打開商品（kind = view）、商品名去空白合併');
   ok('「速寫課1」「速寫課 1」合成一行 2 次', sk.length === 1 && sk[0].n === 2, d.byLabel);
 }
 
+console.log('\n[6d] 小遊戲（kind = game）跟外連點擊分開算');
+{
+  const e7 = { STATS: makeD1() };
+  const g = (label) => hit(e7, { channel: 'catvomit', kind: 'game', label, url: '/catvomit/', page: '/catvomit/' });
+  await g('開始'); await g('開始'); await g('開始'); await g('完成・S'); await g('完成・A'); await g('完成・A');
+  await hit(e7, { channel: '賣貨便', kind: 'shop', label: '下雨天杯墊', url: 'https://myship.7-11.com.tw/a', page: '/goods' });
+  const row = e7.STATS._raw.prepare("SELECT kind FROM clicks WHERE channel = 'catvomit' LIMIT 1").get();
+  ok('game 照原樣存下來', row.kind === 'game', row);
+  const d = await (await ask(e7, '?days=7')).json();
+  ok('外連總數不算 game（1）', d.total === 1, d.total);
+  ok('通路裡沒有遊戲', !d.byChannel.some(c => c.channel === 'catvomit'), d.byChannel);
+  ok('每日序列不算 game', d.byDay.every(x => x.n === 1), d.byDay);
+  const n = (label) => (d.byGame.find(r => r.game === 'catvomit' && r.label === label) || {}).n;
+  ok('開始 3 次', n('開始') === 3, d.byGame);
+  ok('完成・A 2 次、完成・S 1 次', n('完成・A') === 2 && n('完成・S') === 1, d.byGame);
+}
+
 console.log('\n[7] 天數參數');
 {
   const e3 = { STATS: makeD1() };

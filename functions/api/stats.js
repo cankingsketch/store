@@ -47,12 +47,12 @@ export async function onRequestGet({ request, env }) {
   try {
     const rows = (q, ...b) => db.prepare(q).bind(...b).all().then((r) => r.results || []);
 
-    // kind = 'wish' 是「加到想買清單」、'view' 是「打開商品看」，都不是外連：點擊的數字（總數、通路、每日、裝置、國家）都不算它們。
+    // kind = 'wish' 是「加到想買清單」、'view' 是「打開商品看」、'game' 是小遊戲，都不是外連：點擊的數字（總數、通路、每日、裝置、國家）都不算它們。
     // 商品名一律去掉空白再分組：同一個東西改過名（「速寫課1」10/3 改成「速寫課 1」）才不會拆成兩行，顯示用其中一個寫法
-    const [total, byChannel, byLabel, byDay, byPage, byDevice, byCountry, byWish, byView] = await Promise.all([
-      rows(`SELECT COUNT(*) AS n, SUM(kind = 'shop') AS shop FROM clicks WHERE day >= ? AND kind NOT IN ('wish', 'view')`, from),
+    const [total, byChannel, byLabel, byDay, byPage, byDevice, byCountry, byWish, byView, byGame] = await Promise.all([
+      rows(`SELECT COUNT(*) AS n, SUM(kind = 'shop') AS shop FROM clicks WHERE day >= ? AND kind NOT IN ('wish', 'view', 'game')`, from),
       rows(
-        `SELECT channel, kind, COUNT(*) AS n FROM clicks WHERE day >= ? AND kind NOT IN ('wish', 'view')
+        `SELECT channel, kind, COUNT(*) AS n FROM clicks WHERE day >= ? AND kind NOT IN ('wish', 'view', 'game')
          GROUP BY channel, kind ORDER BY n DESC LIMIT ?`,
         from, TOP_N
       ),
@@ -64,7 +64,7 @@ export async function onRequestGet({ request, env }) {
       ),
       rows(
         `SELECT day, COUNT(*) AS n, SUM(kind = 'shop') AS shop FROM clicks
-         WHERE day >= ? AND kind NOT IN ('wish', 'view') GROUP BY day ORDER BY day`,
+         WHERE day >= ? AND kind NOT IN ('wish', 'view', 'game') GROUP BY day ORDER BY day`,
         from
       ),
       // 舊資料裡的 page 帶著 ?fbclid=... 之類的查詢字串（前端已修，但存下來的還在），
@@ -80,9 +80,9 @@ export async function onRequestGet({ request, env }) {
          GROUP BY 1 ORDER BY n DESC LIMIT ?`,
         from, TOP_N_PAGES
       ),
-      rows(`SELECT device, COUNT(*) AS n FROM clicks WHERE day >= ? AND kind NOT IN ('wish', 'view') GROUP BY device`, from),
+      rows(`SELECT device, COUNT(*) AS n FROM clicks WHERE day >= ? AND kind NOT IN ('wish', 'view', 'game') GROUP BY device`, from),
       rows(
-        `SELECT country, COUNT(*) AS n FROM clicks WHERE day >= ? AND country <> '' AND kind NOT IN ('wish', 'view')
+        `SELECT country, COUNT(*) AS n FROM clicks WHERE day >= ? AND country <> '' AND kind NOT IN ('wish', 'view', 'game')
          GROUP BY country ORDER BY n DESC LIMIT ?`,
         from, TOP_N
       ),
@@ -103,6 +103,12 @@ export async function onRequestGet({ request, env }) {
          GROUP BY REPLACE(v.label, ' ', '') ORDER BY n DESC LIMIT ?`,
         from, from, TOP_N
       ),
+      // 小遊戲（2026-11-26）：channel＝遊戲代號（catvomit），label＝「開始」或「完成・等級」
+      rows(
+        `SELECT channel AS game, label, COUNT(*) AS n FROM clicks
+         WHERE day >= ? AND kind = 'game' GROUP BY channel, label ORDER BY channel, n DESC`,
+        from
+      ),
     ]);
 
     const t = total[0] || {};
@@ -122,6 +128,7 @@ export async function onRequestGet({ request, env }) {
       byWish,
       wish: byWish.reduce((s, r) => s + r.n, 0),
       byView,
+      byGame,
       user: auth.email,
     });
   } catch (e) {

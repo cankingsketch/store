@@ -666,6 +666,28 @@
     }).join('');
   }
 
+  // 小遊戲：rows = [{ game, label, n }]，label 是「開始」或「完成・等級」
+  var GAME_NAMES = { catvomit: '你能接住貓的吐嗎？（/catvomit）' };
+  var GRADE_ORDER = ['滿分', 'S', 'A', 'B', 'C', 'D'];
+  function gameList(rows) {
+    if (!rows.length) return '<p class="hint">這段期間還沒有人玩（2026-11-26 開始記）</p>';
+    var games = {};
+    rows.forEach(function (r) {
+      var g = games[r.game] || (games[r.game] = { start: 0, done: 0, grades: {} });
+      if (r.label === '開始') g.start += r.n;
+      else if (r.label.indexOf('完成') === 0) { g.done += r.n; var k = r.label.split('・')[1] || '?'; g.grades[k] = (g.grades[k] || 0) + r.n; }
+    });
+    return Object.keys(games).map(function (k) {
+      var g = games[k];
+      var gr = GRADE_ORDER.filter(function (x) { return g.grades[x]; }).map(function (x) { return { nm: '評分 ' + x, n: g.grades[x] }; });
+      return '<p style="margin:6px 0 4px;font-weight:700">' + esc(GAME_NAMES[k] || k) + '</p>' +
+        '<div class="nums">' +
+          '<div class="num"><b>' + g.start + '</b><span>開始玩（次）</span></div>' +
+          '<div class="num"><b>' + g.done + '</b><span>玩到結算</span></div>' +
+        '</div>' + (gr.length ? barList(gr) : '');
+    }).join('');
+  }
+
   /* 讀取失敗的訊息。後台頁面開著放太久，Cloudflare Access 的登入會過期（瀏覽器把 CF_Authorization 刪掉），
      之後 /api/* 都會回「未通過驗證」。重新載入 /admin 就會走 Access 重新登入，所以直接給一顆按鈕（2026-10-21） */
   function failHtml(e) {
@@ -821,6 +843,9 @@
     html += section('哪個商品被加到想買清單最多',
       (d.byWish && d.byWish.length ? barList(d.byWish.map(function (r) { return { nm: r.label, n: r.n }; })) : '<p class="hint">這段期間還沒有人加</p>') +
       '<p class="hint">跟上面「購買鍵被按最多」對照：加的人多、按購買的人少，就是想買但沒下單</p>');
+
+    // 小遊戲（2026-11-26 開始記）：開始玩幾次、玩完幾次、各等級幾次
+    html += section('小遊戲遊玩次數', gameList(d.byGame || []));
 
 
     var dev = d.byDevice || [], ctry = d.byCountry || [];

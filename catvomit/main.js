@@ -897,6 +897,7 @@ function showResult() {
   const n = cupCount(), ml = n * P.ML, total = Math.max(S.emitted * P.ML, 0.1), pct = n >= S.emitted ? 1 : Math.min(0.99, Math.round(ml / total * 100) / 100); // 等級跟畫面上顯示的 % 一致
   const G = GRADES.find(x => pct >= x.min);
   ui.grade.textContent = G.g; ui.desc.innerHTML = G.d;
+  playLog('完成・' + G.g);
   ui.amt.innerHTML = `接到 ${ml.toFixed(1)} ml<br>貓吐了 ${total.toFixed(1)} ml（${Math.round(pct * 100)}%）`;
   ui.result.classList.remove('hidden');
   const notes = { '滿分': [0, 8, 14, 24, 32], S: [0, 8, 14, 24], A: [0, 8, 14], B: [0, 8], C: [8, 0], D: [6, 0, -8] }[G.g];
@@ -913,12 +914,21 @@ function newGame() {
   ui.result.classList.add('hidden'); ui.title.classList.add('hidden'); ui.cupNum.classList.add('hidden');
   enter('idle');
 }
+// 官網後台記遊玩次數（只在正式網址 cankingstore.com 記，本機、預覽、Artifact 都不記，測試才不會灌數字）
+function playLog(label) {
+  if (!/(^|\.)cankingstore\.com$/.test(location.hostname)) return;
+  try {
+    const body = JSON.stringify({ kind: 'game', channel: 'catvomit', label, url: location.pathname, page: location.pathname });
+    navigator.sendBeacon('/api/track', new Blob([body], { type: 'application/json' }));
+  } catch (e) {}
+}
 $('start').addEventListener('click', () => {
+  playLog('開始');
   initAudio();
   beep(0, 0.22, 0.14); beep(8, 0.22, 0.14, 0.11); beep(14, 0.22, 0.2, 0.22); // 確認有聲音
   newGame();
 });
-$('again').addEventListener('click', () => { initAudio(); newGame(); });
+$('again').addEventListener('click', () => { initAudio(); newGame(); playLog('開始'); });
 
 // ---------- 截圖分享：遊戲畫面＋評分疊成一張直式圖片，手機叫出分享選單，電腦直接下載 ----------
 function shotCanvas() {
