@@ -950,34 +950,40 @@ function shotCanvas() {
   g.font = `700 ${16 * k}px ${F}`; g.globalAlpha = 0.7; g.fillText('貓咪吐', cx, H * 0.95); g.globalAlpha = 1;
   return c;
 }
-// 分享叫不出來（手機版在 Artifact 框架裡，瀏覽器不准）時：跳出截圖，長按存到照片或分享
-function showShot(url) {
-  const touch = matchMedia('(pointer: coarse)').matches;
+// 分享截圖（2026-11-26 他選的做法）：跳出成績圖，只給「複製圖片」「存下圖片」，不叫系統分享選單
+// 手機：長按圖片存到照片＋複製；電腦：存下圖片（下載）＋複製；Artifact 框架裡擋下載，就只留複製和長按／右鍵
+function showShot(canvas, blob, name) {
+  const touch = matchMedia('(pointer: coarse)').matches, inFrame = window.top !== window;
+  const canSave = !touch && !inFrame;
+  const canCopy = !!(navigator.clipboard && window.ClipboardItem);
   const o = document.createElement('div');
-  o.style.cssText = 'position:fixed;inset:0;z-index:30;background:rgba(40,35,25,.82);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;box-sizing:border-box;font:900 20px "PingFang TC","Microsoft JhengHei",sans-serif;color:#fff;text-align:center';
-  o.innerHTML = `<img class="shotImg" src="${url}" style="max-width:86vw;max-height:70vh;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.4);-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto;touch-action:auto">
-    <div>${touch ? '長按圖片 → 儲存到照片或分享' : '在圖片上按右鍵 → 另存圖片'}</div>
-    <button class="sub">關閉</button>`;
-  o.querySelector('button').onclick = () => o.remove();
+  o.style.cssText = 'position:fixed;inset:0;z-index:30;background:rgba(40,35,25,.82);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;box-sizing:border-box;font:900 18px "PingFang TC","Microsoft JhengHei",sans-serif;color:#fff;text-align:center';
+  o.innerHTML = `<img class="shotImg" src="${canvas.toDataURL('image/png')}" style="max-width:82vw;max-height:62vh;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.4);-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto;touch-action:auto">
+    ${touch ? '<div>長按圖片可以存到照片</div>' : ''}
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+      ${canCopy ? '<button class="sub" data-a="copy">複製圖片</button>' : ''}
+      ${canSave ? '<button class="sub" data-a="save">存下圖片</button>' : ''}
+      <button class="sub" data-a="close">關閉</button>
+    </div>
+    <div class="msg" style="min-height:1.4em;font-size:16px"></div>`;
+  const msg = o.querySelector('.msg');
+  o.addEventListener('click', async e => {
+    const a = e.target.dataset && e.target.dataset.a;
+    if (a === 'close' || e.target === o) o.remove();
+    else if (a === 'copy') {
+      try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]); msg.textContent = '已複製，可以直接貼給朋友'; }
+      catch (err) { msg.textContent = touch ? '複製不了，請長按圖片存下來' : '複製不了，請在圖片上按右鍵另存'; }
+    } else if (a === 'save') {
+      const l = document.createElement('a'); l.href = URL.createObjectURL(blob); l.download = name; l.click();
+      setTimeout(() => URL.revokeObjectURL(l.href), 2000);
+      msg.textContent = '已存下圖片';
+    }
+  });
   stage.parentNode.appendChild(o);
 }
 $('share').addEventListener('click', () => {
   const canvas = shotCanvas();
-  canvas.toBlob(async blob => {
-    if (!blob) return;
-    const file = new File([blob], '貓咪吐_' + ui.grade.textContent + '.png', { type: 'image/png' });
-    const text = `我接住了貓吐的 ${ui.amt.textContent.match(/（(\d+%)）/)?.[1] || ''}，評分 ${ui.grade.textContent}！你能接住貓的吐嗎？`;
-    try {
-      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], text }); return; }
-    } catch (e) { if (e.name === 'AbortError') return; } // 取消分享就算了
-    const inFrame = window.top !== window; // Artifact 框架裡：下載也會被擋，直接跳截圖
-    if (!inFrame && !matchMedia('(pointer: coarse)').matches) {
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-      return;
-    }
-    showShot(canvas.toDataURL('image/png'));
-  }, 'image/png');
+  canvas.toBlob(blob => { if (blob) showShot(canvas, blob, '貓咪吐_' + ui.grade.textContent + '.png'); }, 'image/png');
 });
 enter('title');
 
