@@ -35,6 +35,7 @@
 /* 選單左右兩端外側的兩隻（附屬看板的購物空罐妹妹、購物罐罐）；shop-v3.js 會放進頁首 */
 .hd-ch { position:absolute; z-index:3; top:36px; height:132px; width:auto; pointer-events:none; }
 .hd-ch.l { right:calc(50% + 425px); } .hd-ch.r { left:calc(50% + 425px); }
+.hd-game .hd-ch { pointer-events:auto; cursor:pointer; }   /* 左邊人物是小遊戲入口 /catvomit/ */
 @media (max-width:1180px) { .hd-ch { top:8px; height:96px; } .hd-ch.l { right:calc(50% + 120px); } .hd-ch.r { left:calc(50% + 120px); } }
 @media (max-width:760px) { .hd-ch { height:58px; top:14px; } .hd-ch.l { right:calc(50% + 86px); } .hd-ch.r { left:calc(50% + 86px); } }
 

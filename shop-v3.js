@@ -129,7 +129,7 @@ window.CK_SHOP = {
 
   chars: function () {
     var h = document.querySelector('.site-head');
-    if (h && !h.querySelector('.hd-ch')) h.insertAdjacentHTML('beforeend', '<img class="hd-ch l" src="img/shop-girl.webp" alt=""><img class="hd-ch r" src="img/shop-can.webp" alt="">');
+    if (h && !h.querySelector('.hd-ch')) h.insertAdjacentHTML('beforeend', '<a class="hd-game" href="/catvomit/" aria-label="小遊戲：你能接住貓的吐嗎？"><img class="hd-ch l" src="img/shop-girl.webp" alt=""></a><img class="hd-ch r" src="img/shop-can.webp" alt="">'); // 左邊人物點了進小遊戲（2026-11-26 他要的）
   },
 
   // 輪播：完全照ちいかわマーケット（他們用 Splide）實測的動法——
