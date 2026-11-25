@@ -129,10 +129,12 @@ window.CK_SHOP = {
 
   chars: function () {
     var h = document.querySelector('.site-head');
-    if (h && !h.querySelector('.hd-ch')) h.insertAdjacentHTML('beforeend', '<a class="hd-game" href="/catvomit/" aria-label="小遊戲：你能接住貓的吐嗎？"><img class="hd-ch l" src="img/shop-girl.webp" alt=""></a><img class="hd-ch r" src="img/shop-can.webp" alt="">'); // 左邊人物點了進小遊戲（2026-11-26 他要的）
+    // 右邊罐罐是小遊戲入口（2026-11-26 他要的；手機版頁首只剩罐罐，左邊人物只當裝飾）
+    var A = '<a class="hd-game" href="/catvomit/" aria-label="小遊戲：你能接住貓的吐嗎？">';
+    if (h && !h.querySelector('.hd-ch')) h.insertAdjacentHTML('beforeend', '<img class="hd-ch l" src="img/shop-girl.webp" alt="">' + A + '<img class="hd-ch r" src="img/shop-can.webp" alt=""></a>');
     // 點了先原地左右晃一下（以身體中心為軸），晃完才進遊戲（他要的）
-    var g = h && h.querySelector('.hd-game');
-    if (g && !g.dataset.wig) {
+    (h ? h.querySelectorAll('.hd-game') : []).forEach(function (g) {
+      if (g.dataset.wig) return;
       g.dataset.wig = 1;
       g.addEventListener('click', function (e) {
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;   // 開新分頁照舊
@@ -141,7 +143,7 @@ window.CK_SHOP = {
         img.classList.remove('wig'); void img.offsetWidth; img.classList.add('wig');
         setTimeout(function () { location.href = g.getAttribute('href'); }, 520);
       });
-    }
+    });
   },
 
   // 輪播：完全照ちいかわマーケット（他們用 Splide）實測的動法——
