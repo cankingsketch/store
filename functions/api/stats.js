@@ -103,12 +103,16 @@ export async function onRequestGet({ request, env }) {
          GROUP BY REPLACE(v.label, ' ', '') ORDER BY n DESC LIMIT ?`,
         from, from, TOP_N
       ),
-      // 小遊戲（2026-11-26）：channel＝遊戲代號（catvomit），label＝「開始」或「完成・等級」
+      // 小遊戲（2026-11-26 晚改）：game_plays 每天每國一列，只記玩完的次數。
+      // 表還沒建（還沒人玩過）不算錯，回空的，免得整個流量統計讀不出來
       rows(
-        `SELECT channel AS game, label, COUNT(*) AS n FROM clicks
-         WHERE day >= ? AND kind = 'game' GROUP BY channel, label ORDER BY channel, n DESC`,
+        `SELECT game, country, SUM(n) AS n FROM game_plays
+         WHERE day >= ? GROUP BY game, country ORDER BY game, n DESC`,
         from
-      ),
+      ).catch((e) => {
+        if (/no such table/i.test(String(e && e.message))) return [];
+        throw e;
+      }),
     ]);
 
     const t = total[0] || {};

@@ -35,6 +35,21 @@ async function createTable(db) {
   ]);
 }
 
+/* 小遊戲每日次數表：一天、一個遊戲、一個國家一列。主鍵就是查詢條件，不另建索引（多一個索引寫入就多算一列） */
+export async function createGameTable(db) {
+  await db
+    .prepare(
+      `CREATE TABLE IF NOT EXISTS game_plays (
+         day     TEXT    NOT NULL,
+         game    TEXT    NOT NULL,
+         country TEXT    NOT NULL,
+         n       INTEGER NOT NULL,
+         PRIMARY KEY (day, game, country)
+       ) WITHOUT ROWID`
+    )
+    .run();
+}
+
 /* 清掉控制字元並截長度（逐字元處理，避免在原始碼裡放控制字元） */
 function str(v, max) {
   if (typeof v !== 'string') return '';
@@ -76,6 +91,31 @@ export async function onRequestPost({ request, env }) {
       (request.cf && request.cf.country) || request.headers.get('CF-IPCountry') || '';
 
     const now = Date.now();
+
+    // 小遊戲（2026-11-26 改）：不存一筆一筆的紀錄，只把「這天、這個遊戲、這個國家」那一列的次數加 1。
+    // 一局只寫 D1 一列；以前一局寫兩筆、每筆連索引算 4 列，貓咪吐爆紅一天約 2 萬人次就把
+    // 免費方案每天 10 萬列的寫入額度用完（整個帳號共用，指揮部也會跟著存不進去）。
+    // 舊版遊戲（瀏覽器快取）還會送「開始」，不算，只算玩完的那一次。
+    if (kind === 'game') {
+      if (str(body && body.label, MAX_LABEL) === '開始') return new Response(null, NO_CONTENT);
+      const add = () =>
+        db
+          .prepare(
+            `INSERT INTO game_plays (day, game, country, n) VALUES (?, ?, ?, 1)
+             ON CONFLICT (day, game, country) DO UPDATE SET n = n + 1`
+          )
+          .bind(taipeiDay(now), channel, str(country, 8))
+          .run();
+      try {
+        await add();
+      } catch (e) {
+        if (!/no such table/i.test(String(e && e.message))) throw e;
+        await createGameTable(db);
+        await add();
+      }
+      return new Response(null, NO_CONTENT);
+    }
+
     const insert = () =>
       db
         .prepare(

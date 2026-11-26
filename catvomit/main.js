@@ -915,6 +915,8 @@ function newGame() {
   enter('idle');
 }
 // 官網後台記遊玩次數（只在正式網址 cankingstore.com 記，本機、預覽、Artifact 都不記，測試才不會灌數字）
+// 遊玩紀錄：只在玩完看到等級時送一次（2026-11-26 改）。後台只記「哪個國家玩了幾次」，
+// 一局只寫 D1 一列；以前開始、完成各送一筆，一局吃 8 列，爆紅一天就把免費額度用完
 function playLog(label) {
   if (!/(^|\.)cankingstore\.com$/.test(location.hostname)) return;
   try {
@@ -923,12 +925,11 @@ function playLog(label) {
   } catch (e) {}
 }
 $('start').addEventListener('click', () => {
-  playLog('開始');
   initAudio();
   beep(0, 0.22, 0.14); beep(8, 0.22, 0.14, 0.11); beep(14, 0.22, 0.2, 0.22); // 確認有聲音
   newGame();
 });
-$('again').addEventListener('click', () => { initAudio(); newGame(); playLog('開始'); });
+$('again').addEventListener('click', () => { initAudio(); newGame(); });
 
 // ---------- 截圖分享：遊戲畫面＋評分疊成一張直式圖片，手機叫出分享選單，電腦直接下載 ----------
 function shotCanvas() {
